@@ -6,7 +6,7 @@ import { ChevronDown, MapPin } from 'lucide-react';
 
 // Mini sparkline chart using SVG
 function Sparkline({ data, color, height = 36 }: { data: number[]; color: string; height?: number }) {
-  if (data.length === 0) return null;
+  if (!data || data.length === 0 || data.some((v) => isNaN(v))) return null;
   const max = Math.max(...data);
   const min = Math.min(...data);
   const range = max - min || 1;
