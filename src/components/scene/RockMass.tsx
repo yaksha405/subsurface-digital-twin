@@ -1,29 +1,29 @@
 import { useMemo } from 'react';
 import * as THREE from 'three';
+import { createNoise3D } from 'simplex-noise';
 import { useSceneStore } from '../../store/useSceneStore';
 
 /**
  * 岩层/土层 — 真实的地质体渲染
  *
- * 使用程序化噪声生成不规则岩体表面，多层半透明渲染出地层质感。
- * 裂缝网络嵌在岩体内部，像是岩层中开裂的真实效果。
+ * 使用 simplex-noise 库生成高质量程序化噪声，替代手搓 sin/cos 组合。
+ * 多层半透明渲染出地层质感。裂缝网络嵌在岩体内部。
  */
 export function RockMass() {
   const visible = useSceneStore((s) => s.layers.rockMass);
 
   const { outerShell, innerShell, strata1, strata2, strata3 } = useMemo(() => {
-    // 岩体尺寸 100×40×80
+    // 使用 simplex-noise 替代手搓 sin/cos
+    const noise3D = createNoise3D(() => 0.42); // 固定种子保证一致
+
     const w = 100, h = 40, d = 80;
 
-    // 外壳 — 不规则表面
-    const outerGeo = createRockGeometry(w, h, d, 20, 8, 16, 1.5);
-    // 内壳 — 稍小
-    const innerGeo = createRockGeometry(w * 0.92, h * 0.88, d * 0.92, 16, 6, 12, 1.0);
+    const outerGeo = createRockGeometry(w, h, d, 20, 8, 16, noise3D, 2.5);
+    const innerGeo = createRockGeometry(w * 0.92, h * 0.88, d * 0.92, 16, 6, 12, noise3D, 1.8);
 
-    // 三层地层（模拟不同岩层）
-    const s1 = createStratumLayer(w, h, d, -4, 1.5, 0x4A3C2A); // 深色下层
-    const s2 = createStratumLayer(w, h, d, 4, 1.2, 0x5C4D3A);  // 中色中层
-    const s3 = createStratumLayer(w, h, d, 12, 1.0, 0x6B5D4A);  // 浅色上层
+    const s1 = createStratumLayer(w, h, d, -4, noise3D);
+    const s2 = createStratumLayer(w, h, d, 4, noise3D);
+    const s3 = createStratumLayer(w, h, d, 12, noise3D);
 
     return { outerShell: outerGeo, innerShell: innerGeo, strata1: s1, strata2: s2, strata3: s3 };
   }, []);
@@ -106,11 +106,12 @@ export function RockMass() {
 }
 
 /**
- * 创建不规则岩体几何 — 顶点加噪声偏移
+ * 创建不规则岩体几何 — simplex-noise 顶点位移
  */
 function createRockGeometry(
   w: number, h: number, d: number,
   segW: number, segH: number, segD: number,
+  noise3D: (x: number, y: number, z: number) => number,
   noiseScale: number
 ): THREE.BufferGeometry {
   const geo = new THREE.BoxGeometry(w, h, d, segW, segH, segD);
@@ -121,17 +122,16 @@ function createRockGeometry(
     const y = pos.getY(i);
     const z = pos.getZ(i);
 
-    // 简单噪声：用 sin/cos 组合模拟不规则表面
-    const nx = Math.sin(x * 0.15 + z * 0.1) * noiseScale * 0.5;
-    const ny = Math.cos(y * 0.2 + x * 0.08) * noiseScale * 0.3;
-    const nz = Math.sin(z * 0.12 + y * 0.15) * noiseScale * 0.5;
+    // simplex-noise：多倍频叠加（fBm），效果比 sin/cos 自然得多
+    const nx = noise3D(x * 0.05, y * 0.05, z * 0.05) * noiseScale * 0.6
+             + noise3D(x * 0.12, y * 0.12, z * 0.12) * noiseScale * 0.25
+             + noise3D(x * 0.25, y * 0.25, z * 0.25) * noiseScale * 0.1;
 
-    // 只对表面顶点偏移（不在内部的）
     const isEdge = Math.abs(x) > w * 0.45 || Math.abs(y) > h * 0.45 || Math.abs(z) > d * 0.45;
     if (isEdge) {
       pos.setX(i, x + nx);
-      pos.setY(i, y + ny);
-      pos.setZ(i, z + nz);
+      pos.setY(i, y + nx * 0.6);
+      pos.setZ(i, z + nx * 0.8);
     }
   }
 
@@ -140,29 +140,27 @@ function createRockGeometry(
 }
 
 /**
- * 创建水平地层薄层 — 模拟不同深度的岩层
+ * 创建水平地层薄层 — simplex-noise 起伏
  */
 function createStratumLayer(
   w: number, h: number, d: number,
   yOffset: number,
-  thickness: number,
-  _color: number
+  noise3D: (x: number, y: number, z: number) => number
 ): THREE.BufferGeometry {
-  // 用不规则平面模拟地层界面
   const geo = new THREE.PlaneGeometry(w * 0.9, d * 0.9, 20, 16);
   const pos = geo.getAttribute('position');
 
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i);
-    const z = pos.getY(i); // PlaneGeometry 默认在 XY 平面
+    const z = pos.getY(i);
 
-    // 地层起伏
+    // simplex-noise 地层起伏（fBm 多倍频）
     const undulation =
-      Math.sin(x * 0.08) * 2 +
-      Math.cos(z * 0.06) * 1.5 +
-      Math.sin(x * 0.2 + z * 0.15) * 0.8;
+      noise3D(x * 0.03, z * 0.03, yOffset * 0.1) * 3 +
+      noise3D(x * 0.08, z * 0.08, yOffset * 0.1) * 1.2 +
+      noise3D(x * 0.2, z * 0.2, yOffset * 0.1) * 0.5;
 
-    pos.setZ(i, undulation); // Z 在旋转后变成 Y 方向
+    pos.setZ(i, undulation);
   }
 
   geo.computeVertexNormals();

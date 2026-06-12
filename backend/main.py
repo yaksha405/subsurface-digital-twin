@@ -15,10 +15,16 @@
 """
 
 import traceback
+import shutil
+import subprocess
+import tempfile
+import os
 import numpy as np
 from typing import List, Optional
+from pathlib import Path
 from fastapi import FastAPI, UploadFile, File, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from processors.pointcloud_processor import PointCloudProcessor
@@ -52,6 +58,17 @@ app.add_middleware(
 # 初始化处理器
 pc_processor = PointCloudProcessor()
 slam_adapter = SlamAdapter()
+
+# Potree 八叉树输出目录
+POTREE_OUTPUT_DIR = Path(__file__).parent / "potree_output"
+POTREE_OUTPUT_DIR.mkdir(exist_ok=True)
+
+# 挂载 Potree 静态文件服务（前端 PotreeViewer 加载 octree tiles）
+if (POTREE_OUTPUT_DIR / "pointcloud").exists():
+    app.mount("/api/potree", StaticFiles(directory=str(POTREE_OUTPUT_DIR / "pointcloud")), name="potree")
+else:
+    POTREE_OUTPUT_DIR.joinpath("pointcloud").mkdir(parents=True, exist_ok=True)
+    app.mount("/api/potree", StaticFiles(directory=str(POTREE_OUTPUT_DIR / "pointcloud")), name="potree")
 
 
 # ====================================================================
@@ -321,6 +338,92 @@ async def transform_points(req: TransformRequest):
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(500, f"坐标变换失败: {str(e)}")
+
+
+# ====================================================================
+# 第三部分：Potree 八叉树转换接口
+# ====================================================================
+
+def _find_potree_converter() -> Optional[str]:
+    """查找 PotreeConverter 二进制路径"""
+    # 检查环境变量
+    env_path = os.environ.get("POTREE_CONVERTER_PATH")
+    if env_path and os.path.isfile(env_path):
+        return env_path
+    # 检查 PATH
+    return shutil.which("PotreeConverter")
+
+
+@app.post("/api/potree/convert")
+async def convert_to_potree(
+    file: UploadFile = File(...),
+):
+    """
+    将上传的点云文件转换为 Potree 八叉树 LOD 格式
+
+    前端 PotreeViewer 在 live 模式下从 /api/potree/cloud.js 加载转换后的数据。
+    需要在服务器上安装 PotreeConverter（https://github.com/potree/PotreeConverter）。
+
+    环境变量 POTREE_CONVERTER_PATH 可指定二进制路径。
+    """
+    converter = _find_potree_converter()
+    if not converter:
+        raise HTTPException(
+            503,
+            "PotreeConverter 未安装。请在服务器上安装 PotreeConverter "
+            "并设置环境变量 POTREE_CONVERTER_PATH，"
+            "或将其加入 PATH。"
+            "安装指南: https://github.com/potree/PotreeConverter"
+        )
+
+    raw_bytes = await file.read()
+    suffix = os.path.splitext(file.filename or ".ply")[1]
+
+    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp_in:
+        tmp_in.write(raw_bytes)
+        tmp_in_path = tmp_in.name
+
+    output_dir = POTREE_OUTPUT_DIR / "pointcloud"
+    # 清空旧数据
+    if output_dir.exists():
+        shutil.rmtree(output_dir)
+    output_dir.mkdir(parents=True)
+
+    try:
+        result = subprocess.run(
+            [converter, tmp_in_path, "-o", str(output_dir),
+             "--generate-page", "index"],
+            capture_output=True, text=True, timeout=300
+        )
+
+        if result.returncode != 0:
+            raise HTTPException(
+                500,
+                f"PotreeConverter 执行失败: {result.stderr[:500]}"
+            )
+
+        return {
+            "status": "ok",
+            "message": "点云已转换为 Potree 八叉树格式",
+            "url": "/api/potree/cloud.js",
+            "stderr": result.stderr[:200] if result.stderr else "",
+        }
+    except subprocess.TimeoutExpired:
+        raise HTTPException(504, "PotreeConverter 转换超时（300秒限制）")
+    finally:
+        os.unlink(tmp_in_path)
+
+
+@app.get("/api/potree/status")
+async def potree_status():
+    """检查 PotreeConverter 是否可用及是否已有点云数据"""
+    output_dir = POTREE_OUTPUT_DIR / "pointcloud"
+    cloud_js = output_dir / "cloud.js"
+    return {
+        "converter_available": _find_potree_converter() is not None,
+        "has_pointcloud": cloud_js.exists(),
+        "cloud_url": "/api/potree/cloud.js" if cloud_js.exists() else None,
+    }
 
 
 # ====================================================================
