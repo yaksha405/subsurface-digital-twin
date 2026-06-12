@@ -1,0 +1,109 @@
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: #0A0A0F;
+    --background-secondary: #121218;
+    --background-tertiary: #1A1D2A;
+    --background-panel: #2A2D3A;
+    --primary-yellow: #FFE600;
+    --primary-red: #FF3333;
+    --primary-blue: #1E3A5F;
+    --text: #E0E0E8;
+    --text-muted: #A0A0B0;
+    --border-glow: rgba(255, 230, 0, 0.2);
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html, body, #root {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: var(--background);
+    color: var(--text);
+    font-family: 'Oswald', system-ui, sans-serif;
+    font-size: 13px;
+  }
+
+  /* Custom Scrollbar - Industrial Dark */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #121218;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #2A2D3A;
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #1E3A5F;
+  }
+}
+
+@layer components {
+  .glass-panel {
+    @apply bg-background-secondary/85 backdrop-blur-md border border-white/5 rounded-lg;
+  }
+
+  .glass-panel-hover {
+    @apply transition-all duration-300 hover:border-primary-yellow/30 hover:bg-background-secondary/95;
+  }
+
+  .industrial-slider {
+    @apply appearance-none w-full h-1 bg-background-panel rounded-full cursor-pointer;
+  }
+  .industrial-slider::-webkit-slider-thumb {
+    @apply appearance-none w-4 h-4 rounded-full bg-primary-yellow shadow-[0_0_8px_rgba(255,230,0,0.5)] cursor-pointer border-2 border-background;
+  }
+  .industrial-slider::-moz-range-thumb {
+    @apply w-4 h-4 rounded-full bg-primary-yellow border-2 border-background cursor-pointer;
+  }
+
+  .scan-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 5;
+  }
+  .scan-overlay::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(255, 230, 0, 0.3), transparent);
+    animation: scanLine 3s linear infinite;
+  }
+
+  .neon-text {
+    text-shadow: 0 0 10px rgba(255, 230, 0, 0.5);
+  }
+
+  .danger-text {
+    text-shadow: 0 0 10px rgba(255, 51, 51, 0.5);
+  }
+
+  .grid-bg {
+    background-image:
+      linear-gradient(rgba(255, 230, 0, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 230, 0, 0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+}
+
+@keyframes scanLine {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}

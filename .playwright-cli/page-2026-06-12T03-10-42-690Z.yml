@@ -1,0 +1,4080 @@
+- generic [ref=e3]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - img [ref=e7]
+      - generic [ref=e11]:
+        - generic [ref=e12]: HIVE 群智数字孪生主控舱
+        - generic [ref=e13]: DIGITAL TWIN CONTROL CABIN v1.0
+    - generic [ref=e14]:
+      - generic [ref=e15]:
+        - button "⛏ 煤矿" [ref=e16] [cursor=pointer]:
+          - generic [ref=e17]: ⛏
+          - text: 煤矿
+        - button "🪨 金矿" [ref=e18] [cursor=pointer]:
+          - generic [ref=e19]: 🪨
+          - text: 金矿
+        - button "🛢 油气" [ref=e20] [cursor=pointer]:
+          - generic [ref=e21]: 🛢
+          - text: 油气
+      - generic [ref=e23]:
+        - button "📏 剖面线 F1" [ref=e24] [cursor=pointer]:
+          - generic [ref=e25]: 📏
+          - generic [ref=e26]: 剖面线
+          - generic [ref=e27]: F1
+        - button "⬜ 区域框选 F2" [ref=e28] [cursor=pointer]:
+          - generic [ref=e29]: ⬜
+          - generic [ref=e30]: 区域框选
+          - generic [ref=e31]: F2
+        - button "🏷 文字标注 F3" [ref=e32] [cursor=pointer]:
+          - generic [ref=e33]: 🏷
+          - generic [ref=e34]: 文字标注
+          - generic [ref=e35]: F3
+        - button "📐 测距 F4" [ref=e36] [cursor=pointer]:
+          - generic [ref=e37]: 📐
+          - generic [ref=e38]: 测距
+          - generic [ref=e39]: F4
+    - generic [ref=e40]:
+      - generic [ref=e41]:
+        - generic [ref=e42]: 11:10:42
+        - generic [ref=e43]: 2026/6/12
+      - button "导出报告" [ref=e44] [cursor=pointer]:
+        - img [ref=e45]
+        - text: 导出报告
+      - button "AI 模型设置" [ref=e47] [cursor=pointer]:
+        - img [ref=e48]
+  - generic [ref=e51]:
+    - generic [ref=e53]:
+      - generic [ref=e54]:
+        - heading "控制台" [level=2] [ref=e56]
+        - generic [ref=e57]: SHADCN · RADIX UI
+      - generic [ref=e61]:
+        - generic [ref=e62]:
+          - heading "系统状态监控" [level=3] [ref=e64]
+          - generic [ref=e65]:
+            - generic [ref=e66]:
+              - generic [ref=e69]: 数据源
+              - generic [ref=e70]:
+                - generic [ref=e71]: 模拟数据
+                - generic [ref=e72]: MOCK
+            - generic [ref=e73]:
+              - generic [ref=e76]: 传感器节点
+              - generic [ref=e78]: 12,000
+            - generic [ref=e79]:
+              - generic [ref=e82]: 平均置信度
+              - generic [ref=e84]: 60%
+            - generic [ref=e85]:
+              - generic [ref=e88]: CH4 超标区
+              - generic [ref=e90]: "0"
+            - generic [ref=e91]:
+              - generic [ref=e94]: 数据吞吐
+              - generic [ref=e96]: —
+        - generic [ref=e97]:
+          - heading "实时告警" [level=3] [ref=e99] [cursor=pointer]:
+            - img [ref=e100]
+            - generic [ref=e102]: 实时告警
+            - img [ref=e103]
+          - generic [ref=e105]:
+            - generic [ref=e106]:
+              - button "全部 0" [ref=e107] [cursor=pointer]
+              - button "紧急 0" [ref=e108] [cursor=pointer]
+              - button "警告 0" [ref=e109] [cursor=pointer]
+              - button "未处理 0" [ref=e110] [cursor=pointer]
+            - generic [ref=e112]: 加载告警...
+        - generic [ref=e113]:
+          - heading "集群机器人 121● / 200" [level=3] [ref=e115] [cursor=pointer]:
+            - img [ref=e116]
+            - generic [ref=e119]: 集群机器人
+            - generic [ref=e120]: 121● / 200
+          - generic [ref=e121]:
+            - generic [ref=e122]:
+              - generic [ref=e123]:
+                - generic [ref=e124]: "121"
+                - generic [ref=e125]: 在线
+              - generic [ref=e126]:
+                - generic [ref=e127]: "23"
+                - generic [ref=e128]: 离线
+              - generic [ref=e129]:
+                - generic [ref=e130]: "26"
+                - generic [ref=e131]: 低电量
+              - generic [ref=e132]:
+                - generic [ref=e133]: "15"
+                - generic [ref=e134]: 故障
+              - generic [ref=e135]:
+                - generic [ref=e136]: "155"
+                - generic [ref=e137]: Mesh
+            - generic [ref=e138]:
+              - img [ref=e139]
+              - textbox "搜索编号 R-001..." [ref=e142]
+            - generic [ref=e143]:
+              - combobox [ref=e144] [cursor=pointer]:
+                - option "全部" [selected]
+                - option "在线"
+                - option "离线"
+                - option "低电量"
+                - option "故障"
+                - option "维护"
+              - combobox [ref=e145] [cursor=pointer]:
+                - option "全部型号" [selected]
+                - option "蛇形"
+                - option "履带式"
+                - option "轮式"
+                - option "攀爬式"
+                - option "飞行"
+              - combobox [ref=e146] [cursor=pointer]:
+                - option "全部角色" [selected]
+                - option "网关"
+                - option "中继"
+                - option "边缘"
+                - option "终端"
+            - generic [ref=e147]: 显示 200 / 200 台
+            - generic [ref=e148]:
+              - generic [ref=e149] [cursor=pointer]:
+                - generic [ref=e150]:
+                  - generic [ref=e151]:
+                    - generic [ref=e153]: R-001
+                    - generic [ref=e154]: 蛇形
+                  - img [ref=e155]
+                - generic [ref=e159]:
+                  - generic [ref=e160]: 在线
+                  - generic [ref=e161]: 终端
+                  - generic [ref=e162]: 顶板位移监测
+                - generic [ref=e163]:
+                  - generic [ref=e164]:
+                    - img [ref=e165]
+                    - generic [ref=e167]: 64%
+                  - generic [ref=e168]:
+                    - img [ref=e169]
+                    - generic [ref=e170]: "-38dBm"
+                  - generic [ref=e171]: Z=13.2m
+                  - generic [ref=e172]: 4m前
+              - generic [ref=e173] [cursor=pointer]:
+                - generic [ref=e174]:
+                  - generic [ref=e175]:
+                    - generic [ref=e177]: R-002
+                    - generic [ref=e178]: 蛇形
+                  - img [ref=e179]
+                - generic [ref=e183]:
+                  - generic [ref=e184]: 离线
+                  - generic [ref=e185]: 终端
+                  - generic [ref=e186]: 三维扫描建图
+                - generic [ref=e187]:
+                  - generic [ref=e188]:
+                    - img [ref=e189]
+                    - generic [ref=e191]: 0%
+                  - generic [ref=e192]:
+                    - img [ref=e193]
+                    - generic [ref=e194]: "-48dBm"
+                  - generic [ref=e195]: Z=17.6m
+                  - generic [ref=e196]: 2m前
+              - generic [ref=e197] [cursor=pointer]:
+                - generic [ref=e198]:
+                  - generic [ref=e199]:
+                    - generic [ref=e201]: R-003
+                    - generic [ref=e202]: 蛇形
+                  - img [ref=e203]
+                - generic [ref=e207]:
+                  - generic [ref=e208]: 在线
+                  - generic [ref=e209]: 中继
+                  - generic [ref=e210]: Mesh 中继转发
+                - generic [ref=e211]:
+                  - generic [ref=e212]:
+                    - img [ref=e213]
+                    - generic [ref=e215]: 75%
+                  - generic [ref=e216]:
+                    - img [ref=e217]
+                    - generic [ref=e218]: "-56dBm"
+                  - generic [ref=e219]: Z=17.3m
+                  - generic [ref=e220]: 1m前
+              - generic [ref=e221] [cursor=pointer]:
+                - generic [ref=e222]:
+                  - generic [ref=e223]:
+                    - generic [ref=e225]: R-004
+                    - generic [ref=e226]: 蛇形
+                  - img [ref=e227]
+                - generic [ref=e231]:
+                  - generic [ref=e232]: 在线
+                  - generic [ref=e233]: 边缘
+                  - generic [ref=e234]: 裂缝精细探测
+                - generic [ref=e235]:
+                  - generic [ref=e236]:
+                    - img [ref=e237]
+                    - generic [ref=e239]: 97%
+                  - generic [ref=e240]:
+                    - img [ref=e241]
+                    - generic [ref=e242]: "-57dBm"
+                  - generic [ref=e243]: Z=18.5m
+                  - generic [ref=e244]: 4m前
+              - generic [ref=e245] [cursor=pointer]:
+                - generic [ref=e246]:
+                  - generic [ref=e247]:
+                    - generic [ref=e249]: R-005
+                    - generic [ref=e250]: 蛇形
+                  - img [ref=e251]
+                - generic [ref=e255]:
+                  - generic [ref=e256]: 在线
+                  - generic [ref=e257]: 终端
+                  - generic [ref=e258]: 气体泄漏排查
+                - generic [ref=e259]:
+                  - generic [ref=e260]:
+                    - img [ref=e261]
+                    - generic [ref=e263]: 33%
+                  - generic [ref=e264]:
+                    - img [ref=e265]
+                    - generic [ref=e266]: "-57dBm"
+                  - generic [ref=e267]: Z=22.9m
+                  - generic [ref=e268]: 2m前
+              - generic [ref=e269] [cursor=pointer]:
+                - generic [ref=e270]:
+                  - generic [ref=e271]:
+                    - generic [ref=e273]: R-006
+                    - generic [ref=e274]: 蛇形
+                  - img [ref=e275]
+                - generic [ref=e282]:
+                  - generic [ref=e283]: 离线
+                  - generic [ref=e284]: 终端
+                  - generic [ref=e285]: 顶板位移监测
+                - generic [ref=e286]:
+                  - generic [ref=e287]:
+                    - img [ref=e288]
+                    - generic [ref=e290]: 7%
+                  - generic [ref=e291]:
+                    - img [ref=e292]
+                    - generic [ref=e293]: "-54dBm"
+                  - generic [ref=e294]: Z=25.8m
+                  - generic [ref=e295]: 35s前
+              - generic [ref=e296] [cursor=pointer]:
+                - generic [ref=e297]:
+                  - generic [ref=e298]:
+                    - generic [ref=e300]: R-007
+                    - generic [ref=e301]: 蛇形
+                  - img [ref=e302]
+                - generic [ref=e309]:
+                  - generic [ref=e310]: 离线
+                  - generic [ref=e311]: 边缘
+                  - generic [ref=e312]: 气体泄漏排查
+                - generic [ref=e313]:
+                  - generic [ref=e314]:
+                    - img [ref=e315]
+                    - generic [ref=e317]: 3%
+                  - generic [ref=e318]:
+                    - img [ref=e319]
+                    - generic [ref=e320]: "-43dBm"
+                  - generic [ref=e321]: Z=25.5m
+                  - generic [ref=e322]: 2m前
+              - generic [ref=e323] [cursor=pointer]:
+                - generic [ref=e324]:
+                  - generic [ref=e325]:
+                    - generic [ref=e327]: R-008
+                    - generic [ref=e328]: 蛇形
+                  - img [ref=e329]
+                - generic [ref=e333]:
+                  - generic [ref=e334]: 低电量
+                  - generic [ref=e335]: 终端
+                  - generic [ref=e336]: 裂隙扩张监测
+                - generic [ref=e337]:
+                  - generic [ref=e338]:
+                    - img [ref=e339]
+                    - generic [ref=e341]: 15%
+                  - generic [ref=e342]:
+                    - img [ref=e343]
+                    - generic [ref=e344]: "-54dBm"
+                  - generic [ref=e345]: Z=25m
+                  - generic [ref=e346]: 2m前
+              - generic [ref=e347] [cursor=pointer]:
+                - generic [ref=e348]:
+                  - generic [ref=e349]:
+                    - generic [ref=e351]: R-009
+                    - generic [ref=e352]: 蛇形
+                  - img [ref=e353]
+                - generic [ref=e357]:
+                  - generic [ref=e358]: 在线
+                  - generic [ref=e359]: 终端
+                  - generic [ref=e360]: 裂缝精细探测
+                - generic [ref=e361]:
+                  - generic [ref=e362]:
+                    - img [ref=e363]
+                    - generic [ref=e365]: 49%
+                  - generic [ref=e366]:
+                    - img [ref=e367]
+                    - generic [ref=e368]: "-47dBm"
+                  - generic [ref=e369]: Z=23.5m
+                  - generic [ref=e370]: 1m前
+              - generic [ref=e371] [cursor=pointer]:
+                - generic [ref=e372]:
+                  - generic [ref=e373]:
+                    - generic [ref=e375]: R-010
+                    - generic [ref=e376]: 蛇形
+                  - img [ref=e377]
+                - generic [ref=e381]:
+                  - generic [ref=e382]: 在线
+                  - generic [ref=e383]: 中继
+                  - generic [ref=e384]: 待命中
+                - generic [ref=e385]:
+                  - generic [ref=e386]:
+                    - img [ref=e387]
+                    - generic [ref=e389]: 87%
+                  - generic [ref=e390]:
+                    - img [ref=e391]
+                    - generic [ref=e392]: "-50dBm"
+                  - generic [ref=e393]: Z=24.5m
+                  - generic [ref=e394]: 12s前
+              - generic [ref=e395] [cursor=pointer]:
+                - generic [ref=e396]:
+                  - generic [ref=e397]:
+                    - generic [ref=e399]: R-011
+                    - generic [ref=e400]: 蛇形
+                  - img [ref=e401]
+                - generic [ref=e405]:
+                  - generic [ref=e406]: 在线
+                  - generic [ref=e407]: 终端
+                  - generic [ref=e408]: 瓦斯浓度巡检
+                - generic [ref=e409]:
+                  - generic [ref=e410]:
+                    - img [ref=e411]
+                    - generic [ref=e413]: 41%
+                  - generic [ref=e414]:
+                    - img [ref=e415]
+                    - generic [ref=e416]: "-42dBm"
+                  - generic [ref=e417]: Z=20.2m
+                  - generic [ref=e418]: 2m前
+              - generic [ref=e419] [cursor=pointer]:
+                - generic [ref=e420]:
+                  - generic [ref=e421]:
+                    - generic [ref=e423]: R-012
+                    - generic [ref=e424]: 蛇形
+                  - img [ref=e425]
+                - generic [ref=e429]:
+                  - generic [ref=e430]: 在线
+                  - generic [ref=e431]: 边缘
+                  - generic [ref=e432]: 声发射信号采集
+                - generic [ref=e433]:
+                  - generic [ref=e434]:
+                    - img [ref=e435]
+                    - generic [ref=e437]: 40%
+                  - generic [ref=e438]:
+                    - img [ref=e439]
+                    - generic [ref=e440]: "-44dBm"
+                  - generic [ref=e441]: Z=20.8m
+                  - generic [ref=e442]: 2m前
+              - generic [ref=e443] [cursor=pointer]:
+                - generic [ref=e444]:
+                  - generic [ref=e445]:
+                    - generic [ref=e447]: R-013
+                    - generic [ref=e448]: 蛇形
+                  - img [ref=e449]
+                - generic [ref=e456]:
+                  - generic [ref=e457]: 离线
+                  - generic [ref=e458]: 边缘
+                  - generic [ref=e459]: Mesh 中继转发
+                - generic [ref=e460]:
+                  - generic [ref=e461]:
+                    - img [ref=e462]
+                    - generic [ref=e464]: 3%
+                  - generic [ref=e465]:
+                    - img [ref=e466]
+                    - generic [ref=e467]: "-57dBm"
+                  - generic [ref=e468]: Z=20m
+                  - generic [ref=e469]: 2m前
+              - generic [ref=e470] [cursor=pointer]:
+                - generic [ref=e471]:
+                  - generic [ref=e472]:
+                    - generic [ref=e474]: R-014
+                    - generic [ref=e475]: 蛇形
+                  - img [ref=e476]
+                - generic [ref=e480]:
+                  - generic [ref=e481]: 在线
+                  - generic [ref=e482]: 终端
+                  - generic [ref=e483]: 三维扫描建图
+                - generic [ref=e484]:
+                  - generic [ref=e485]:
+                    - img [ref=e486]
+                    - generic [ref=e488]: 93%
+                  - generic [ref=e489]:
+                    - img [ref=e490]
+                    - generic [ref=e491]: "-59dBm"
+                  - generic [ref=e492]: Z=22.6m
+                  - generic [ref=e493]: 4m前
+              - generic [ref=e494] [cursor=pointer]:
+                - generic [ref=e495]:
+                  - generic [ref=e496]:
+                    - generic [ref=e498]: R-015
+                    - generic [ref=e499]: 蛇形
+                  - img [ref=e500]
+                - generic [ref=e507]:
+                  - generic [ref=e508]: 在线
+                  - generic [ref=e509]: 中继
+                  - generic [ref=e510]: 顶板位移监测
+                - generic [ref=e511]:
+                  - generic [ref=e512]:
+                    - img [ref=e513]
+                    - generic [ref=e515]: 61%
+                  - generic [ref=e516]:
+                    - img [ref=e517]
+                    - generic [ref=e518]: "-51dBm"
+                  - generic [ref=e519]: Z=19.3m
+                  - generic [ref=e520]: 4m前
+              - generic [ref=e521] [cursor=pointer]:
+                - generic [ref=e522]:
+                  - generic [ref=e523]:
+                    - generic [ref=e525]: R-016
+                    - generic [ref=e526]: 蛇形
+                  - img [ref=e527]
+                - generic [ref=e531]:
+                  - generic [ref=e532]: 在线
+                  - generic [ref=e533]: 终端
+                  - generic [ref=e534]: Mesh 中继转发
+                - generic [ref=e535]:
+                  - generic [ref=e536]:
+                    - img [ref=e537]
+                    - generic [ref=e539]: 79%
+                  - generic [ref=e540]:
+                    - img [ref=e541]
+                    - generic [ref=e542]: "-52dBm"
+                  - generic [ref=e543]: Z=22.3m
+                  - generic [ref=e544]: 3s前
+              - generic [ref=e545] [cursor=pointer]:
+                - generic [ref=e546]:
+                  - generic [ref=e547]:
+                    - generic [ref=e549]: R-017
+                    - generic [ref=e550]: 蛇形
+                  - img [ref=e551]
+                - generic [ref=e555]:
+                  - generic [ref=e556]: 维护中
+                  - generic [ref=e557]: 终端
+                  - generic [ref=e558]: 三维扫描建图
+                - generic [ref=e559]:
+                  - generic [ref=e560]:
+                    - img [ref=e561]
+                    - generic [ref=e563]: 83%
+                  - generic [ref=e564]:
+                    - img [ref=e565]
+                    - generic [ref=e566]: "-53dBm"
+                  - generic [ref=e567]: Z=21.6m
+                  - generic [ref=e568]: 3m前
+              - generic [ref=e569] [cursor=pointer]:
+                - generic [ref=e570]:
+                  - generic [ref=e571]:
+                    - generic [ref=e573]: R-018
+                    - generic [ref=e574]: 蛇形
+                  - img [ref=e575]
+                - generic [ref=e579]:
+                  - generic [ref=e580]: 故障
+                  - generic [ref=e581]: 边缘
+                  - generic [ref=e582]: 狭窄裂缝爬行
+                - generic [ref=e583]:
+                  - generic [ref=e584]:
+                    - img [ref=e585]
+                    - generic [ref=e587]: 98%
+                  - generic [ref=e588]:
+                    - img [ref=e589]
+                    - generic [ref=e590]: "-57dBm"
+                  - generic [ref=e591]: Z=23.4m
+                  - generic [ref=e592]: 4m前
+              - generic [ref=e593] [cursor=pointer]:
+                - generic [ref=e594]:
+                  - generic [ref=e595]:
+                    - generic [ref=e597]: R-019
+                    - generic [ref=e598]: 蛇形
+                  - img [ref=e599]
+                - generic [ref=e606]:
+                  - generic [ref=e607]: 离线
+                  - generic [ref=e608]: 终端
+                  - generic [ref=e609]: 夹层结构成像
+                - generic [ref=e610]:
+                  - generic [ref=e611]:
+                    - img [ref=e612]
+                    - generic [ref=e614]: 12%
+                  - generic [ref=e615]:
+                    - img [ref=e616]
+                    - generic [ref=e617]: "-55dBm"
+                  - generic [ref=e618]: Z=25.7m
+                  - generic [ref=e619]: 54s前
+              - generic [ref=e620] [cursor=pointer]:
+                - generic [ref=e621]:
+                  - generic [ref=e622]:
+                    - generic [ref=e624]: R-020
+                    - generic [ref=e625]: 蛇形
+                  - img [ref=e626]
+                - generic [ref=e630]:
+                  - generic [ref=e631]: 维护中
+                  - generic [ref=e632]: 中继
+                  - generic [ref=e633]: 温度梯度测绘
+                - generic [ref=e634]:
+                  - generic [ref=e635]:
+                    - img [ref=e636]
+                    - generic [ref=e638]: 84%
+                  - generic [ref=e639]:
+                    - img [ref=e640]
+                    - generic [ref=e641]: "-40dBm"
+                  - generic [ref=e642]: Z=26m
+                  - generic [ref=e643]: 1m前
+              - generic [ref=e644] [cursor=pointer]:
+                - generic [ref=e645]:
+                  - generic [ref=e646]:
+                    - generic [ref=e648]: R-021
+                    - generic [ref=e649]: 蛇形
+                  - img [ref=e650]
+                - generic [ref=e654]:
+                  - generic [ref=e655]: 在线
+                  - generic [ref=e656]: 网关
+                  - generic [ref=e657]: 三维扫描建图
+                - generic [ref=e658]:
+                  - generic [ref=e659]:
+                    - img [ref=e660]
+                    - generic [ref=e662]: 52%
+                  - generic [ref=e663]:
+                    - img [ref=e664]
+                    - generic [ref=e665]: "-59dBm"
+                  - generic [ref=e666]: Z=25.5m
+                  - generic [ref=e667]: 0s前
+              - generic [ref=e668] [cursor=pointer]:
+                - generic [ref=e669]:
+                  - generic [ref=e670]:
+                    - generic [ref=e672]: R-022
+                    - generic [ref=e673]: 蛇形
+                  - img [ref=e674]
+                - generic [ref=e681]:
+                  - generic [ref=e682]: 离线
+                  - generic [ref=e683]: 终端
+                  - generic [ref=e684]: 温度梯度测绘
+                - generic [ref=e685]:
+                  - generic [ref=e686]:
+                    - img [ref=e687]
+                    - generic [ref=e689]: 9%
+                  - generic [ref=e690]:
+                    - img [ref=e691]
+                    - generic [ref=e692]: "-44dBm"
+                  - generic [ref=e693]: Z=27.8m
+                  - generic [ref=e694]: 40s前
+              - generic [ref=e695] [cursor=pointer]:
+                - generic [ref=e696]:
+                  - generic [ref=e697]:
+                    - generic [ref=e699]: R-023
+                    - generic [ref=e700]: 蛇形
+                  - img [ref=e701]
+                - generic [ref=e705]:
+                  - generic [ref=e706]: 离线
+                  - generic [ref=e707]: 终端
+                  - generic [ref=e708]: 气体泄漏排查
+                - generic [ref=e709]:
+                  - generic [ref=e710]:
+                    - img [ref=e711]
+                    - generic [ref=e713]: 2%
+                  - generic [ref=e714]:
+                    - img [ref=e715]
+                    - generic [ref=e716]: "-52dBm"
+                  - generic [ref=e717]: Z=27.7m
+                  - generic [ref=e718]: 2m前
+              - generic [ref=e719] [cursor=pointer]:
+                - generic [ref=e720]:
+                  - generic [ref=e721]:
+                    - generic [ref=e723]: R-024
+                    - generic [ref=e724]: 蛇形
+                  - img [ref=e725]
+                - generic [ref=e729]:
+                  - generic [ref=e730]: 低电量
+                  - generic [ref=e731]: 终端
+                  - generic [ref=e732]: 裂缝精细探测
+                - generic [ref=e733]:
+                  - generic [ref=e734]:
+                    - img [ref=e735]
+                    - generic [ref=e737]: 14%
+                  - generic [ref=e738]:
+                    - img [ref=e739]
+                    - generic [ref=e740]: "-58dBm"
+                  - generic [ref=e741]: Z=21.3m
+                  - generic [ref=e742]: 49s前
+              - generic [ref=e743] [cursor=pointer]:
+                - generic [ref=e744]:
+                  - generic [ref=e745]:
+                    - generic [ref=e747]: R-025
+                    - generic [ref=e748]: 蛇形
+                  - img [ref=e749]
+                - generic [ref=e753]:
+                  - generic [ref=e754]: 在线
+                  - generic [ref=e755]: 中继
+                  - generic [ref=e756]: 气体泄漏排查
+                - generic [ref=e757]:
+                  - generic [ref=e758]:
+                    - img [ref=e759]
+                    - generic [ref=e761]: 54%
+                  - generic [ref=e762]:
+                    - img [ref=e763]
+                    - generic [ref=e764]: "-51dBm"
+                  - generic [ref=e765]: Z=23.7m
+                  - generic [ref=e766]: 3m前
+              - generic [ref=e767] [cursor=pointer]:
+                - generic [ref=e768]:
+                  - generic [ref=e769]:
+                    - generic [ref=e771]: R-026
+                    - generic [ref=e772]: 蛇形
+                  - img [ref=e773]
+                - generic [ref=e777]:
+                  - generic [ref=e778]: 在线
+                  - generic [ref=e779]: 终端
+                  - generic [ref=e780]: 待命中
+                - generic [ref=e781]:
+                  - generic [ref=e782]:
+                    - img [ref=e783]
+                    - generic [ref=e785]: 90%
+                  - generic [ref=e786]:
+                    - img [ref=e787]
+                    - generic [ref=e788]: "-41dBm"
+                  - generic [ref=e789]: Z=22.1m
+                  - generic [ref=e790]: 2m前
+              - generic [ref=e791] [cursor=pointer]:
+                - generic [ref=e792]:
+                  - generic [ref=e793]:
+                    - generic [ref=e795]: R-027
+                    - generic [ref=e796]: 蛇形
+                  - img [ref=e797]
+                - generic [ref=e804]:
+                  - generic [ref=e805]: 离线
+                  - generic [ref=e806]: 终端
+                  - generic [ref=e807]: 气体泄漏排查
+                - generic [ref=e808]:
+                  - generic [ref=e809]:
+                    - img [ref=e810]
+                    - generic [ref=e812]: 5%
+                  - generic [ref=e813]:
+                    - img [ref=e814]
+                    - generic [ref=e815]: "-48dBm"
+                  - generic [ref=e816]: Z=25.2m
+                  - generic [ref=e817]: 3m前
+              - generic [ref=e818] [cursor=pointer]:
+                - generic [ref=e819]:
+                  - generic [ref=e820]:
+                    - generic [ref=e822]: R-028
+                    - generic [ref=e823]: 蛇形
+                  - img [ref=e824]
+                - generic [ref=e831]:
+                  - generic [ref=e832]: 离线
+                  - generic [ref=e833]: 终端
+                  - generic [ref=e834]: 深部取样分析
+                - generic [ref=e835]:
+                  - generic [ref=e836]:
+                    - img [ref=e837]
+                    - generic [ref=e839]: 1%
+                  - generic [ref=e840]:
+                    - img [ref=e841]
+                    - generic [ref=e842]: "-40dBm"
+                  - generic [ref=e843]: Z=24m
+                  - generic [ref=e844]: 4m前
+              - generic [ref=e845] [cursor=pointer]:
+                - generic [ref=e846]:
+                  - generic [ref=e847]:
+                    - generic [ref=e849]: R-029
+                    - generic [ref=e850]: 蛇形
+                  - img [ref=e851]
+                - generic [ref=e855]:
+                  - generic [ref=e856]: 维护中
+                  - generic [ref=e857]: 终端
+                  - generic [ref=e858]: 三维扫描建图
+                - generic [ref=e859]:
+                  - generic [ref=e860]:
+                    - img [ref=e861]
+                    - generic [ref=e863]: 73%
+                  - generic [ref=e864]:
+                    - img [ref=e865]
+                    - generic [ref=e866]: "-51dBm"
+                  - generic [ref=e867]: Z=8.3m
+                  - generic [ref=e868]: 4m前
+              - generic [ref=e869] [cursor=pointer]:
+                - generic [ref=e870]:
+                  - generic [ref=e871]:
+                    - generic [ref=e873]: R-030
+                    - generic [ref=e874]: 蛇形
+                  - img [ref=e875]
+                - generic [ref=e879]:
+                  - generic [ref=e880]: 低电量
+                  - generic [ref=e881]: 边缘
+                  - generic [ref=e882]: 夹层结构成像
+                - generic [ref=e883]:
+                  - generic [ref=e884]:
+                    - img [ref=e885]
+                    - generic [ref=e887]: 3%
+                  - generic [ref=e888]:
+                    - img [ref=e889]
+                    - generic [ref=e890]: "-49dBm"
+                  - generic [ref=e891]: Z=10.8m
+                  - generic [ref=e892]: 4m前
+              - generic [ref=e893] [cursor=pointer]:
+                - generic [ref=e894]:
+                  - generic [ref=e895]:
+                    - generic [ref=e897]: R-031
+                    - generic [ref=e898]: 蛇形
+                  - img [ref=e899]
+                - generic [ref=e903]:
+                  - generic [ref=e904]: 在线
+                  - generic [ref=e905]: 终端
+                  - generic [ref=e906]: 水文参数探查
+                - generic [ref=e907]:
+                  - generic [ref=e908]:
+                    - img [ref=e909]
+                    - generic [ref=e911]: 65%
+                  - generic [ref=e912]:
+                    - img [ref=e913]
+                    - generic [ref=e914]: "-35dBm"
+                  - generic [ref=e915]: Z=11.7m
+                  - generic [ref=e916]: 4m前
+              - generic [ref=e917] [cursor=pointer]:
+                - generic [ref=e918]:
+                  - generic [ref=e919]:
+                    - generic [ref=e921]: R-032
+                    - generic [ref=e922]: 蛇形
+                  - img [ref=e923]
+                - generic [ref=e927]:
+                  - generic [ref=e928]: 在线
+                  - generic [ref=e929]: 网关
+                  - generic [ref=e930]: 裂隙扩张监测
+                - generic [ref=e931]:
+                  - generic [ref=e932]:
+                    - img [ref=e933]
+                    - generic [ref=e935]: 91%
+                  - generic [ref=e936]:
+                    - img [ref=e937]
+                    - generic [ref=e938]: "-51dBm"
+                  - generic [ref=e939]: Z=10.9m
+                  - generic [ref=e940]: 1m前
+              - generic [ref=e941] [cursor=pointer]:
+                - generic [ref=e942]:
+                  - generic [ref=e943]:
+                    - generic [ref=e945]: R-033
+                    - generic [ref=e946]: 蛇形
+                  - img [ref=e947]
+                - generic [ref=e951]:
+                  - generic [ref=e952]: 低电量
+                  - generic [ref=e953]: 边缘
+                  - generic [ref=e954]: 瓦斯浓度巡检
+                - generic [ref=e955]:
+                  - generic [ref=e956]:
+                    - img [ref=e957]
+                    - generic [ref=e959]: 18%
+                  - generic [ref=e960]:
+                    - img [ref=e961]
+                    - generic [ref=e962]: "-39dBm"
+                  - generic [ref=e963]: Z=11.5m
+                  - generic [ref=e964]: 23s前
+              - generic [ref=e965] [cursor=pointer]:
+                - generic [ref=e966]:
+                  - generic [ref=e967]:
+                    - generic [ref=e969]: R-034
+                    - generic [ref=e970]: 蛇形
+                  - img [ref=e971]
+                - generic [ref=e975]:
+                  - generic [ref=e976]: 在线
+                  - generic [ref=e977]: 终端
+                  - generic [ref=e978]: Mesh 中继转发
+                - generic [ref=e979]:
+                  - generic [ref=e980]:
+                    - img [ref=e981]
+                    - generic [ref=e983]: 82%
+                  - generic [ref=e984]:
+                    - img [ref=e985]
+                    - generic [ref=e986]: "-53dBm"
+                  - generic [ref=e987]: Z=11.3m
+                  - generic [ref=e988]: 4m前
+              - generic [ref=e989] [cursor=pointer]:
+                - generic [ref=e990]:
+                  - generic [ref=e991]:
+                    - generic [ref=e993]: R-035
+                    - generic [ref=e994]: 蛇形
+                  - img [ref=e995]
+                - generic [ref=e999]:
+                  - generic [ref=e1000]: 在线
+                  - generic [ref=e1001]: 终端
+                  - generic [ref=e1002]: 裂缝精细探测
+                - generic [ref=e1003]:
+                  - generic [ref=e1004]:
+                    - img [ref=e1005]
+                    - generic [ref=e1007]: 92%
+                  - generic [ref=e1008]:
+                    - img [ref=e1009]
+                    - generic [ref=e1010]: "-41dBm"
+                  - generic [ref=e1011]: Z=13.6m
+                  - generic [ref=e1012]: 2m前
+              - generic [ref=e1013] [cursor=pointer]:
+                - generic [ref=e1014]:
+                  - generic [ref=e1015]:
+                    - generic [ref=e1017]: R-036
+                    - generic [ref=e1018]: 蛇形
+                  - img [ref=e1019]
+                - generic [ref=e1023]:
+                  - generic [ref=e1024]: 在线
+                  - generic [ref=e1025]: 终端
+                  - generic [ref=e1026]: Mesh 中继转发
+                - generic [ref=e1027]:
+                  - generic [ref=e1028]:
+                    - img [ref=e1029]
+                    - generic [ref=e1031]: 93%
+                  - generic [ref=e1032]:
+                    - img [ref=e1033]
+                    - generic [ref=e1034]: "-48dBm"
+                  - generic [ref=e1035]: Z=11.9m
+                  - generic [ref=e1036]: 2m前
+              - generic [ref=e1037] [cursor=pointer]:
+                - generic [ref=e1038]:
+                  - generic [ref=e1039]:
+                    - generic [ref=e1041]: R-037
+                    - generic [ref=e1042]: 蛇形
+                  - img [ref=e1043]
+                - generic [ref=e1047]:
+                  - generic [ref=e1048]: 在线
+                  - generic [ref=e1049]: 边缘
+                  - generic [ref=e1050]: 裂缝精细探测
+                - generic [ref=e1051]:
+                  - generic [ref=e1052]:
+                    - img [ref=e1053]
+                    - generic [ref=e1055]: 69%
+                  - generic [ref=e1056]:
+                    - img [ref=e1057]
+                    - generic [ref=e1058]: "-46dBm"
+                  - generic [ref=e1059]: Z=13.1m
+                  - generic [ref=e1060]: 4m前
+              - generic [ref=e1061] [cursor=pointer]:
+                - generic [ref=e1062]:
+                  - generic [ref=e1063]:
+                    - generic [ref=e1065]: R-038
+                    - generic [ref=e1066]: 蛇形
+                  - img [ref=e1067]
+                - generic [ref=e1071]:
+                  - generic [ref=e1072]: 在线
+                  - generic [ref=e1073]: 边缘
+                  - generic [ref=e1074]: 水文参数探查
+                - generic [ref=e1075]:
+                  - generic [ref=e1076]:
+                    - img [ref=e1077]
+                    - generic [ref=e1079]: 64%
+                  - generic [ref=e1080]:
+                    - img [ref=e1081]
+                    - generic [ref=e1082]: "-44dBm"
+                  - generic [ref=e1083]: Z=15.1m
+                  - generic [ref=e1084]: 4m前
+              - generic [ref=e1085] [cursor=pointer]:
+                - generic [ref=e1086]:
+                  - generic [ref=e1087]:
+                    - generic [ref=e1089]: R-039
+                    - generic [ref=e1090]: 蛇形
+                  - img [ref=e1091]
+                - generic [ref=e1098]:
+                  - generic [ref=e1099]: 故障
+                  - generic [ref=e1100]: 中继
+                  - generic [ref=e1101]: 狭窄裂缝爬行
+                - generic [ref=e1102]:
+                  - generic [ref=e1103]:
+                    - img [ref=e1104]
+                    - generic [ref=e1106]: 97%
+                  - generic [ref=e1107]:
+                    - img [ref=e1108]
+                    - generic [ref=e1109]: "-50dBm"
+                  - generic [ref=e1110]: Z=10.6m
+                  - generic [ref=e1111]: 4m前
+              - generic [ref=e1112] [cursor=pointer]:
+                - generic [ref=e1113]:
+                  - generic [ref=e1114]:
+                    - generic [ref=e1116]: R-040
+                    - generic [ref=e1117]: 蛇形
+                  - img [ref=e1118]
+                - generic [ref=e1122]:
+                  - generic [ref=e1123]: 在线
+                  - generic [ref=e1124]: 边缘
+                  - generic [ref=e1125]: 水文参数探查
+                - generic [ref=e1126]:
+                  - generic [ref=e1127]:
+                    - img [ref=e1128]
+                    - generic [ref=e1130]: 53%
+                  - generic [ref=e1131]:
+                    - img [ref=e1132]
+                    - generic [ref=e1133]: "-40dBm"
+                  - generic [ref=e1134]: Z=12.6m
+                  - generic [ref=e1135]: 4m前
+              - generic [ref=e1136] [cursor=pointer]:
+                - generic [ref=e1137]:
+                  - generic [ref=e1138]:
+                    - generic [ref=e1140]: R-041
+                    - generic [ref=e1141]: 蛇形
+                  - img [ref=e1142]
+                - generic [ref=e1146]:
+                  - generic [ref=e1147]: 在线
+                  - generic [ref=e1148]: 终端
+                  - generic [ref=e1149]: 待命中
+                - generic [ref=e1150]:
+                  - generic [ref=e1151]:
+                    - img [ref=e1152]
+                    - generic [ref=e1154]: 92%
+                  - generic [ref=e1155]:
+                    - img [ref=e1156]
+                    - generic [ref=e1157]: "-48dBm"
+                  - generic [ref=e1158]: Z=15.5m
+                  - generic [ref=e1159]: 1m前
+              - generic [ref=e1160] [cursor=pointer]:
+                - generic [ref=e1161]:
+                  - generic [ref=e1162]:
+                    - generic [ref=e1164]: R-042
+                    - generic [ref=e1165]: 蛇形
+                  - img [ref=e1166]
+                - generic [ref=e1170]:
+                  - generic [ref=e1171]: 在线
+                  - generic [ref=e1172]: 中继
+                  - generic [ref=e1173]: 顶板位移监测
+                - generic [ref=e1174]:
+                  - generic [ref=e1175]:
+                    - img [ref=e1176]
+                    - generic [ref=e1178]: 46%
+                  - generic [ref=e1179]:
+                    - img [ref=e1180]
+                    - generic [ref=e1181]: "-42dBm"
+                  - generic [ref=e1182]: Z=15.5m
+                  - generic [ref=e1183]: 1m前
+              - generic [ref=e1184] [cursor=pointer]:
+                - generic [ref=e1185]:
+                  - generic [ref=e1186]:
+                    - generic [ref=e1188]: R-043
+                    - generic [ref=e1189]: 蛇形
+                  - img [ref=e1190]
+                - generic [ref=e1194]:
+                  - generic [ref=e1195]: 在线
+                  - generic [ref=e1196]: 终端
+                  - generic [ref=e1197]: 狭窄裂缝爬行
+                - generic [ref=e1198]:
+                  - generic [ref=e1199]:
+                    - img [ref=e1200]
+                    - generic [ref=e1202]: 73%
+                  - generic [ref=e1203]:
+                    - img [ref=e1204]
+                    - generic [ref=e1205]: "-47dBm"
+                  - generic [ref=e1206]: Z=19m
+                  - generic [ref=e1207]: 38s前
+              - generic [ref=e1208] [cursor=pointer]:
+                - generic [ref=e1209]:
+                  - generic [ref=e1210]:
+                    - generic [ref=e1212]: R-044
+                    - generic [ref=e1213]: 蛇形
+                  - img [ref=e1214]
+                - generic [ref=e1218]:
+                  - generic [ref=e1219]: 故障
+                  - generic [ref=e1220]: 终端
+                  - generic [ref=e1221]: 声发射信号采集
+                - generic [ref=e1222]:
+                  - generic [ref=e1223]:
+                    - img [ref=e1224]
+                    - generic [ref=e1226]: 32%
+                  - generic [ref=e1227]:
+                    - img [ref=e1228]
+                    - generic [ref=e1229]: "-48dBm"
+                  - generic [ref=e1230]: Z=20.5m
+                  - generic [ref=e1231]: 2m前
+              - generic [ref=e1232] [cursor=pointer]:
+                - generic [ref=e1233]:
+                  - generic [ref=e1234]:
+                    - generic [ref=e1236]: R-045
+                    - generic [ref=e1237]: 蛇形
+                  - img [ref=e1238]
+                - generic [ref=e1245]:
+                  - generic [ref=e1246]: 在线
+                  - generic [ref=e1247]: 终端
+                  - generic [ref=e1248]: 狭窄裂缝爬行
+                - generic [ref=e1249]:
+                  - generic [ref=e1250]:
+                    - img [ref=e1251]
+                    - generic [ref=e1253]: 48%
+                  - generic [ref=e1254]:
+                    - img [ref=e1255]
+                    - generic [ref=e1256]: "-52dBm"
+                  - generic [ref=e1257]: Z=24.5m
+                  - generic [ref=e1258]: 40s前
+              - generic [ref=e1259] [cursor=pointer]:
+                - generic [ref=e1260]:
+                  - generic [ref=e1261]:
+                    - generic [ref=e1263]: R-046
+                    - generic [ref=e1264]: 蛇形
+                  - img [ref=e1265]
+                - generic [ref=e1269]:
+                  - generic [ref=e1270]: 在线
+                  - generic [ref=e1271]: 终端
+                  - generic [ref=e1272]: Mesh 中继转发
+                - generic [ref=e1273]:
+                  - generic [ref=e1274]:
+                    - img [ref=e1275]
+                    - generic [ref=e1277]: 74%
+                  - generic [ref=e1278]:
+                    - img [ref=e1279]
+                    - generic [ref=e1280]: "-51dBm"
+                  - generic [ref=e1281]: Z=20.4m
+                  - generic [ref=e1282]: 2m前
+              - generic [ref=e1283] [cursor=pointer]:
+                - generic [ref=e1284]:
+                  - generic [ref=e1285]:
+                    - generic [ref=e1287]: R-047
+                    - generic [ref=e1288]: 蛇形
+                  - img [ref=e1289]
+                - generic [ref=e1293]:
+                  - generic [ref=e1294]: 在线
+                  - generic [ref=e1295]: 边缘
+                  - generic [ref=e1296]: 温度梯度测绘
+                - generic [ref=e1297]:
+                  - generic [ref=e1298]:
+                    - img [ref=e1299]
+                    - generic [ref=e1301]: 74%
+                  - generic [ref=e1302]:
+                    - img [ref=e1303]
+                    - generic [ref=e1304]: "-52dBm"
+                  - generic [ref=e1305]: Z=26.6m
+                  - generic [ref=e1306]: 1m前
+              - generic [ref=e1307] [cursor=pointer]:
+                - generic [ref=e1308]:
+                  - generic [ref=e1309]:
+                    - generic [ref=e1311]: R-048
+                    - generic [ref=e1312]: 蛇形
+                  - img [ref=e1313]
+                - generic [ref=e1317]:
+                  - generic [ref=e1318]: 在线
+                  - generic [ref=e1319]: 终端
+                  - generic [ref=e1320]: 待命中
+                - generic [ref=e1321]:
+                  - generic [ref=e1322]:
+                    - img [ref=e1323]
+                    - generic [ref=e1325]: 29%
+                  - generic [ref=e1326]:
+                    - img [ref=e1327]
+                    - generic [ref=e1328]: "-55dBm"
+                  - generic [ref=e1329]: Z=27.5m
+                  - generic [ref=e1330]: 4m前
+              - generic [ref=e1331] [cursor=pointer]:
+                - generic [ref=e1332]:
+                  - generic [ref=e1333]:
+                    - generic [ref=e1335]: R-049
+                    - generic [ref=e1336]: 蛇形
+                  - img [ref=e1337]
+                - generic [ref=e1344]:
+                  - generic [ref=e1345]: 维护中
+                  - generic [ref=e1346]: 终端
+                  - generic [ref=e1347]: 声发射信号采集
+                - generic [ref=e1348]:
+                  - generic [ref=e1349]:
+                    - img [ref=e1350]
+                    - generic [ref=e1352]: 67%
+                  - generic [ref=e1353]:
+                    - img [ref=e1354]
+                    - generic [ref=e1355]: "-36dBm"
+                  - generic [ref=e1356]: Z=13.6m
+                  - generic [ref=e1357]: 3m前
+              - generic [ref=e1358] [cursor=pointer]:
+                - generic [ref=e1359]:
+                  - generic [ref=e1360]:
+                    - generic [ref=e1362]: R-050
+                    - generic [ref=e1363]: 蛇形
+                  - img [ref=e1364]
+                - generic [ref=e1368]:
+                  - generic [ref=e1369]: 在线
+                  - generic [ref=e1370]: 边缘
+                  - generic [ref=e1371]: 气体泄漏排查
+                - generic [ref=e1372]:
+                  - generic [ref=e1373]:
+                    - img [ref=e1374]
+                    - generic [ref=e1376]: 84%
+                  - generic [ref=e1377]:
+                    - img [ref=e1378]
+                    - generic [ref=e1379]: "-55dBm"
+                  - generic [ref=e1380]: Z=16.9m
+                  - generic [ref=e1381]: 2m前
+              - generic [ref=e1382] [cursor=pointer]:
+                - generic [ref=e1383]:
+                  - generic [ref=e1384]:
+                    - generic [ref=e1386]: R-051
+                    - generic [ref=e1387]: 蛇形
+                  - img [ref=e1388]
+                - generic [ref=e1395]:
+                  - generic [ref=e1396]: 离线
+                  - generic [ref=e1397]: 中继
+                  - generic [ref=e1398]: 狭窄裂缝爬行
+                - generic [ref=e1399]:
+                  - generic [ref=e1400]:
+                    - img [ref=e1401]
+                    - generic [ref=e1403]: 2%
+                  - generic [ref=e1404]:
+                    - img [ref=e1405]
+                    - generic [ref=e1406]: "-40dBm"
+                  - generic [ref=e1407]: Z=15.5m
+                  - generic [ref=e1408]: 3m前
+              - generic [ref=e1409] [cursor=pointer]:
+                - generic [ref=e1410]:
+                  - generic [ref=e1411]:
+                    - generic [ref=e1413]: R-052
+                    - generic [ref=e1414]: 蛇形
+                  - img [ref=e1415]
+                - generic [ref=e1419]:
+                  - generic [ref=e1420]: 在线
+                  - generic [ref=e1421]: 终端
+                  - generic [ref=e1422]: 顶板位移监测
+                - generic [ref=e1423]:
+                  - generic [ref=e1424]:
+                    - img [ref=e1425]
+                    - generic [ref=e1427]: 30%
+                  - generic [ref=e1428]:
+                    - img [ref=e1429]
+                    - generic [ref=e1430]: "-41dBm"
+                  - generic [ref=e1431]: Z=14.9m
+                  - generic [ref=e1432]: 1m前
+              - generic [ref=e1433] [cursor=pointer]:
+                - generic [ref=e1434]:
+                  - generic [ref=e1435]:
+                    - generic [ref=e1437]: R-053
+                    - generic [ref=e1438]: 蛇形
+                  - img [ref=e1439]
+                - generic [ref=e1443]:
+                  - generic [ref=e1444]: 在线
+                  - generic [ref=e1445]: 边缘
+                  - generic [ref=e1446]: 顶板位移监测
+                - generic [ref=e1447]:
+                  - generic [ref=e1448]:
+                    - img [ref=e1449]
+                    - generic [ref=e1451]: 71%
+                  - generic [ref=e1452]:
+                    - img [ref=e1453]
+                    - generic [ref=e1454]: "-44dBm"
+                  - generic [ref=e1455]: Z=25.3m
+                  - generic [ref=e1456]: 4m前
+              - generic [ref=e1457] [cursor=pointer]:
+                - generic [ref=e1458]:
+                  - generic [ref=e1459]:
+                    - generic [ref=e1461]: R-054
+                    - generic [ref=e1462]: 蛇形
+                  - img [ref=e1463]
+                - generic [ref=e1467]:
+                  - generic [ref=e1468]: 在线
+                  - generic [ref=e1469]: 终端
+                  - generic [ref=e1470]: Mesh 中继转发
+                - generic [ref=e1471]:
+                  - generic [ref=e1472]:
+                    - img [ref=e1473]
+                    - generic [ref=e1475]: 87%
+                  - generic [ref=e1476]:
+                    - img [ref=e1477]
+                    - generic [ref=e1478]: "-51dBm"
+                  - generic [ref=e1479]: Z=25.2m
+                  - generic [ref=e1480]: 16s前
+              - generic [ref=e1481] [cursor=pointer]:
+                - generic [ref=e1482]:
+                  - generic [ref=e1483]:
+                    - generic [ref=e1485]: R-055
+                    - generic [ref=e1486]: 蛇形
+                  - img [ref=e1487]
+                - generic [ref=e1491]:
+                  - generic [ref=e1492]: 在线
+                  - generic [ref=e1493]: 终端
+                  - generic [ref=e1494]: 狭窄裂缝爬行
+                - generic [ref=e1495]:
+                  - generic [ref=e1496]:
+                    - img [ref=e1497]
+                    - generic [ref=e1499]: 74%
+                  - generic [ref=e1500]:
+                    - img [ref=e1501]
+                    - generic [ref=e1502]: "-47dBm"
+                  - generic [ref=e1503]: Z=29.1m
+                  - generic [ref=e1504]: 1m前
+              - generic [ref=e1505] [cursor=pointer]:
+                - generic [ref=e1506]:
+                  - generic [ref=e1507]:
+                    - generic [ref=e1509]: R-056
+                    - generic [ref=e1510]: 蛇形
+                  - img [ref=e1511]
+                - generic [ref=e1515]:
+                  - generic [ref=e1516]: 在线
+                  - generic [ref=e1517]: 边缘
+                  - generic [ref=e1518]: 声发射信号采集
+                - generic [ref=e1519]:
+                  - generic [ref=e1520]:
+                    - img [ref=e1521]
+                    - generic [ref=e1523]: 28%
+                  - generic [ref=e1524]:
+                    - img [ref=e1525]
+                    - generic [ref=e1526]: "-53dBm"
+                  - generic [ref=e1527]: Z=19.5m
+                  - generic [ref=e1528]: 3m前
+              - generic [ref=e1529] [cursor=pointer]:
+                - generic [ref=e1530]:
+                  - generic [ref=e1531]:
+                    - generic [ref=e1533]: R-057
+                    - generic [ref=e1534]: 蛇形
+                  - img [ref=e1535]
+                - generic [ref=e1539]:
+                  - generic [ref=e1540]: 在线
+                  - generic [ref=e1541]: 中继
+                  - generic [ref=e1542]: 夹层结构成像
+                - generic [ref=e1543]:
+                  - generic [ref=e1544]:
+                    - img [ref=e1545]
+                    - generic [ref=e1547]: 79%
+                  - generic [ref=e1548]:
+                    - img [ref=e1549]
+                    - generic [ref=e1550]: "-45dBm"
+                  - generic [ref=e1551]: Z=22.7m
+                  - generic [ref=e1552]: 1m前
+              - generic [ref=e1553] [cursor=pointer]:
+                - generic [ref=e1554]:
+                  - generic [ref=e1555]:
+                    - generic [ref=e1557]: R-058
+                    - generic [ref=e1558]: 蛇形
+                  - img [ref=e1559]
+                - generic [ref=e1566]:
+                  - generic [ref=e1567]: 离线
+                  - generic [ref=e1568]: 终端
+                  - generic [ref=e1569]: 狭窄裂缝爬行
+                - generic [ref=e1570]:
+                  - generic [ref=e1571]:
+                    - img [ref=e1572]
+                    - generic [ref=e1574]: 0%
+                  - generic [ref=e1575]:
+                    - img [ref=e1576]
+                    - generic [ref=e1577]: "-47dBm"
+                  - generic [ref=e1578]: Z=21.8m
+                  - generic [ref=e1579]: 2m前
+              - generic [ref=e1580] [cursor=pointer]:
+                - generic [ref=e1581]:
+                  - generic [ref=e1582]:
+                    - generic [ref=e1584]: R-059
+                    - generic [ref=e1585]: 蛇形
+                  - img [ref=e1586]
+                - generic [ref=e1590]:
+                  - generic [ref=e1591]: 在线
+                  - generic [ref=e1592]: 网关
+                  - generic [ref=e1593]: 深部取样分析
+                - generic [ref=e1594]:
+                  - generic [ref=e1595]:
+                    - img [ref=e1596]
+                    - generic [ref=e1598]: 77%
+                  - generic [ref=e1599]:
+                    - img [ref=e1600]
+                    - generic [ref=e1601]: "-48dBm"
+                  - generic [ref=e1602]: Z=22.7m
+                  - generic [ref=e1603]: 2m前
+              - generic [ref=e1604] [cursor=pointer]:
+                - generic [ref=e1605]:
+                  - generic [ref=e1606]:
+                    - generic [ref=e1608]: R-060
+                    - generic [ref=e1609]: 蛇形
+                  - img [ref=e1610]
+                - generic [ref=e1614]:
+                  - generic [ref=e1615]: 低电量
+                  - generic [ref=e1616]: 边缘
+                  - generic [ref=e1617]: 狭窄裂缝爬行
+                - generic [ref=e1618]:
+                  - generic [ref=e1619]:
+                    - img [ref=e1620]
+                    - generic [ref=e1622]: 7%
+                  - generic [ref=e1623]:
+                    - img [ref=e1624]
+                    - generic [ref=e1625]: "-52dBm"
+                  - generic [ref=e1626]: Z=25.3m
+                  - generic [ref=e1627]: 1m前
+              - generic [ref=e1628] [cursor=pointer]:
+                - generic [ref=e1629]:
+                  - generic [ref=e1630]:
+                    - generic [ref=e1632]: R-061
+                    - generic [ref=e1633]: 蛇形
+                  - img [ref=e1634]
+                - generic [ref=e1638]:
+                  - generic [ref=e1639]: 低电量
+                  - generic [ref=e1640]: 中继
+                  - generic [ref=e1641]: 瓦斯浓度巡检
+                - generic [ref=e1642]:
+                  - generic [ref=e1643]:
+                    - img [ref=e1644]
+                    - generic [ref=e1646]: 10%
+                  - generic [ref=e1647]:
+                    - img [ref=e1648]
+                    - generic [ref=e1649]: "-43dBm"
+                  - generic [ref=e1650]: Z=28.4m
+                  - generic [ref=e1651]: 29s前
+              - generic [ref=e1652] [cursor=pointer]:
+                - generic [ref=e1653]:
+                  - generic [ref=e1654]:
+                    - generic [ref=e1656]: R-062
+                    - generic [ref=e1657]: 蛇形
+                  - img [ref=e1658]
+                - generic [ref=e1662]:
+                  - generic [ref=e1663]: 在线
+                  - generic [ref=e1664]: 终端
+                  - generic [ref=e1665]: 水文参数探查
+                - generic [ref=e1666]:
+                  - generic [ref=e1667]:
+                    - img [ref=e1668]
+                    - generic [ref=e1670]: 79%
+                  - generic [ref=e1671]:
+                    - img [ref=e1672]
+                    - generic [ref=e1673]: "-59dBm"
+                  - generic [ref=e1674]: Z=24.1m
+                  - generic [ref=e1675]: 1m前
+              - generic [ref=e1676] [cursor=pointer]:
+                - generic [ref=e1677]:
+                  - generic [ref=e1678]:
+                    - generic [ref=e1680]: R-063
+                    - generic [ref=e1681]: 蛇形
+                  - img [ref=e1682]
+                - generic [ref=e1689]:
+                  - generic [ref=e1690]: 故障
+                  - generic [ref=e1691]: 终端
+                  - generic [ref=e1692]: Mesh 中继转发
+                - generic [ref=e1693]:
+                  - generic [ref=e1694]:
+                    - img [ref=e1695]
+                    - generic [ref=e1697]: 29%
+                  - generic [ref=e1698]:
+                    - img [ref=e1699]
+                    - generic [ref=e1700]: "-40dBm"
+                  - generic [ref=e1701]: Z=24.1m
+                  - generic [ref=e1702]: 1m前
+              - generic [ref=e1703] [cursor=pointer]:
+                - generic [ref=e1704]:
+                  - generic [ref=e1705]:
+                    - generic [ref=e1707]: R-064
+                    - generic [ref=e1708]: 蛇形
+                  - img [ref=e1709]
+                - generic [ref=e1713]:
+                  - generic [ref=e1714]: 离线
+                  - generic [ref=e1715]: 中继
+                  - generic [ref=e1716]: 水文参数探查
+                - generic [ref=e1717]:
+                  - generic [ref=e1718]:
+                    - img [ref=e1719]
+                    - generic [ref=e1721]: 6%
+                  - generic [ref=e1722]:
+                    - img [ref=e1723]
+                    - generic [ref=e1724]: "-57dBm"
+                  - generic [ref=e1725]: Z=23.5m
+                  - generic [ref=e1726]: 3m前
+              - generic [ref=e1727] [cursor=pointer]:
+                - generic [ref=e1728]:
+                  - generic [ref=e1729]:
+                    - generic [ref=e1731]: R-065
+                    - generic [ref=e1732]: 蛇形
+                  - img [ref=e1733]
+                - generic [ref=e1740]:
+                  - generic [ref=e1741]: 在线
+                  - generic [ref=e1742]: 终端
+                  - generic [ref=e1743]: 水文参数探查
+                - generic [ref=e1744]:
+                  - generic [ref=e1745]:
+                    - img [ref=e1746]
+                    - generic [ref=e1748]: 90%
+                  - generic [ref=e1749]:
+                    - img [ref=e1750]
+                    - generic [ref=e1751]: "-56dBm"
+                  - generic [ref=e1752]: Z=24.2m
+                  - generic [ref=e1753]: 3m前
+              - generic [ref=e1754] [cursor=pointer]:
+                - generic [ref=e1755]:
+                  - generic [ref=e1756]:
+                    - generic [ref=e1758]: R-066
+                    - generic [ref=e1759]: 蛇形
+                  - img [ref=e1760]
+                - generic [ref=e1767]:
+                  - generic [ref=e1768]: 离线
+                  - generic [ref=e1769]: 中继
+                  - generic [ref=e1770]: 待命中
+                - generic [ref=e1771]:
+                  - generic [ref=e1772]:
+                    - img [ref=e1773]
+                    - generic [ref=e1775]: 4%
+                  - generic [ref=e1776]:
+                    - img [ref=e1777]
+                    - generic [ref=e1778]: "-50dBm"
+                  - generic [ref=e1779]: Z=19.2m
+                  - generic [ref=e1780]: 1m前
+              - generic [ref=e1781] [cursor=pointer]:
+                - generic [ref=e1782]:
+                  - generic [ref=e1783]:
+                    - generic [ref=e1785]: R-067
+                    - generic [ref=e1786]: 蛇形
+                  - img [ref=e1787]
+                - generic [ref=e1791]:
+                  - generic [ref=e1792]: 在线
+                  - generic [ref=e1793]: 终端
+                  - generic [ref=e1794]: 顶板位移监测
+                - generic [ref=e1795]:
+                  - generic [ref=e1796]:
+                    - img [ref=e1797]
+                    - generic [ref=e1799]: 54%
+                  - generic [ref=e1800]:
+                    - img [ref=e1801]
+                    - generic [ref=e1802]: "-36dBm"
+                  - generic [ref=e1803]: Z=14.2m
+                  - generic [ref=e1804]: 3m前
+              - generic [ref=e1805] [cursor=pointer]:
+                - generic [ref=e1806]:
+                  - generic [ref=e1807]:
+                    - generic [ref=e1809]: R-068
+                    - generic [ref=e1810]: 蛇形
+                  - img [ref=e1811]
+                - generic [ref=e1818]:
+                  - generic [ref=e1819]: 离线
+                  - generic [ref=e1820]: 中继
+                  - generic [ref=e1821]: 裂缝精细探测
+                - generic [ref=e1822]:
+                  - generic [ref=e1823]:
+                    - img [ref=e1824]
+                    - generic [ref=e1826]: 14%
+                  - generic [ref=e1827]:
+                    - img [ref=e1828]
+                    - generic [ref=e1829]: "-50dBm"
+                  - generic [ref=e1830]: Z=8.2m
+                  - generic [ref=e1831]: 1m前
+              - generic [ref=e1832] [cursor=pointer]:
+                - generic [ref=e1833]:
+                  - generic [ref=e1834]:
+                    - generic [ref=e1836]: R-069
+                    - generic [ref=e1837]: 蛇形
+                  - img [ref=e1838]
+                - generic [ref=e1842]:
+                  - generic [ref=e1843]: 在线
+                  - generic [ref=e1844]: 边缘
+                  - generic [ref=e1845]: 夹层结构成像
+                - generic [ref=e1846]:
+                  - generic [ref=e1847]:
+                    - img [ref=e1848]
+                    - generic [ref=e1850]: 74%
+                  - generic [ref=e1851]:
+                    - img [ref=e1852]
+                    - generic [ref=e1853]: "-39dBm"
+                  - generic [ref=e1854]: Z=20.5m
+                  - generic [ref=e1855]: 4m前
+              - generic [ref=e1856] [cursor=pointer]:
+                - generic [ref=e1857]:
+                  - generic [ref=e1858]:
+                    - generic [ref=e1860]: R-070
+                    - generic [ref=e1861]: 蛇形
+                  - img [ref=e1862]
+                - generic [ref=e1869]:
+                  - generic [ref=e1870]: 故障
+                  - generic [ref=e1871]: 终端
+                  - generic [ref=e1872]: 夹层结构成像
+                - generic [ref=e1873]:
+                  - generic [ref=e1874]:
+                    - img [ref=e1875]
+                    - generic [ref=e1877]: 88%
+                  - generic [ref=e1878]:
+                    - img [ref=e1879]
+                    - generic [ref=e1880]: "-38dBm"
+                  - generic [ref=e1881]: Z=19.9m
+                  - generic [ref=e1882]: 4m前
+              - generic [ref=e1883] [cursor=pointer]:
+                - generic [ref=e1884]:
+                  - generic [ref=e1885]:
+                    - generic [ref=e1887]: R-071
+                    - generic [ref=e1888]: 蛇形
+                  - img [ref=e1889]
+                - generic [ref=e1896]:
+                  - generic [ref=e1897]: 低电量
+                  - generic [ref=e1898]: 边缘
+                  - generic [ref=e1899]: 狭窄裂缝爬行
+                - generic [ref=e1900]:
+                  - generic [ref=e1901]:
+                    - img [ref=e1902]
+                    - generic [ref=e1904]: 13%
+                  - generic [ref=e1905]:
+                    - img [ref=e1906]
+                    - generic [ref=e1907]: "-41dBm"
+                  - generic [ref=e1908]: Z=16.7m
+                  - generic [ref=e1909]: 55s前
+              - generic [ref=e1910] [cursor=pointer]:
+                - generic [ref=e1911]:
+                  - generic [ref=e1912]:
+                    - generic [ref=e1914]: R-072
+                    - generic [ref=e1915]: 蛇形
+                  - img [ref=e1916]
+                - generic [ref=e1920]:
+                  - generic [ref=e1921]: 在线
+                  - generic [ref=e1922]: 终端
+                  - generic [ref=e1923]: 深部取样分析
+                - generic [ref=e1924]:
+                  - generic [ref=e1925]:
+                    - img [ref=e1926]
+                    - generic [ref=e1928]: 78%
+                  - generic [ref=e1929]:
+                    - img [ref=e1930]
+                    - generic [ref=e1931]: "-56dBm"
+                  - generic [ref=e1932]: Z=23.4m
+                  - generic [ref=e1933]: 2m前
+              - generic [ref=e1934] [cursor=pointer]:
+                - generic [ref=e1935]:
+                  - generic [ref=e1936]:
+                    - generic [ref=e1938]: R-073
+                    - generic [ref=e1939]: 蛇形
+                  - img [ref=e1940]
+                - generic [ref=e1944]:
+                  - generic [ref=e1945]: 在线
+                  - generic [ref=e1946]: 终端
+                  - generic [ref=e1947]: 夹层结构成像
+                - generic [ref=e1948]:
+                  - generic [ref=e1949]:
+                    - img [ref=e1950]
+                    - generic [ref=e1952]: 30%
+                  - generic [ref=e1953]:
+                    - img [ref=e1954]
+                    - generic [ref=e1955]: "-52dBm"
+                  - generic [ref=e1956]: Z=21.1m
+                  - generic [ref=e1957]: 4m前
+              - generic [ref=e1958] [cursor=pointer]:
+                - generic [ref=e1959]:
+                  - generic [ref=e1960]:
+                    - generic [ref=e1962]: R-074
+                    - generic [ref=e1963]: 蛇形
+                  - img [ref=e1964]
+                - generic [ref=e1968]:
+                  - generic [ref=e1969]: 维护中
+                  - generic [ref=e1970]: 边缘
+                  - generic [ref=e1971]: 裂缝精细探测
+                - generic [ref=e1972]:
+                  - generic [ref=e1973]:
+                    - img [ref=e1974]
+                    - generic [ref=e1976]: 80%
+                  - generic [ref=e1977]:
+                    - img [ref=e1978]
+                    - generic [ref=e1979]: "-53dBm"
+                  - generic [ref=e1980]: Z=22.7m
+                  - generic [ref=e1981]: 3m前
+              - generic [ref=e1982] [cursor=pointer]:
+                - generic [ref=e1983]:
+                  - generic [ref=e1984]:
+                    - generic [ref=e1986]: R-075
+                    - generic [ref=e1987]: 蛇形
+                  - img [ref=e1988]
+                - generic [ref=e1992]:
+                  - generic [ref=e1993]: 在线
+                  - generic [ref=e1994]: 中继
+                  - generic [ref=e1995]: 待命中
+                - generic [ref=e1996]:
+                  - generic [ref=e1997]:
+                    - img [ref=e1998]
+                    - generic [ref=e2000]: 97%
+                  - generic [ref=e2001]:
+                    - img [ref=e2002]
+                    - generic [ref=e2003]: "-50dBm"
+                  - generic [ref=e2004]: Z=15.7m
+                  - generic [ref=e2005]: 1m前
+              - generic [ref=e2006] [cursor=pointer]:
+                - generic [ref=e2007]:
+                  - generic [ref=e2008]:
+                    - generic [ref=e2010]: R-076
+                    - generic [ref=e2011]: 蛇形
+                  - img [ref=e2012]
+                - generic [ref=e2016]:
+                  - generic [ref=e2017]: 在线
+                  - generic [ref=e2018]: 边缘
+                  - generic [ref=e2019]: 瓦斯浓度巡检
+                - generic [ref=e2020]:
+                  - generic [ref=e2021]:
+                    - img [ref=e2022]
+                    - generic [ref=e2024]: 50%
+                  - generic [ref=e2025]:
+                    - img [ref=e2026]
+                    - generic [ref=e2027]: "-35dBm"
+                  - generic [ref=e2028]: Z=11.6m
+                  - generic [ref=e2029]: 4m前
+              - generic [ref=e2030] [cursor=pointer]:
+                - generic [ref=e2031]:
+                  - generic [ref=e2032]:
+                    - generic [ref=e2034]: R-077
+                    - generic [ref=e2035]: 蛇形
+                  - img [ref=e2036]
+                - generic [ref=e2040]:
+                  - generic [ref=e2041]: 在线
+                  - generic [ref=e2042]: 中继
+                  - generic [ref=e2043]: 裂缝精细探测
+                - generic [ref=e2044]:
+                  - generic [ref=e2045]:
+                    - img [ref=e2046]
+                    - generic [ref=e2048]: 56%
+                  - generic [ref=e2049]:
+                    - img [ref=e2050]
+                    - generic [ref=e2051]: "-41dBm"
+                  - generic [ref=e2052]: Z=9.4m
+                  - generic [ref=e2053]: 24s前
+              - generic [ref=e2054] [cursor=pointer]:
+                - generic [ref=e2055]:
+                  - generic [ref=e2056]:
+                    - generic [ref=e2058]: R-078
+                    - generic [ref=e2059]: 蛇形
+                  - img [ref=e2060]
+                - generic [ref=e2067]:
+                  - generic [ref=e2068]: 维护中
+                  - generic [ref=e2069]: 边缘
+                  - generic [ref=e2070]: 狭窄裂缝爬行
+                - generic [ref=e2071]:
+                  - generic [ref=e2072]:
+                    - img [ref=e2073]
+                    - generic [ref=e2075]: 62%
+                  - generic [ref=e2076]:
+                    - img [ref=e2077]
+                    - generic [ref=e2078]: "-46dBm"
+                  - generic [ref=e2079]: Z=5.6m
+                  - generic [ref=e2080]: 49s前
+              - generic [ref=e2081] [cursor=pointer]:
+                - generic [ref=e2082]:
+                  - generic [ref=e2083]:
+                    - generic [ref=e2085]: R-079
+                    - generic [ref=e2086]: 蛇形
+                  - img [ref=e2087]
+                - generic [ref=e2091]:
+                  - generic [ref=e2092]: 低电量
+                  - generic [ref=e2093]: 终端
+                  - generic [ref=e2094]: Mesh 中继转发
+                - generic [ref=e2095]:
+                  - generic [ref=e2096]:
+                    - img [ref=e2097]
+                    - generic [ref=e2099]: 4%
+                  - generic [ref=e2100]:
+                    - img [ref=e2101]
+                    - generic [ref=e2102]: "-50dBm"
+                  - generic [ref=e2103]: Z=11.6m
+                  - generic [ref=e2104]: 3m前
+              - generic [ref=e2105] [cursor=pointer]:
+                - generic [ref=e2106]:
+                  - generic [ref=e2107]:
+                    - generic [ref=e2109]: R-080
+                    - generic [ref=e2110]: 蛇形
+                  - img [ref=e2111]
+                - generic [ref=e2115]:
+                  - generic [ref=e2116]: 在线
+                  - generic [ref=e2117]: 中继
+                  - generic [ref=e2118]: 夹层结构成像
+                - generic [ref=e2119]:
+                  - generic [ref=e2120]:
+                    - img [ref=e2121]
+                    - generic [ref=e2123]: 39%
+                  - generic [ref=e2124]:
+                    - img [ref=e2125]
+                    - generic [ref=e2126]: "-35dBm"
+                  - generic [ref=e2127]: Z=7.4m
+                  - generic [ref=e2128]: 4m前
+              - generic [ref=e2129] [cursor=pointer]:
+                - generic [ref=e2130]:
+                  - generic [ref=e2131]:
+                    - generic [ref=e2133]: R-081
+                    - generic [ref=e2134]: 蛇形
+                  - img [ref=e2135]
+                - generic [ref=e2139]:
+                  - generic [ref=e2140]: 低电量
+                  - generic [ref=e2141]: 中继
+                  - generic [ref=e2142]: 深部取样分析
+                - generic [ref=e2143]:
+                  - generic [ref=e2144]:
+                    - img [ref=e2145]
+                    - generic [ref=e2147]: 5%
+                  - generic [ref=e2148]:
+                    - img [ref=e2149]
+                    - generic [ref=e2150]: "-50dBm"
+                  - generic [ref=e2151]: Z=5.6m
+                  - generic [ref=e2152]: 21s前
+              - generic [ref=e2153] [cursor=pointer]:
+                - generic [ref=e2154]:
+                  - generic [ref=e2155]:
+                    - generic [ref=e2157]: R-082
+                    - generic [ref=e2158]: 蛇形
+                  - img [ref=e2159]
+                - generic [ref=e2166]:
+                  - generic [ref=e2167]: 故障
+                  - generic [ref=e2168]: 终端
+                  - generic [ref=e2169]: 深部取样分析
+                - generic [ref=e2170]:
+                  - generic [ref=e2171]:
+                    - img [ref=e2172]
+                    - generic [ref=e2174]: 28%
+                  - generic [ref=e2175]:
+                    - img [ref=e2176]
+                    - generic [ref=e2177]: "-38dBm"
+                  - generic [ref=e2178]: Z=20.4m
+                  - generic [ref=e2179]: 12s前
+              - generic [ref=e2180] [cursor=pointer]:
+                - generic [ref=e2181]:
+                  - generic [ref=e2182]:
+                    - generic [ref=e2184]: R-083
+                    - generic [ref=e2185]: 蛇形
+                  - img [ref=e2186]
+                - generic [ref=e2190]:
+                  - generic [ref=e2191]: 低电量
+                  - generic [ref=e2192]: 终端
+                  - generic [ref=e2193]: 裂缝精细探测
+                - generic [ref=e2194]:
+                  - generic [ref=e2195]:
+                    - img [ref=e2196]
+                    - generic [ref=e2198]: 11%
+                  - generic [ref=e2199]:
+                    - img [ref=e2200]
+                    - generic [ref=e2201]: "-44dBm"
+                  - generic [ref=e2202]: Z=22.4m
+                  - generic [ref=e2203]: 1m前
+              - generic [ref=e2204] [cursor=pointer]:
+                - generic [ref=e2205]:
+                  - generic [ref=e2206]:
+                    - generic [ref=e2208]: R-084
+                    - generic [ref=e2209]: 蛇形
+                  - img [ref=e2210]
+                - generic [ref=e2217]:
+                  - generic [ref=e2218]: 维护中
+                  - generic [ref=e2219]: 边缘
+                  - generic [ref=e2220]: 温度梯度测绘
+                - generic [ref=e2221]:
+                  - generic [ref=e2222]:
+                    - img [ref=e2223]
+                    - generic [ref=e2225]: 99%
+                  - generic [ref=e2226]:
+                    - img [ref=e2227]
+                    - generic [ref=e2228]: "-49dBm"
+                  - generic [ref=e2229]: Z=26.8m
+                  - generic [ref=e2230]: 4m前
+              - generic [ref=e2231] [cursor=pointer]:
+                - generic [ref=e2232]:
+                  - generic [ref=e2233]:
+                    - generic [ref=e2235]: R-085
+                    - generic [ref=e2236]: 蛇形
+                  - img [ref=e2237]
+                - generic [ref=e2244]:
+                  - generic [ref=e2245]: 故障
+                  - generic [ref=e2246]: 终端
+                  - generic [ref=e2247]: 三维扫描建图
+                - generic [ref=e2248]:
+                  - generic [ref=e2249]:
+                    - img [ref=e2250]
+                    - generic [ref=e2252]: 35%
+                  - generic [ref=e2253]:
+                    - img [ref=e2254]
+                    - generic [ref=e2255]: "-49dBm"
+                  - generic [ref=e2256]: Z=14m
+                  - generic [ref=e2257]: 22s前
+              - generic [ref=e2258] [cursor=pointer]:
+                - generic [ref=e2259]:
+                  - generic [ref=e2260]:
+                    - generic [ref=e2262]: R-086
+                    - generic [ref=e2263]: 蛇形
+                  - img [ref=e2264]
+                - generic [ref=e2268]:
+                  - generic [ref=e2269]: 在线
+                  - generic [ref=e2270]: 终端
+                  - generic [ref=e2271]: 夹层结构成像
+                - generic [ref=e2272]:
+                  - generic [ref=e2273]:
+                    - img [ref=e2274]
+                    - generic [ref=e2276]: 98%
+                  - generic [ref=e2277]:
+                    - img [ref=e2278]
+                    - generic [ref=e2279]: "-56dBm"
+                  - generic [ref=e2280]: Z=14.9m
+                  - generic [ref=e2281]: 53s前
+              - generic [ref=e2282] [cursor=pointer]:
+                - generic [ref=e2283]:
+                  - generic [ref=e2284]:
+                    - generic [ref=e2286]: R-087
+                    - generic [ref=e2287]: 蛇形
+                  - img [ref=e2288]
+                - generic [ref=e2295]:
+                  - generic [ref=e2296]: 维护中
+                  - generic [ref=e2297]: 边缘
+                  - generic [ref=e2298]: 声发射信号采集
+                - generic [ref=e2299]:
+                  - generic [ref=e2300]:
+                    - img [ref=e2301]
+                    - generic [ref=e2303]: 80%
+                  - generic [ref=e2304]:
+                    - img [ref=e2305]
+                    - generic [ref=e2306]: "-52dBm"
+                  - generic [ref=e2307]: Z=19.2m
+                  - generic [ref=e2308]: 3m前
+              - generic [ref=e2309] [cursor=pointer]:
+                - generic [ref=e2310]:
+                  - generic [ref=e2311]:
+                    - generic [ref=e2313]: R-088
+                    - generic [ref=e2314]: 蛇形
+                  - img [ref=e2315]
+                - generic [ref=e2319]:
+                  - generic [ref=e2320]: 在线
+                  - generic [ref=e2321]: 终端
+                  - generic [ref=e2322]: 水文参数探查
+                - generic [ref=e2323]:
+                  - generic [ref=e2324]:
+                    - img [ref=e2325]
+                    - generic [ref=e2327]: 98%
+                  - generic [ref=e2328]:
+                    - img [ref=e2329]
+                    - generic [ref=e2330]: "-45dBm"
+                  - generic [ref=e2331]: Z=20.5m
+                  - generic [ref=e2332]: 4m前
+              - generic [ref=e2333] [cursor=pointer]:
+                - generic [ref=e2334]:
+                  - generic [ref=e2335]:
+                    - generic [ref=e2337]: R-089
+                    - generic [ref=e2338]: 蛇形
+                  - img [ref=e2339]
+                - generic [ref=e2343]:
+                  - generic [ref=e2344]: 在线
+                  - generic [ref=e2345]: 边缘
+                  - generic [ref=e2346]: 夹层结构成像
+                - generic [ref=e2347]:
+                  - generic [ref=e2348]:
+                    - img [ref=e2349]
+                    - generic [ref=e2351]: 74%
+                  - generic [ref=e2352]:
+                    - img [ref=e2353]
+                    - generic [ref=e2354]: "-52dBm"
+                  - generic [ref=e2355]: Z=22m
+                  - generic [ref=e2356]: 4s前
+              - generic [ref=e2357] [cursor=pointer]:
+                - generic [ref=e2358]:
+                  - generic [ref=e2359]:
+                    - generic [ref=e2361]: R-090
+                    - generic [ref=e2362]: 蛇形
+                  - img [ref=e2363]
+                - generic [ref=e2367]:
+                  - generic [ref=e2368]: 在线
+                  - generic [ref=e2369]: 终端
+                  - generic [ref=e2370]: 声发射信号采集
+                - generic [ref=e2371]:
+                  - generic [ref=e2372]:
+                    - img [ref=e2373]
+                    - generic [ref=e2375]: 97%
+                  - generic [ref=e2376]:
+                    - img [ref=e2377]
+                    - generic [ref=e2378]: "-47dBm"
+                  - generic [ref=e2379]: Z=24.9m
+                  - generic [ref=e2380]: 15s前
+              - generic [ref=e2381] [cursor=pointer]:
+                - generic [ref=e2382]:
+                  - generic [ref=e2383]:
+                    - generic [ref=e2385]: R-091
+                    - generic [ref=e2386]: 蛇形
+                  - img [ref=e2387]
+                - generic [ref=e2391]:
+                  - generic [ref=e2392]: 在线
+                  - generic [ref=e2393]: 边缘
+                  - generic [ref=e2394]: Mesh 中继转发
+                - generic [ref=e2395]:
+                  - generic [ref=e2396]:
+                    - img [ref=e2397]
+                    - generic [ref=e2399]: 91%
+                  - generic [ref=e2400]:
+                    - img [ref=e2401]
+                    - generic [ref=e2402]: "-47dBm"
+                  - generic [ref=e2403]: Z=25.3m
+                  - generic [ref=e2404]: 3m前
+              - generic [ref=e2405] [cursor=pointer]:
+                - generic [ref=e2406]:
+                  - generic [ref=e2407]:
+                    - generic [ref=e2409]: R-092
+                    - generic [ref=e2410]: 蛇形
+                  - img [ref=e2411]
+                - generic [ref=e2418]:
+                  - generic [ref=e2419]: 维护中
+                  - generic [ref=e2420]: 终端
+                  - generic [ref=e2421]: 裂缝精细探测
+                - generic [ref=e2422]:
+                  - generic [ref=e2423]:
+                    - img [ref=e2424]
+                    - generic [ref=e2426]: 53%
+                  - generic [ref=e2427]:
+                    - img [ref=e2428]
+                    - generic [ref=e2429]: "-46dBm"
+                  - generic [ref=e2430]: Z=24.9m
+                  - generic [ref=e2431]: 4m前
+              - generic [ref=e2432] [cursor=pointer]:
+                - generic [ref=e2433]:
+                  - generic [ref=e2434]:
+                    - generic [ref=e2436]: R-093
+                    - generic [ref=e2437]: 蛇形
+                  - img [ref=e2438]
+                - generic [ref=e2442]:
+                  - generic [ref=e2443]: 低电量
+                  - generic [ref=e2444]: 中继
+                  - generic [ref=e2445]: 瓦斯浓度巡检
+                - generic [ref=e2446]:
+                  - generic [ref=e2447]:
+                    - img [ref=e2448]
+                    - generic [ref=e2450]: 6%
+                  - generic [ref=e2451]:
+                    - img [ref=e2452]
+                    - generic [ref=e2453]: "-47dBm"
+                  - generic [ref=e2454]: Z=24.9m
+                  - generic [ref=e2455]: 1m前
+              - generic [ref=e2456] [cursor=pointer]:
+                - generic [ref=e2457]:
+                  - generic [ref=e2458]:
+                    - generic [ref=e2460]: R-094
+                    - generic [ref=e2461]: 蛇形
+                  - img [ref=e2462]
+                - generic [ref=e2466]:
+                  - generic [ref=e2467]: 在线
+                  - generic [ref=e2468]: 边缘
+                  - generic [ref=e2469]: 裂缝精细探测
+                - generic [ref=e2470]:
+                  - generic [ref=e2471]:
+                    - img [ref=e2472]
+                    - generic [ref=e2474]: 89%
+                  - generic [ref=e2475]:
+                    - img [ref=e2476]
+                    - generic [ref=e2477]: "-40dBm"
+                  - generic [ref=e2478]: Z=24.1m
+                  - generic [ref=e2479]: 3m前
+              - generic [ref=e2480] [cursor=pointer]:
+                - generic [ref=e2481]:
+                  - generic [ref=e2482]:
+                    - generic [ref=e2484]: R-095
+                    - generic [ref=e2485]: 蛇形
+                  - img [ref=e2486]
+                - generic [ref=e2490]:
+                  - generic [ref=e2491]: 低电量
+                  - generic [ref=e2492]: 边缘
+                  - generic [ref=e2493]: Mesh 中继转发
+                - generic [ref=e2494]:
+                  - generic [ref=e2495]:
+                    - img [ref=e2496]
+                    - generic [ref=e2498]: 12%
+                  - generic [ref=e2499]:
+                    - img [ref=e2500]
+                    - generic [ref=e2501]: "-51dBm"
+                  - generic [ref=e2502]: Z=21.3m
+                  - generic [ref=e2503]: 2m前
+              - generic [ref=e2504] [cursor=pointer]:
+                - generic [ref=e2505]:
+                  - generic [ref=e2506]:
+                    - generic [ref=e2508]: R-096
+                    - generic [ref=e2509]: 蛇形
+                  - img [ref=e2510]
+                - generic [ref=e2514]:
+                  - generic [ref=e2515]: 在线
+                  - generic [ref=e2516]: 终端
+                  - generic [ref=e2517]: 气体泄漏排查
+                - generic [ref=e2518]:
+                  - generic [ref=e2519]:
+                    - img [ref=e2520]
+                    - generic [ref=e2522]: 64%
+                  - generic [ref=e2523]:
+                    - img [ref=e2524]
+                    - generic [ref=e2525]: "-43dBm"
+                  - generic [ref=e2526]: Z=20.4m
+                  - generic [ref=e2527]: 3m前
+              - generic [ref=e2528] [cursor=pointer]:
+                - generic [ref=e2529]:
+                  - generic [ref=e2530]:
+                    - generic [ref=e2532]: R-097
+                    - generic [ref=e2533]: 蛇形
+                  - img [ref=e2534]
+                - generic [ref=e2541]:
+                  - generic [ref=e2542]: 维护中
+                  - generic [ref=e2543]: 边缘
+                  - generic [ref=e2544]: 气体泄漏排查
+                - generic [ref=e2545]:
+                  - generic [ref=e2546]:
+                    - img [ref=e2547]
+                    - generic [ref=e2549]: 65%
+                  - generic [ref=e2550]:
+                    - img [ref=e2551]
+                    - generic [ref=e2552]: "-39dBm"
+                  - generic [ref=e2553]: Z=20.6m
+                  - generic [ref=e2554]: 32s前
+              - generic [ref=e2555] [cursor=pointer]:
+                - generic [ref=e2556]:
+                  - generic [ref=e2557]:
+                    - generic [ref=e2559]: R-098
+                    - generic [ref=e2560]: 蛇形
+                  - img [ref=e2561]
+                - generic [ref=e2565]:
+                  - generic [ref=e2566]: 维护中
+                  - generic [ref=e2567]: 中继
+                  - generic [ref=e2568]: 水文参数探查
+                - generic [ref=e2569]:
+                  - generic [ref=e2570]:
+                    - img [ref=e2571]
+                    - generic [ref=e2573]: 78%
+                  - generic [ref=e2574]:
+                    - img [ref=e2575]
+                    - generic [ref=e2576]: "-48dBm"
+                  - generic [ref=e2577]: Z=20.4m
+                  - generic [ref=e2578]: 2m前
+              - generic [ref=e2579] [cursor=pointer]:
+                - generic [ref=e2580]:
+                  - generic [ref=e2581]:
+                    - generic [ref=e2583]: R-099
+                    - generic [ref=e2584]: 蛇形
+                  - img [ref=e2585]
+                - generic [ref=e2589]:
+                  - generic [ref=e2590]: 离线
+                  - generic [ref=e2591]: 边缘
+                  - generic [ref=e2592]: 裂缝精细探测
+                - generic [ref=e2593]:
+                  - generic [ref=e2594]:
+                    - img [ref=e2595]
+                    - generic [ref=e2597]: 8%
+                  - generic [ref=e2598]:
+                    - img [ref=e2599]
+                    - generic [ref=e2600]: "-47dBm"
+                  - generic [ref=e2601]: Z=21.3m
+                  - generic [ref=e2602]: 4m前
+              - generic [ref=e2603] [cursor=pointer]:
+                - generic [ref=e2604]:
+                  - generic [ref=e2605]:
+                    - generic [ref=e2607]: R-100
+                    - generic [ref=e2608]: 蛇形
+                  - img [ref=e2609]
+                - generic [ref=e2613]:
+                  - generic [ref=e2614]: 离线
+                  - generic [ref=e2615]: 边缘
+                  - generic [ref=e2616]: 狭窄裂缝爬行
+                - generic [ref=e2617]:
+                  - generic [ref=e2618]:
+                    - img [ref=e2619]
+                    - generic [ref=e2621]: 3%
+                  - generic [ref=e2622]:
+                    - img [ref=e2623]
+                    - generic [ref=e2624]: "-49dBm"
+                  - generic [ref=e2625]: Z=20.5m
+                  - generic [ref=e2626]: 19s前
+              - generic [ref=e2627] [cursor=pointer]:
+                - generic [ref=e2628]:
+                  - generic [ref=e2629]:
+                    - generic [ref=e2631]: R-101
+                    - generic [ref=e2632]: 蛇形
+                  - img [ref=e2633]
+                - generic [ref=e2637]:
+                  - generic [ref=e2638]: 在线
+                  - generic [ref=e2639]: 边缘
+                  - generic [ref=e2640]: 气体泄漏排查
+                - generic [ref=e2641]:
+                  - generic [ref=e2642]:
+                    - img [ref=e2643]
+                    - generic [ref=e2645]: 81%
+                  - generic [ref=e2646]:
+                    - img [ref=e2647]
+                    - generic [ref=e2648]: "-53dBm"
+                  - generic [ref=e2649]: Z=22.7m
+                  - generic [ref=e2650]: 2m前
+              - generic [ref=e2651] [cursor=pointer]:
+                - generic [ref=e2652]:
+                  - generic [ref=e2653]:
+                    - generic [ref=e2655]: R-102
+                    - generic [ref=e2656]: 蛇形
+                  - img [ref=e2657]
+                - generic [ref=e2661]:
+                  - generic [ref=e2662]: 在线
+                  - generic [ref=e2663]: 终端
+                  - generic [ref=e2664]: 瓦斯浓度巡检
+                - generic [ref=e2665]:
+                  - generic [ref=e2666]:
+                    - img [ref=e2667]
+                    - generic [ref=e2669]: 61%
+                  - generic [ref=e2670]:
+                    - img [ref=e2671]
+                    - generic [ref=e2672]: "-54dBm"
+                  - generic [ref=e2673]: Z=21.6m
+                  - generic [ref=e2674]: 3m前
+              - generic [ref=e2675] [cursor=pointer]:
+                - generic [ref=e2676]:
+                  - generic [ref=e2677]:
+                    - generic [ref=e2679]: R-103
+                    - generic [ref=e2680]: 蛇形
+                  - img [ref=e2681]
+                - generic [ref=e2685]:
+                  - generic [ref=e2686]: 在线
+                  - generic [ref=e2687]: 终端
+                  - generic [ref=e2688]: 顶板位移监测
+                - generic [ref=e2689]:
+                  - generic [ref=e2690]:
+                    - img [ref=e2691]
+                    - generic [ref=e2693]: 27%
+                  - generic [ref=e2694]:
+                    - img [ref=e2695]
+                    - generic [ref=e2696]: "-59dBm"
+                  - generic [ref=e2697]: Z=25.1m
+                  - generic [ref=e2698]: 1m前
+              - generic [ref=e2699] [cursor=pointer]:
+                - generic [ref=e2700]:
+                  - generic [ref=e2701]:
+                    - generic [ref=e2703]: R-104
+                    - generic [ref=e2704]: 蛇形
+                  - img [ref=e2705]
+                - generic [ref=e2709]:
+                  - generic [ref=e2710]: 在线
+                  - generic [ref=e2711]: 终端
+                  - generic [ref=e2712]: 气体泄漏排查
+                - generic [ref=e2713]:
+                  - generic [ref=e2714]:
+                    - img [ref=e2715]
+                    - generic [ref=e2717]: 36%
+                  - generic [ref=e2718]:
+                    - img [ref=e2719]
+                    - generic [ref=e2720]: "-57dBm"
+                  - generic [ref=e2721]: Z=24.5m
+                  - generic [ref=e2722]: 1s前
+              - generic [ref=e2723] [cursor=pointer]:
+                - generic [ref=e2724]:
+                  - generic [ref=e2725]:
+                    - generic [ref=e2727]: R-105
+                    - generic [ref=e2728]: 蛇形
+                  - img [ref=e2729]
+                - generic [ref=e2733]:
+                  - generic [ref=e2734]: 在线
+                  - generic [ref=e2735]: 边缘
+                  - generic [ref=e2736]: 三维扫描建图
+                - generic [ref=e2737]:
+                  - generic [ref=e2738]:
+                    - img [ref=e2739]
+                    - generic [ref=e2741]: 68%
+                  - generic [ref=e2742]:
+                    - img [ref=e2743]
+                    - generic [ref=e2744]: "-47dBm"
+                  - generic [ref=e2745]: Z=25.5m
+                  - generic [ref=e2746]: 15s前
+              - generic [ref=e2747] [cursor=pointer]:
+                - generic [ref=e2748]:
+                  - generic [ref=e2749]:
+                    - generic [ref=e2751]: R-106
+                    - generic [ref=e2752]: 蛇形
+                  - img [ref=e2753]
+                - generic [ref=e2757]:
+                  - generic [ref=e2758]: 在线
+                  - generic [ref=e2759]: 终端
+                  - generic [ref=e2760]: Mesh 中继转发
+                - generic [ref=e2761]:
+                  - generic [ref=e2762]:
+                    - img [ref=e2763]
+                    - generic [ref=e2765]: 27%
+                  - generic [ref=e2766]:
+                    - img [ref=e2767]
+                    - generic [ref=e2768]: "-55dBm"
+                  - generic [ref=e2769]: Z=26.7m
+                  - generic [ref=e2770]: 1m前
+              - generic [ref=e2771] [cursor=pointer]:
+                - generic [ref=e2772]:
+                  - generic [ref=e2773]:
+                    - generic [ref=e2775]: R-107
+                    - generic [ref=e2776]: 蛇形
+                  - img [ref=e2777]
+                - generic [ref=e2781]:
+                  - generic [ref=e2782]: 在线
+                  - generic [ref=e2783]: 边缘
+                  - generic [ref=e2784]: 待命中
+                - generic [ref=e2785]:
+                  - generic [ref=e2786]:
+                    - img [ref=e2787]
+                    - generic [ref=e2789]: 31%
+                  - generic [ref=e2790]:
+                    - img [ref=e2791]
+                    - generic [ref=e2792]: "-49dBm"
+                  - generic [ref=e2793]: Z=25.9m
+                  - generic [ref=e2794]: 4m前
+              - generic [ref=e2795] [cursor=pointer]:
+                - generic [ref=e2796]:
+                  - generic [ref=e2797]:
+                    - generic [ref=e2799]: R-108
+                    - generic [ref=e2800]: 蛇形
+                  - img [ref=e2801]
+                - generic [ref=e2805]:
+                  - generic [ref=e2806]: 在线
+                  - generic [ref=e2807]: 终端
+                  - generic [ref=e2808]: 瓦斯浓度巡检
+                - generic [ref=e2809]:
+                  - generic [ref=e2810]:
+                    - img [ref=e2811]
+                    - generic [ref=e2813]: 52%
+                  - generic [ref=e2814]:
+                    - img [ref=e2815]
+                    - generic [ref=e2816]: "-58dBm"
+                  - generic [ref=e2817]: Z=20.1m
+                  - generic [ref=e2818]: 1m前
+              - generic [ref=e2819] [cursor=pointer]:
+                - generic [ref=e2820]:
+                  - generic [ref=e2821]:
+                    - generic [ref=e2823]: R-109
+                    - generic [ref=e2824]: 蛇形
+                  - img [ref=e2825]
+                - generic [ref=e2832]:
+                  - generic [ref=e2833]: 在线
+                  - generic [ref=e2834]: 网关
+                  - generic [ref=e2835]: Mesh 中继转发
+                - generic [ref=e2836]:
+                  - generic [ref=e2837]:
+                    - img [ref=e2838]
+                    - generic [ref=e2840]: 95%
+                  - generic [ref=e2841]:
+                    - img [ref=e2842]
+                    - generic [ref=e2843]: "-45dBm"
+                  - generic [ref=e2844]: Z=20.3m
+                  - generic [ref=e2845]: 1m前
+              - generic [ref=e2846] [cursor=pointer]:
+                - generic [ref=e2847]:
+                  - generic [ref=e2848]:
+                    - generic [ref=e2850]: R-110
+                    - generic [ref=e2851]: 蛇形
+                  - img [ref=e2852]
+                - generic [ref=e2856]:
+                  - generic [ref=e2857]: 在线
+                  - generic [ref=e2858]: 终端
+                  - generic [ref=e2859]: 夹层结构成像
+                - generic [ref=e2860]:
+                  - generic [ref=e2861]:
+                    - img [ref=e2862]
+                    - generic [ref=e2864]: 80%
+                  - generic [ref=e2865]:
+                    - img [ref=e2866]
+                    - generic [ref=e2867]: "-50dBm"
+                  - generic [ref=e2868]: Z=24.9m
+                  - generic [ref=e2869]: 1m前
+              - generic [ref=e2870] [cursor=pointer]:
+                - generic [ref=e2871]:
+                  - generic [ref=e2872]:
+                    - generic [ref=e2874]: R-111
+                    - generic [ref=e2875]: 蛇形
+                  - img [ref=e2876]
+                - generic [ref=e2880]:
+                  - generic [ref=e2881]: 低电量
+                  - generic [ref=e2882]: 中继
+                  - generic [ref=e2883]: 温度梯度测绘
+                - generic [ref=e2884]:
+                  - generic [ref=e2885]:
+                    - img [ref=e2886]
+                    - generic [ref=e2888]: 14%
+                  - generic [ref=e2889]:
+                    - img [ref=e2890]
+                    - generic [ref=e2891]: "-40dBm"
+                  - generic [ref=e2892]: Z=25.5m
+                  - generic [ref=e2893]: 3m前
+              - generic [ref=e2894] [cursor=pointer]:
+                - generic [ref=e2895]:
+                  - generic [ref=e2896]:
+                    - generic [ref=e2898]: R-112
+                    - generic [ref=e2899]: 蛇形
+                  - img [ref=e2900]
+                - generic [ref=e2904]:
+                  - generic [ref=e2905]: 在线
+                  - generic [ref=e2906]: 边缘
+                  - generic [ref=e2907]: 裂缝精细探测
+                - generic [ref=e2908]:
+                  - generic [ref=e2909]:
+                    - img [ref=e2910]
+                    - generic [ref=e2912]: 39%
+                  - generic [ref=e2913]:
+                    - img [ref=e2914]
+                    - generic [ref=e2915]: "-59dBm"
+                  - generic [ref=e2916]: Z=24.8m
+                  - generic [ref=e2917]: 34s前
+              - generic [ref=e2918] [cursor=pointer]:
+                - generic [ref=e2919]:
+                  - generic [ref=e2920]:
+                    - generic [ref=e2922]: R-113
+                    - generic [ref=e2923]: 蛇形
+                  - img [ref=e2924]
+                - generic [ref=e2928]:
+                  - generic [ref=e2929]: 在线
+                  - generic [ref=e2930]: 边缘
+                  - generic [ref=e2931]: 瓦斯浓度巡检
+                - generic [ref=e2932]:
+                  - generic [ref=e2933]:
+                    - img [ref=e2934]
+                    - generic [ref=e2936]: 83%
+                  - generic [ref=e2937]:
+                    - img [ref=e2938]
+                    - generic [ref=e2939]: "-52dBm"
+                  - generic [ref=e2940]: Z=9m
+                  - generic [ref=e2941]: 1m前
+              - generic [ref=e2942] [cursor=pointer]:
+                - generic [ref=e2943]:
+                  - generic [ref=e2944]:
+                    - generic [ref=e2946]: R-114
+                    - generic [ref=e2947]: 蛇形
+                  - img [ref=e2948]
+                - generic [ref=e2955]:
+                  - generic [ref=e2956]: 维护中
+                  - generic [ref=e2957]: 边缘
+                  - generic [ref=e2958]: 待命中
+                - generic [ref=e2959]:
+                  - generic [ref=e2960]:
+                    - img [ref=e2961]
+                    - generic [ref=e2963]: 73%
+                  - generic [ref=e2964]:
+                    - img [ref=e2965]
+                    - generic [ref=e2966]: "-51dBm"
+                  - generic [ref=e2967]: Z=9.9m
+                  - generic [ref=e2968]: 4m前
+              - generic [ref=e2969] [cursor=pointer]:
+                - generic [ref=e2970]:
+                  - generic [ref=e2971]:
+                    - generic [ref=e2973]: R-115
+                    - generic [ref=e2974]: 蛇形
+                  - img [ref=e2975]
+                - generic [ref=e2979]:
+                  - generic [ref=e2980]: 在线
+                  - generic [ref=e2981]: 终端
+                  - generic [ref=e2982]: 瓦斯浓度巡检
+                - generic [ref=e2983]:
+                  - generic [ref=e2984]:
+                    - img [ref=e2985]
+                    - generic [ref=e2987]: 56%
+                  - generic [ref=e2988]:
+                    - img [ref=e2989]
+                    - generic [ref=e2990]: "-37dBm"
+                  - generic [ref=e2991]: Z=13m
+                  - generic [ref=e2992]: 2m前
+              - generic [ref=e2993] [cursor=pointer]:
+                - generic [ref=e2994]:
+                  - generic [ref=e2995]:
+                    - generic [ref=e2997]: R-116
+                    - generic [ref=e2998]: 蛇形
+                  - img [ref=e2999]
+                - generic [ref=e3003]:
+                  - generic [ref=e3004]: 低电量
+                  - generic [ref=e3005]: 中继
+                  - generic [ref=e3006]: 深部取样分析
+                - generic [ref=e3007]:
+                  - generic [ref=e3008]:
+                    - img [ref=e3009]
+                    - generic [ref=e3011]: 4%
+                  - generic [ref=e3012]:
+                    - img [ref=e3013]
+                    - generic [ref=e3014]: "-50dBm"
+                  - generic [ref=e3015]: Z=13m
+                  - generic [ref=e3016]: 4m前
+              - generic [ref=e3017] [cursor=pointer]:
+                - generic [ref=e3018]:
+                  - generic [ref=e3019]:
+                    - generic [ref=e3021]: R-117
+                    - generic [ref=e3022]: 蛇形
+                  - img [ref=e3023]
+                - generic [ref=e3027]:
+                  - generic [ref=e3028]: 在线
+                  - generic [ref=e3029]: 终端
+                  - generic [ref=e3030]: 夹层结构成像
+                - generic [ref=e3031]:
+                  - generic [ref=e3032]:
+                    - img [ref=e3033]
+                    - generic [ref=e3035]: 98%
+                  - generic [ref=e3036]:
+                    - img [ref=e3037]
+                    - generic [ref=e3038]: "-42dBm"
+                  - generic [ref=e3039]: Z=12.2m
+                  - generic [ref=e3040]: 2m前
+              - generic [ref=e3041] [cursor=pointer]:
+                - generic [ref=e3042]:
+                  - generic [ref=e3043]:
+                    - generic [ref=e3045]: R-118
+                    - generic [ref=e3046]: 蛇形
+                  - img [ref=e3047]
+                - generic [ref=e3051]:
+                  - generic [ref=e3052]: 在线
+                  - generic [ref=e3053]: 边缘
+                  - generic [ref=e3054]: 狭窄裂缝爬行
+                - generic [ref=e3055]:
+                  - generic [ref=e3056]:
+                    - img [ref=e3057]
+                    - generic [ref=e3059]: 84%
+                  - generic [ref=e3060]:
+                    - img [ref=e3061]
+                    - generic [ref=e3062]: "-55dBm"
+                  - generic [ref=e3063]: Z=14.4m
+                  - generic [ref=e3064]: 5s前
+              - generic [ref=e3065] [cursor=pointer]:
+                - generic [ref=e3066]:
+                  - generic [ref=e3067]:
+                    - generic [ref=e3069]: R-119
+                    - generic [ref=e3070]: 蛇形
+                  - img [ref=e3071]
+                - generic [ref=e3075]:
+                  - generic [ref=e3076]: 在线
+                  - generic [ref=e3077]: 中继
+                  - generic [ref=e3078]: 裂缝精细探测
+                - generic [ref=e3079]:
+                  - generic [ref=e3080]:
+                    - img [ref=e3081]
+                    - generic [ref=e3083]: 51%
+                  - generic [ref=e3084]:
+                    - img [ref=e3085]
+                    - generic [ref=e3086]: "-42dBm"
+                  - generic [ref=e3087]: Z=11.1m
+                  - generic [ref=e3088]: 1m前
+              - generic [ref=e3089] [cursor=pointer]:
+                - generic [ref=e3090]:
+                  - generic [ref=e3091]:
+                    - generic [ref=e3093]: R-120
+                    - generic [ref=e3094]: 蛇形
+                  - img [ref=e3095]
+                - generic [ref=e3099]:
+                  - generic [ref=e3100]: 在线
+                  - generic [ref=e3101]: 边缘
+                  - generic [ref=e3102]: 气体泄漏排查
+                - generic [ref=e3103]:
+                  - generic [ref=e3104]:
+                    - img [ref=e3105]
+                    - generic [ref=e3107]: 71%
+                  - generic [ref=e3108]:
+                    - img [ref=e3109]
+                    - generic [ref=e3110]: "-52dBm"
+                  - generic [ref=e3111]: Z=14.7m
+                  - generic [ref=e3112]: 40s前
+              - generic [ref=e3113] [cursor=pointer]:
+                - generic [ref=e3114]:
+                  - generic [ref=e3115]:
+                    - generic [ref=e3117]: R-121
+                    - generic [ref=e3118]: 蛇形
+                  - img [ref=e3119]
+                - generic [ref=e3123]:
+                  - generic [ref=e3124]: 在线
+                  - generic [ref=e3125]: 边缘
+                  - generic [ref=e3126]: 狭窄裂缝爬行
+                - generic [ref=e3127]:
+                  - generic [ref=e3128]:
+                    - img [ref=e3129]
+                    - generic [ref=e3131]: 43%
+                  - generic [ref=e3132]:
+                    - img [ref=e3133]
+                    - generic [ref=e3134]: "-46dBm"
+                  - generic [ref=e3135]: Z=14.5m
+                  - generic [ref=e3136]: 2m前
+              - generic [ref=e3137] [cursor=pointer]:
+                - generic [ref=e3138]:
+                  - generic [ref=e3139]:
+                    - generic [ref=e3141]: R-122
+                    - generic [ref=e3142]: 蛇形
+                  - img [ref=e3143]
+                - generic [ref=e3147]:
+                  - generic [ref=e3148]: 在线
+                  - generic [ref=e3149]: 边缘
+                  - generic [ref=e3150]: 裂缝精细探测
+                - generic [ref=e3151]:
+                  - generic [ref=e3152]:
+                    - img [ref=e3153]
+                    - generic [ref=e3155]: 89%
+                  - generic [ref=e3156]:
+                    - img [ref=e3157]
+                    - generic [ref=e3158]: "-38dBm"
+                  - generic [ref=e3159]: Z=12.6m
+                  - generic [ref=e3160]: 3m前
+              - generic [ref=e3161] [cursor=pointer]:
+                - generic [ref=e3162]:
+                  - generic [ref=e3163]:
+                    - generic [ref=e3165]: R-123
+                    - generic [ref=e3166]: 蛇形
+                  - img [ref=e3167]
+                - generic [ref=e3171]:
+                  - generic [ref=e3172]: 在线
+                  - generic [ref=e3173]: 终端
+                  - generic [ref=e3174]: 夹层结构成像
+                - generic [ref=e3175]:
+                  - generic [ref=e3176]:
+                    - img [ref=e3177]
+                    - generic [ref=e3179]: 56%
+                  - generic [ref=e3180]:
+                    - img [ref=e3181]
+                    - generic [ref=e3182]: "-46dBm"
+                  - generic [ref=e3183]: Z=10.2m
+                  - generic [ref=e3184]: 1m前
+              - generic [ref=e3185] [cursor=pointer]:
+                - generic [ref=e3186]:
+                  - generic [ref=e3187]:
+                    - generic [ref=e3189]: R-124
+                    - generic [ref=e3190]: 蛇形
+                  - img [ref=e3191]
+                - generic [ref=e3195]:
+                  - generic [ref=e3196]: 在线
+                  - generic [ref=e3197]: 网关
+                  - generic [ref=e3198]: 气体泄漏排查
+                - generic [ref=e3199]:
+                  - generic [ref=e3200]:
+                    - img [ref=e3201]
+                    - generic [ref=e3203]: 68%
+                  - generic [ref=e3204]:
+                    - img [ref=e3205]
+                    - generic [ref=e3206]: "-38dBm"
+                  - generic [ref=e3207]: Z=12.1m
+                  - generic [ref=e3208]: 2m前
+              - generic [ref=e3209] [cursor=pointer]:
+                - generic [ref=e3210]:
+                  - generic [ref=e3211]:
+                    - generic [ref=e3213]: R-125
+                    - generic [ref=e3214]: 蛇形
+                  - img [ref=e3215]
+                - generic [ref=e3222]:
+                  - generic [ref=e3223]: 离线
+                  - generic [ref=e3224]: 终端
+                  - generic [ref=e3225]: 温度梯度测绘
+                - generic [ref=e3226]:
+                  - generic [ref=e3227]:
+                    - img [ref=e3228]
+                    - generic [ref=e3230]: 10%
+                  - generic [ref=e3231]:
+                    - img [ref=e3232]
+                    - generic [ref=e3233]: "-51dBm"
+                  - generic [ref=e3234]: Z=15.4m
+                  - generic [ref=e3235]: 3m前
+              - generic [ref=e3236] [cursor=pointer]:
+                - generic [ref=e3237]:
+                  - generic [ref=e3238]:
+                    - generic [ref=e3240]: R-126
+                    - generic [ref=e3241]: 蛇形
+                  - img [ref=e3242]
+                - generic [ref=e3246]:
+                  - generic [ref=e3247]: 在线
+                  - generic [ref=e3248]: 中继
+                  - generic [ref=e3249]: 水文参数探查
+                - generic [ref=e3250]:
+                  - generic [ref=e3251]:
+                    - img [ref=e3252]
+                    - generic [ref=e3254]: 79%
+                  - generic [ref=e3255]:
+                    - img [ref=e3256]
+                    - generic [ref=e3257]: "-50dBm"
+                  - generic [ref=e3258]: Z=18.2m
+                  - generic [ref=e3259]: 1m前
+              - generic [ref=e3260] [cursor=pointer]:
+                - generic [ref=e3261]:
+                  - generic [ref=e3262]:
+                    - generic [ref=e3264]: R-127
+                    - generic [ref=e3265]: 蛇形
+                  - img [ref=e3266]
+                - generic [ref=e3273]:
+                  - generic [ref=e3274]: 在线
+                  - generic [ref=e3275]: 终端
+                  - generic [ref=e3276]: 待命中
+                - generic [ref=e3277]:
+                  - generic [ref=e3278]:
+                    - img [ref=e3279]
+                    - generic [ref=e3281]: 52%
+                  - generic [ref=e3282]:
+                    - img [ref=e3283]
+                    - generic [ref=e3284]: "-42dBm"
+                  - generic [ref=e3285]: Z=21m
+                  - generic [ref=e3286]: 3m前
+              - generic [ref=e3287] [cursor=pointer]:
+                - generic [ref=e3288]:
+                  - generic [ref=e3289]:
+                    - generic [ref=e3291]: R-128
+                    - generic [ref=e3292]: 蛇形
+                  - img [ref=e3293]
+                - generic [ref=e3297]:
+                  - generic [ref=e3298]: 在线
+                  - generic [ref=e3299]: 终端
+                  - generic [ref=e3300]: 深部取样分析
+                - generic [ref=e3301]:
+                  - generic [ref=e3302]:
+                    - img [ref=e3303]
+                    - generic [ref=e3305]: 84%
+                  - generic [ref=e3306]:
+                    - img [ref=e3307]
+                    - generic [ref=e3308]: "-44dBm"
+                  - generic [ref=e3309]: Z=20.8m
+                  - generic [ref=e3310]: 3m前
+              - generic [ref=e3311] [cursor=pointer]:
+                - generic [ref=e3312]:
+                  - generic [ref=e3313]:
+                    - generic [ref=e3315]: R-129
+                    - generic [ref=e3316]: 蛇形
+                  - img [ref=e3317]
+                - generic [ref=e3321]:
+                  - generic [ref=e3322]: 维护中
+                  - generic [ref=e3323]: 边缘
+                  - generic [ref=e3324]: 温度梯度测绘
+                - generic [ref=e3325]:
+                  - generic [ref=e3326]:
+                    - img [ref=e3327]
+                    - generic [ref=e3329]: 58%
+                  - generic [ref=e3330]:
+                    - img [ref=e3331]
+                    - generic [ref=e3332]: "-48dBm"
+                  - generic [ref=e3333]: Z=26.1m
+                  - generic [ref=e3334]: 2m前
+              - generic [ref=e3335] [cursor=pointer]:
+                - generic [ref=e3336]:
+                  - generic [ref=e3337]:
+                    - generic [ref=e3339]: R-130
+                    - generic [ref=e3340]: 蛇形
+                  - img [ref=e3341]
+                - generic [ref=e3345]:
+                  - generic [ref=e3346]: 维护中
+                  - generic [ref=e3347]: 网关
+                  - generic [ref=e3348]: 温度梯度测绘
+                - generic [ref=e3349]:
+                  - generic [ref=e3350]:
+                    - img [ref=e3351]
+                    - generic [ref=e3353]: 82%
+                  - generic [ref=e3354]:
+                    - img [ref=e3355]
+                    - generic [ref=e3356]: "-50dBm"
+                  - generic [ref=e3357]: Z=21.5m
+                  - generic [ref=e3358]: 3m前
+              - generic [ref=e3359] [cursor=pointer]:
+                - generic [ref=e3360]:
+                  - generic [ref=e3361]:
+                    - generic [ref=e3363]: R-131
+                    - generic [ref=e3364]: 蛇形
+                  - img [ref=e3365]
+                - generic [ref=e3372]:
+                  - generic [ref=e3373]: 离线
+                  - generic [ref=e3374]: 终端
+                  - generic [ref=e3375]: 气体泄漏排查
+                - generic [ref=e3376]:
+                  - generic [ref=e3377]:
+                    - img [ref=e3378]
+                    - generic [ref=e3380]: 7%
+                  - generic [ref=e3381]:
+                    - img [ref=e3382]
+                    - generic [ref=e3383]: "-50dBm"
+                  - generic [ref=e3384]: Z=25.3m
+                  - generic [ref=e3385]: 2m前
+              - generic [ref=e3386] [cursor=pointer]:
+                - generic [ref=e3387]:
+                  - generic [ref=e3388]:
+                    - generic [ref=e3390]: R-132
+                    - generic [ref=e3391]: 蛇形
+                  - img [ref=e3392]
+                - generic [ref=e3396]:
+                  - generic [ref=e3397]: 故障
+                  - generic [ref=e3398]: 边缘
+                  - generic [ref=e3399]: 夹层结构成像
+                - generic [ref=e3400]:
+                  - generic [ref=e3401]:
+                    - img [ref=e3402]
+                    - generic [ref=e3404]: 27%
+                  - generic [ref=e3405]:
+                    - img [ref=e3406]
+                    - generic [ref=e3407]: "-58dBm"
+                  - generic [ref=e3408]: Z=30m
+                  - generic [ref=e3409]: 1m前
+              - generic [ref=e3410] [cursor=pointer]:
+                - generic [ref=e3411]:
+                  - generic [ref=e3412]:
+                    - generic [ref=e3414]: R-133
+                    - generic [ref=e3415]: 蛇形
+                  - img [ref=e3416]
+                - generic [ref=e3420]:
+                  - generic [ref=e3421]: 在线
+                  - generic [ref=e3422]: 边缘
+                  - generic [ref=e3423]: Mesh 中继转发
+                - generic [ref=e3424]:
+                  - generic [ref=e3425]:
+                    - img [ref=e3426]
+                    - generic [ref=e3428]: 87%
+                  - generic [ref=e3429]:
+                    - img [ref=e3430]
+                    - generic [ref=e3431]: "-44dBm"
+                  - generic [ref=e3432]: Z=13.2m
+                  - generic [ref=e3433]: 1m前
+              - generic [ref=e3434] [cursor=pointer]:
+                - generic [ref=e3435]:
+                  - generic [ref=e3436]:
+                    - generic [ref=e3438]: R-134
+                    - generic [ref=e3439]: 蛇形
+                  - img [ref=e3440]
+                - generic [ref=e3447]:
+                  - generic [ref=e3448]: 离线
+                  - generic [ref=e3449]: 终端
+                  - generic [ref=e3450]: 顶板位移监测
+                - generic [ref=e3451]:
+                  - generic [ref=e3452]:
+                    - img [ref=e3453]
+                    - generic [ref=e3455]: 9%
+                  - generic [ref=e3456]:
+                    - img [ref=e3457]
+                    - generic [ref=e3458]: "-36dBm"
+                  - generic [ref=e3459]: Z=13.5m
+                  - generic [ref=e3460]: 4m前
+              - generic [ref=e3461] [cursor=pointer]:
+                - generic [ref=e3462]:
+                  - generic [ref=e3463]:
+                    - generic [ref=e3465]: R-135
+                    - generic [ref=e3466]: 蛇形
+                  - img [ref=e3467]
+                - generic [ref=e3471]:
+                  - generic [ref=e3472]: 在线
+                  - generic [ref=e3473]: 网关
+                  - generic [ref=e3474]: 水文参数探查
+                - generic [ref=e3475]:
+                  - generic [ref=e3476]:
+                    - img [ref=e3477]
+                    - generic [ref=e3479]: 42%
+                  - generic [ref=e3480]:
+                    - img [ref=e3481]
+                    - generic [ref=e3482]: "-46dBm"
+                  - generic [ref=e3483]: Z=13.2m
+                  - generic [ref=e3484]: 3m前
+              - generic [ref=e3485] [cursor=pointer]:
+                - generic [ref=e3486]:
+                  - generic [ref=e3487]:
+                    - generic [ref=e3489]: R-136
+                    - generic [ref=e3490]: 蛇形
+                  - img [ref=e3491]
+                - generic [ref=e3498]:
+                  - generic [ref=e3499]: 在线
+                  - generic [ref=e3500]: 终端
+                  - generic [ref=e3501]: 夹层结构成像
+                - generic [ref=e3502]:
+                  - generic [ref=e3503]:
+                    - img [ref=e3504]
+                    - generic [ref=e3506]: 35%
+                  - generic [ref=e3507]:
+                    - img [ref=e3508]
+                    - generic [ref=e3509]: "-37dBm"
+                  - generic [ref=e3510]: Z=13.9m
+                  - generic [ref=e3511]: 1m前
+              - generic [ref=e3512] [cursor=pointer]:
+                - generic [ref=e3513]:
+                  - generic [ref=e3514]:
+                    - generic [ref=e3516]: R-137
+                    - generic [ref=e3517]: 蛇形
+                  - img [ref=e3518]
+                - generic [ref=e3525]:
+                  - generic [ref=e3526]: 离线
+                  - generic [ref=e3527]: 网关
+                  - generic [ref=e3528]: 水文参数探查
+                - generic [ref=e3529]:
+                  - generic [ref=e3530]:
+                    - img [ref=e3531]
+                    - generic [ref=e3533]: 10%
+                  - generic [ref=e3534]:
+                    - img [ref=e3535]
+                    - generic [ref=e3536]: "-55dBm"
+                  - generic [ref=e3537]: Z=26.4m
+                  - generic [ref=e3538]: 1m前
+              - generic [ref=e3539] [cursor=pointer]:
+                - generic [ref=e3540]:
+                  - generic [ref=e3541]:
+                    - generic [ref=e3543]: R-138
+                    - generic [ref=e3544]: 蛇形
+                  - img [ref=e3545]
+                - generic [ref=e3549]:
+                  - generic [ref=e3550]: 低电量
+                  - generic [ref=e3551]: 终端
+                  - generic [ref=e3552]: 顶板位移监测
+                - generic [ref=e3553]:
+                  - generic [ref=e3554]:
+                    - img [ref=e3555]
+                    - generic [ref=e3557]: 16%
+                  - generic [ref=e3558]:
+                    - img [ref=e3559]
+                    - generic [ref=e3560]: "-45dBm"
+                  - generic [ref=e3561]: Z=25.5m
+                  - generic [ref=e3562]: 1m前
+              - generic [ref=e3563] [cursor=pointer]:
+                - generic [ref=e3564]:
+                  - generic [ref=e3565]:
+                    - generic [ref=e3567]: R-139
+                    - generic [ref=e3568]: 蛇形
+                  - img [ref=e3569]
+                - generic [ref=e3573]:
+                  - generic [ref=e3574]: 低电量
+                  - generic [ref=e3575]: 终端
+                  - generic [ref=e3576]: 狭窄裂缝爬行
+                - generic [ref=e3577]:
+                  - generic [ref=e3578]:
+                    - img [ref=e3579]
+                    - generic [ref=e3581]: 14%
+                  - generic [ref=e3582]:
+                    - img [ref=e3583]
+                    - generic [ref=e3584]: "-55dBm"
+                  - generic [ref=e3585]: Z=31.2m
+                  - generic [ref=e3586]: 3m前
+              - generic [ref=e3587] [cursor=pointer]:
+                - generic [ref=e3588]:
+                  - generic [ref=e3589]:
+                    - generic [ref=e3591]: R-140
+                    - generic [ref=e3592]: 蛇形
+                  - img [ref=e3593]
+                - generic [ref=e3597]:
+                  - generic [ref=e3598]: 在线
+                  - generic [ref=e3599]: 边缘
+                  - generic [ref=e3600]: 声发射信号采集
+                - generic [ref=e3601]:
+                  - generic [ref=e3602]:
+                    - img [ref=e3603]
+                    - generic [ref=e3605]: 85%
+                  - generic [ref=e3606]:
+                    - img [ref=e3607]
+                    - generic [ref=e3608]: "-41dBm"
+                  - generic [ref=e3609]: Z=21.8m
+                  - generic [ref=e3610]: 14s前
+              - generic [ref=e3611] [cursor=pointer]:
+                - generic [ref=e3612]:
+                  - generic [ref=e3613]:
+                    - generic [ref=e3615]: R-141
+                    - generic [ref=e3616]: 蛇形
+                  - img [ref=e3617]
+                - generic [ref=e3621]:
+                  - generic [ref=e3622]: 在线
+                  - generic [ref=e3623]: 终端
+                  - generic [ref=e3624]: 夹层结构成像
+                - generic [ref=e3625]:
+                  - generic [ref=e3626]:
+                    - img [ref=e3627]
+                    - generic [ref=e3629]: 27%
+                  - generic [ref=e3630]:
+                    - img [ref=e3631]
+                    - generic [ref=e3632]: "-44dBm"
+                  - generic [ref=e3633]: Z=21.1m
+                  - generic [ref=e3634]: 4m前
+              - generic [ref=e3635] [cursor=pointer]:
+                - generic [ref=e3636]:
+                  - generic [ref=e3637]:
+                    - generic [ref=e3639]: R-142
+                    - generic [ref=e3640]: 蛇形
+                  - img [ref=e3641]
+                - generic [ref=e3645]:
+                  - generic [ref=e3646]: 在线
+                  - generic [ref=e3647]: 边缘
+                  - generic [ref=e3648]: 瓦斯浓度巡检
+                - generic [ref=e3649]:
+                  - generic [ref=e3650]:
+                    - img [ref=e3651]
+                    - generic [ref=e3653]: 57%
+                  - generic [ref=e3654]:
+                    - img [ref=e3655]
+                    - generic [ref=e3656]: "-47dBm"
+                  - generic [ref=e3657]: Z=22.9m
+                  - generic [ref=e3658]: 3m前
+              - generic [ref=e3659] [cursor=pointer]:
+                - generic [ref=e3660]:
+                  - generic [ref=e3661]:
+                    - generic [ref=e3663]: R-143
+                    - generic [ref=e3664]: 蛇形
+                  - img [ref=e3665]
+                - generic [ref=e3669]:
+                  - generic [ref=e3670]: 在线
+                  - generic [ref=e3671]: 终端
+                  - generic [ref=e3672]: 裂隙扩张监测
+                - generic [ref=e3673]:
+                  - generic [ref=e3674]:
+                    - img [ref=e3675]
+                    - generic [ref=e3677]: 71%
+                  - generic [ref=e3678]:
+                    - img [ref=e3679]
+                    - generic [ref=e3680]: "-51dBm"
+                  - generic [ref=e3681]: Z=22.8m
+                  - generic [ref=e3682]: 1m前
+              - generic [ref=e3683] [cursor=pointer]:
+                - generic [ref=e3684]:
+                  - generic [ref=e3685]:
+                    - generic [ref=e3687]: R-144
+                    - generic [ref=e3688]: 蛇形
+                  - img [ref=e3689]
+                - generic [ref=e3693]:
+                  - generic [ref=e3694]: 在线
+                  - generic [ref=e3695]: 边缘
+                  - generic [ref=e3696]: 裂缝精细探测
+                - generic [ref=e3697]:
+                  - generic [ref=e3698]:
+                    - img [ref=e3699]
+                    - generic [ref=e3701]: 98%
+                  - generic [ref=e3702]:
+                    - img [ref=e3703]
+                    - generic [ref=e3704]: "-52dBm"
+                  - generic [ref=e3705]: Z=26.2m
+                  - generic [ref=e3706]: 1m前
+              - generic [ref=e3707] [cursor=pointer]:
+                - generic [ref=e3708]:
+                  - generic [ref=e3709]:
+                    - generic [ref=e3711]: R-145
+                    - generic [ref=e3712]: 蛇形
+                  - img [ref=e3713]
+                - generic [ref=e3717]:
+                  - generic [ref=e3718]: 低电量
+                  - generic [ref=e3719]: 终端
+                  - generic [ref=e3720]: 裂缝精细探测
+                - generic [ref=e3721]:
+                  - generic [ref=e3722]:
+                    - img [ref=e3723]
+                    - generic [ref=e3725]: 8%
+                  - generic [ref=e3726]:
+                    - img [ref=e3727]
+                    - generic [ref=e3728]: "-47dBm"
+                  - generic [ref=e3729]: Z=26.6m
+                  - generic [ref=e3730]: 53s前
+              - generic [ref=e3731] [cursor=pointer]:
+                - generic [ref=e3732]:
+                  - generic [ref=e3733]:
+                    - generic [ref=e3735]: R-146
+                    - generic [ref=e3736]: 蛇形
+                  - img [ref=e3737]
+                - generic [ref=e3741]:
+                  - generic [ref=e3742]: 在线
+                  - generic [ref=e3743]: 终端
+                  - generic [ref=e3744]: 声发射信号采集
+                - generic [ref=e3745]:
+                  - generic [ref=e3746]:
+                    - img [ref=e3747]
+                    - generic [ref=e3749]: 37%
+                  - generic [ref=e3750]:
+                    - img [ref=e3751]
+                    - generic [ref=e3752]: "-50dBm"
+                  - generic [ref=e3753]: Z=23.1m
+                  - generic [ref=e3754]: 3m前
+              - generic [ref=e3755] [cursor=pointer]:
+                - generic [ref=e3756]:
+                  - generic [ref=e3757]:
+                    - generic [ref=e3759]: R-147
+                    - generic [ref=e3760]: 蛇形
+                  - img [ref=e3761]
+                - generic [ref=e3765]:
+                  - generic [ref=e3766]: 低电量
+                  - generic [ref=e3767]: 终端
+                  - generic [ref=e3768]: 深部取样分析
+                - generic [ref=e3769]:
+                  - generic [ref=e3770]:
+                    - img [ref=e3771]
+                    - generic [ref=e3773]: 12%
+                  - generic [ref=e3774]:
+                    - img [ref=e3775]
+                    - generic [ref=e3776]: "-41dBm"
+                  - generic [ref=e3777]: Z=22.7m
+                  - generic [ref=e3778]: 4m前
+              - generic [ref=e3779] [cursor=pointer]:
+                - generic [ref=e3780]:
+                  - generic [ref=e3781]:
+                    - generic [ref=e3783]: R-148
+                    - generic [ref=e3784]: 蛇形
+                  - img [ref=e3785]
+                - generic [ref=e3789]:
+                  - generic [ref=e3790]: 在线
+                  - generic [ref=e3791]: 中继
+                  - generic [ref=e3792]: 瓦斯浓度巡检
+                - generic [ref=e3793]:
+                  - generic [ref=e3794]:
+                    - img [ref=e3795]
+                    - generic [ref=e3797]: 71%
+                  - generic [ref=e3798]:
+                    - img [ref=e3799]
+                    - generic [ref=e3800]: "-48dBm"
+                  - generic [ref=e3801]: Z=22.6m
+                  - generic [ref=e3802]: 1m前
+              - generic [ref=e3803] [cursor=pointer]:
+                - generic [ref=e3804]:
+                  - generic [ref=e3805]:
+                    - generic [ref=e3807]: R-149
+                    - generic [ref=e3808]: 蛇形
+                  - img [ref=e3809]
+                - generic [ref=e3813]:
+                  - generic [ref=e3814]: 在线
+                  - generic [ref=e3815]: 终端
+                  - generic [ref=e3816]: 待命中
+                - generic [ref=e3817]:
+                  - generic [ref=e3818]:
+                    - img [ref=e3819]
+                    - generic [ref=e3821]: 74%
+                  - generic [ref=e3822]:
+                    - img [ref=e3823]
+                    - generic [ref=e3824]: "-52dBm"
+                  - generic [ref=e3825]: Z=21.4m
+                  - generic [ref=e3826]: 4m前
+              - generic [ref=e3827] [cursor=pointer]:
+                - generic [ref=e3828]:
+                  - generic [ref=e3829]:
+                    - generic [ref=e3831]: R-150
+                    - generic [ref=e3832]: 蛇形
+                  - img [ref=e3833]
+                - generic [ref=e3837]:
+                  - generic [ref=e3838]: 离线
+                  - generic [ref=e3839]: 终端
+                  - generic [ref=e3840]: 待命中
+                - generic [ref=e3841]:
+                  - generic [ref=e3842]:
+                    - img [ref=e3843]
+                    - generic [ref=e3845]: 4%
+                  - generic [ref=e3846]:
+                    - img [ref=e3847]
+                    - generic [ref=e3848]: "-47dBm"
+                  - generic [ref=e3849]: Z=20.2m
+                  - generic [ref=e3850]: 4m前
+              - generic [ref=e3851] [cursor=pointer]:
+                - generic [ref=e3852]:
+                  - generic [ref=e3853]:
+                    - generic [ref=e3855]: R-151
+                    - generic [ref=e3856]: 蛇形
+                  - img [ref=e3857]
+                - generic [ref=e3864]:
+                  - generic [ref=e3865]: 故障
+                  - generic [ref=e3866]: 终端
+                  - generic [ref=e3867]: 温度梯度测绘
+                - generic [ref=e3868]:
+                  - generic [ref=e3869]:
+                    - img [ref=e3870]
+                    - generic [ref=e3872]: 58%
+                  - generic [ref=e3873]:
+                    - img [ref=e3874]
+                    - generic [ref=e3875]: "-51dBm"
+                  - generic [ref=e3876]: Z=13.7m
+                  - generic [ref=e3877]: 2m前
+              - generic [ref=e3878] [cursor=pointer]:
+                - generic [ref=e3879]:
+                  - generic [ref=e3880]:
+                    - generic [ref=e3882]: R-152
+                    - generic [ref=e3883]: 蛇形
+                  - img [ref=e3884]
+                - generic [ref=e3888]:
+                  - generic [ref=e3889]: 在线
+                  - generic [ref=e3890]: 网关
+                  - generic [ref=e3891]: 三维扫描建图
+                - generic [ref=e3892]:
+                  - generic [ref=e3893]:
+                    - img [ref=e3894]
+                    - generic [ref=e3896]: 41%
+                  - generic [ref=e3897]:
+                    - img [ref=e3898]
+                    - generic [ref=e3899]: "-43dBm"
+                  - generic [ref=e3900]: Z=6.5m
+                  - generic [ref=e3901]: 1m前
+              - generic [ref=e3902] [cursor=pointer]:
+                - generic [ref=e3903]:
+                  - generic [ref=e3904]:
+                    - generic [ref=e3906]: R-153
+                    - generic [ref=e3907]: 蛇形
+                  - img [ref=e3908]
+                - generic [ref=e3915]:
+                  - generic [ref=e3916]: 故障
+                  - generic [ref=e3917]: 边缘
+                  - generic [ref=e3918]: 温度梯度测绘
+                - generic [ref=e3919]:
+                  - generic [ref=e3920]:
+                    - img [ref=e3921]
+                    - generic [ref=e3923]: 59%
+                  - generic [ref=e3924]:
+                    - img [ref=e3925]
+                    - generic [ref=e3926]: "-45dBm"
+                  - generic [ref=e3927]: Z=21m
+                  - generic [ref=e3928]: 26s前
+              - generic [ref=e3929] [cursor=pointer]:
+                - generic [ref=e3930]:
+                  - generic [ref=e3931]:
+                    - generic [ref=e3933]: R-154
+                    - generic [ref=e3934]: 蛇形
+                  - img [ref=e3935]
+                - generic [ref=e3939]:
+                  - generic [ref=e3940]: 在线
+                  - generic [ref=e3941]: 边缘
+                  - generic [ref=e3942]: 水文参数探查
+                - generic [ref=e3943]:
+                  - generic [ref=e3944]:
+                    - img [ref=e3945]
+                    - generic [ref=e3947]: 71%
+                  - generic [ref=e3948]:
+                    - img [ref=e3949]
+                    - generic [ref=e3950]: "-38dBm"
+                  - generic [ref=e3951]: Z=18.8m
+                  - generic [ref=e3952]: 35s前
+              - generic [ref=e3953] [cursor=pointer]:
+                - generic [ref=e3954]:
+                  - generic [ref=e3955]:
+                    - generic [ref=e3957]: R-155
+                    - generic [ref=e3958]: 蛇形
+                  - img [ref=e3959]
+                - generic [ref=e3963]:
+                  - generic [ref=e3964]: 低电量
+                  - generic [ref=e3965]: 中继
+                  - generic [ref=e3966]: 裂隙扩张监测
+                - generic [ref=e3967]:
+                  - generic [ref=e3968]:
+                    - img [ref=e3969]
+                    - generic [ref=e3971]: 9%
+                  - generic [ref=e3972]:
+                    - img [ref=e3973]
+                    - generic [ref=e3974]: "-48dBm"
+                  - generic [ref=e3975]: Z=19.2m
+                  - generic [ref=e3976]: 3m前
+              - generic [ref=e3977] [cursor=pointer]:
+                - generic [ref=e3978]:
+                  - generic [ref=e3979]:
+                    - generic [ref=e3981]: R-156
+                    - generic [ref=e3982]: 蛇形
+                  - img [ref=e3983]
+                - generic [ref=e3987]:
+                  - generic [ref=e3988]: 在线
+                  - generic [ref=e3989]: 终端
+                  - generic [ref=e3990]: 气体泄漏排查
+                - generic [ref=e3991]:
+                  - generic [ref=e3992]:
+                    - img [ref=e3993]
+                    - generic [ref=e3995]: 29%
+                  - generic [ref=e3996]:
+                    - img [ref=e3997]
+                    - generic [ref=e3998]: "-58dBm"
+                  - generic [ref=e3999]: Z=23.4m
+                  - generic [ref=e4000]: 2m前
+              - generic [ref=e4001] [cursor=pointer]:
+                - generic [ref=e4002]:
+                  - generic [ref=e4003]:
+                    - generic [ref=e4005]: R-157
+                    - generic [ref=e4006]: 蛇形
+                  - img [ref=e4007]
+                - generic [ref=e4011]:
+                  - generic [ref=e4012]: 在线
+                  - generic [ref=e4013]: 终端
+                  - generic [ref=e4014]: Mesh 中继转发
+                - generic [ref=e4015]:
+                  - generic [ref=e4016]:
+                    - img [ref=e4017]
+                    - generic [ref=e4019]: 76%
+                  - generic [ref=e4020]:
+                    - img [ref=e4021]
+                    - generic [ref=e4022]: "-56dBm"
+                  - generic [ref=e4023]: Z=21.6m
+                  - generic [ref=e4024]: 4m前
+              - generic [ref=e4025] [cursor=pointer]:
+                - generic [ref=e4026]:
+                  - generic [ref=e4027]:
+                    - generic [ref=e4029]: R-158
+                    - generic [ref=e4030]: 蛇形
+                  - img [ref=e4031]
+                - generic [ref=e4035]:
+                  - generic [ref=e4036]: 低电量
+                  - generic [ref=e4037]: 边缘
+                  - generic [ref=e4038]: 裂隙扩张监测
+                - generic [ref=e4039]:
+                  - generic [ref=e4040]:
+                    - img [ref=e4041]
+                    - generic [ref=e4043]: 9%
+                  - generic [ref=e4044]:
+                    - img [ref=e4045]
+                    - generic [ref=e4046]: "-40dBm"
+                  - generic [ref=e4047]: Z=24m
+                  - generic [ref=e4048]: 50s前
+              - generic [ref=e4049] [cursor=pointer]:
+                - generic [ref=e4050]:
+                  - generic [ref=e4051]:
+                    - generic [ref=e4053]: R-159
+                    - generic [ref=e4054]: 蛇形
+                  - img [ref=e4055]
+                - generic [ref=e4059]:
+                  - generic [ref=e4060]: 在线
+                  - generic [ref=e4061]: 终端
+                  - generic [ref=e4062]: 温度梯度测绘
+                - generic [ref=e4063]:
+                  - generic [ref=e4064]:
+                    - img [ref=e4065]
+                    - generic [ref=e4067]: 60%
+                  - generic [ref=e4068]:
+                    - img [ref=e4069]
+                    - generic [ref=e4070]: "-45dBm"
+                  - generic [ref=e4071]: Z=13.7m
+                  - generic [ref=e4072]: 3m前
+              - generic [ref=e4073] [cursor=pointer]:
+                - generic [ref=e4074]:
+                  - generic [ref=e4075]:
+                    - generic [ref=e4077]: R-160
+                    - generic [ref=e4078]: 蛇形
+                  - img [ref=e4079]
+                - generic [ref=e4083]:
+                  - generic [ref=e4084]: 在线
+                  - generic [ref=e4085]: 边缘
+                  - generic [ref=e4086]: 狭窄裂缝爬行
+                - generic [ref=e4087]:
+                  - generic [ref=e4088]:
+                    - img [ref=e4089]
+                    - generic [ref=e4091]: 79%
+                  - generic [ref=e4092]:
+                    - img [ref=e4093]
+                    - generic [ref=e4094]: "-54dBm"
+                  - generic [ref=e4095]: Z=13.2m
+                  - generic [ref=e4096]: 45s前
+              - generic [ref=e4097] [cursor=pointer]:
+                - generic [ref=e4098]:
+                  - generic [ref=e4099]:
+                    - generic [ref=e4101]: R-161
+                    - generic [ref=e4102]: 蛇形
+                  - img [ref=e4103]
+                - generic [ref=e4107]:
+                  - generic [ref=e4108]: 在线
+                  - generic [ref=e4109]: 边缘
+                  - generic [ref=e4110]: 待命中
+                - generic [ref=e4111]:
+                  - generic [ref=e4112]:
+                    - img [ref=e4113]
+                    - generic [ref=e4115]: 45%
+                  - generic [ref=e4116]:
+                    - img [ref=e4117]
+                    - generic [ref=e4118]: "-41dBm"
+                  - generic [ref=e4119]: Z=8.3m
+                  - generic [ref=e4120]: 3m前
+              - generic [ref=e4121] [cursor=pointer]:
+                - generic [ref=e4122]:
+                  - generic [ref=e4123]:
+                    - generic [ref=e4125]: R-162
+                    - generic [ref=e4126]: 蛇形
+                  - img [ref=e4127]
+                - generic [ref=e4134]:
+                  - generic [ref=e4135]: 低电量
+                  - generic [ref=e4136]: 边缘
+                  - generic [ref=e4137]: 声发射信号采集
+                - generic [ref=e4138]:
+                  - generic [ref=e4139]:
+                    - img [ref=e4140]
+                    - generic [ref=e4142]: 16%
+                  - generic [ref=e4143]:
+                    - img [ref=e4144]
+                    - generic [ref=e4145]: "-34dBm"
+                  - generic [ref=e4146]: Z=5.7m
+                  - generic [ref=e4147]: 2m前
+              - generic [ref=e4148] [cursor=pointer]:
+                - generic [ref=e4149]:
+                  - generic [ref=e4150]:
+                    - generic [ref=e4152]: R-163
+                    - generic [ref=e4153]: 蛇形
+                  - img [ref=e4154]
+                - generic [ref=e4158]:
+                  - generic [ref=e4159]: 低电量
+                  - generic [ref=e4160]: 边缘
+                  - generic [ref=e4161]: 水文参数探查
+                - generic [ref=e4162]:
+                  - generic [ref=e4163]:
+                    - img [ref=e4164]
+                    - generic [ref=e4166]: 4%
+                  - generic [ref=e4167]:
+                    - img [ref=e4168]
+                    - generic [ref=e4169]: "-40dBm"
+                  - generic [ref=e4170]: Z=8.8m
+                  - generic [ref=e4171]: 4m前
+              - generic [ref=e4172] [cursor=pointer]:
+                - generic [ref=e4173]:
+                  - generic [ref=e4174]:
+                    - generic [ref=e4176]: R-164
+                    - generic [ref=e4177]: 蛇形
+                  - img [ref=e4178]
+                - generic [ref=e4182]:
+                  - generic [ref=e4183]: 低电量
+                  - generic [ref=e4184]: 中继
+                  - generic [ref=e4185]: 温度梯度测绘
+                - generic [ref=e4186]:
+                  - generic [ref=e4187]:
+                    - img [ref=e4188]
+                    - generic [ref=e4190]: 8%
+                  - generic [ref=e4191]:
+                    - img [ref=e4192]
+                    - generic [ref=e4193]: "-53dBm"
+                  - generic [ref=e4194]: Z=8.7m
+                  - generic [ref=e4195]: 3m前
+              - generic [ref=e4196] [cursor=pointer]:
+                - generic [ref=e4197]:
+                  - generic [ref=e4198]:
+                    - generic [ref=e4200]: R-165
+                    - generic [ref=e4201]: 蛇形
+                  - img [ref=e4202]
+                - generic [ref=e4206]:
+                  - generic [ref=e4207]: 在线
+                  - generic [ref=e4208]: 边缘
+                  - generic [ref=e4209]: 顶板位移监测
+                - generic [ref=e4210]:
+                  - generic [ref=e4211]:
+                    - img [ref=e4212]
+                    - generic [ref=e4214]: 99%
+                  - generic [ref=e4215]:
+                    - img [ref=e4216]
+                    - generic [ref=e4217]: "-37dBm"
+                  - generic [ref=e4218]: Z=4.3m
+                  - generic [ref=e4219]: 4m前
+              - generic [ref=e4220] [cursor=pointer]:
+                - generic [ref=e4221]:
+                  - generic [ref=e4222]:
+                    - generic [ref=e4224]: R-166
+                    - generic [ref=e4225]: 蛇形
+                  - img [ref=e4226]
+                - generic [ref=e4230]:
+                  - generic [ref=e4231]: 在线
+                  - generic [ref=e4232]: 边缘
+                  - generic [ref=e4233]: 夹层结构成像
+                - generic [ref=e4234]:
+                  - generic [ref=e4235]:
+                    - img [ref=e4236]
+                    - generic [ref=e4238]: 49%
+                  - generic [ref=e4239]:
+                    - img [ref=e4240]
+                    - generic [ref=e4241]: "-51dBm"
+                  - generic [ref=e4242]: Z=18.9m
+                  - generic [ref=e4243]: 1m前
+              - generic [ref=e4244] [cursor=pointer]:
+                - generic [ref=e4245]:
+                  - generic [ref=e4246]:
+                    - generic [ref=e4248]: R-167
+                    - generic [ref=e4249]: 蛇形
+                  - img [ref=e4250]
+                - generic [ref=e4257]:
+                  - generic [ref=e4258]: 维护中
+                  - generic [ref=e4259]: 终端
+                  - generic [ref=e4260]: 水文参数探查
+                - generic [ref=e4261]:
+                  - generic [ref=e4262]:
+                    - img [ref=e4263]
+                    - generic [ref=e4265]: 57%
+                  - generic [ref=e4266]:
+                    - img [ref=e4267]
+                    - generic [ref=e4268]: "-43dBm"
+                  - generic [ref=e4269]: Z=20.9m
+                  - generic [ref=e4270]: 0s前
+              - generic [ref=e4271] [cursor=pointer]:
+                - generic [ref=e4272]:
+                  - generic [ref=e4273]:
+                    - generic [ref=e4275]: R-168
+                    - generic [ref=e4276]: 蛇形
+                  - img [ref=e4277]
+                - generic [ref=e4281]:
+                  - generic [ref=e4282]: 离线
+                  - generic [ref=e4283]: 边缘
+                  - generic [ref=e4284]: Mesh 中继转发
+                - generic [ref=e4285]:
+                  - generic [ref=e4286]:
+                    - img [ref=e4287]
+                    - generic [ref=e4289]: 9%
+                  - generic [ref=e4290]:
+                    - img [ref=e4291]
+                    - generic [ref=e4292]: "-61dBm"
+                  - generic [ref=e4293]: Z=26.8m
+                  - generic [ref=e4294]: 3m前
+              - generic [ref=e4295] [cursor=pointer]:
+                - generic [ref=e4296]:
+                  - generic [ref=e4297]:
+                    - generic [ref=e4299]: R-169
+                    - generic [ref=e4300]: 蛇形
+                  - img [ref=e4301]
+                - generic [ref=e4305]:
+                  - generic [ref=e4306]: 在线
+                  - generic [ref=e4307]: 终端
+                  - generic [ref=e4308]: 狭窄裂缝爬行
+                - generic [ref=e4309]:
+                  - generic [ref=e4310]:
+                    - img [ref=e4311]
+                    - generic [ref=e4313]: 78%
+                  - generic [ref=e4314]:
+                    - img [ref=e4315]
+                    - generic [ref=e4316]: "-43dBm"
+                  - generic [ref=e4317]: Z=13.5m
+                  - generic [ref=e4318]: 4m前
+              - generic [ref=e4319] [cursor=pointer]:
+                - generic [ref=e4320]:
+                  - generic [ref=e4321]:
+                    - generic [ref=e4323]: R-170
+                    - generic [ref=e4324]: 蛇形
+                  - img [ref=e4325]
+                - generic [ref=e4329]:
+                  - generic [ref=e4330]: 在线
+                  - generic [ref=e4331]: 终端
+                  - generic [ref=e4332]: 裂缝精细探测
+                - generic [ref=e4333]:
+                  - generic [ref=e4334]:
+                    - img [ref=e4335]
+                    - generic [ref=e4337]: 86%
+                  - generic [ref=e4338]:
+                    - img [ref=e4339]
+                    - generic [ref=e4340]: "-43dBm"
+                  - generic [ref=e4341]: Z=17m
+                  - generic [ref=e4342]: 4m前
+              - generic [ref=e4343] [cursor=pointer]:
+                - generic [ref=e4344]:
+                  - generic [ref=e4345]:
+                    - generic [ref=e4347]: R-171
+                    - generic [ref=e4348]: 蛇形
+                  - img [ref=e4349]
+                - generic [ref=e4353]:
+                  - generic [ref=e4354]: 在线
+                  - generic [ref=e4355]: 终端
+                  - generic [ref=e4356]: 气体泄漏排查
+                - generic [ref=e4357]:
+                  - generic [ref=e4358]:
+                    - img [ref=e4359]
+                    - generic [ref=e4361]: 52%
+                  - generic [ref=e4362]:
+                    - img [ref=e4363]
+                    - generic [ref=e4364]: "-47dBm"
+                  - generic [ref=e4365]: Z=19.9m
+                  - generic [ref=e4366]: 1m前
+              - generic [ref=e4367] [cursor=pointer]:
+                - generic [ref=e4368]:
+                  - generic [ref=e4369]:
+                    - generic [ref=e4371]: R-172
+                    - generic [ref=e4372]: 蛇形
+                  - img [ref=e4373]
+                - generic [ref=e4380]:
+                  - generic [ref=e4381]: 故障
+                  - generic [ref=e4382]: 终端
+                  - generic [ref=e4383]: 夹层结构成像
+                - generic [ref=e4384]:
+                  - generic [ref=e4385]:
+                    - img [ref=e4386]
+                    - generic [ref=e4388]: 69%
+                  - generic [ref=e4389]:
+                    - img [ref=e4390]
+                    - generic [ref=e4391]: "-41dBm"
+                  - generic [ref=e4392]: Z=20.9m
+                  - generic [ref=e4393]: 3m前
+              - generic [ref=e4394] [cursor=pointer]:
+                - generic [ref=e4395]:
+                  - generic [ref=e4396]:
+                    - generic [ref=e4398]: R-173
+                    - generic [ref=e4399]: 蛇形
+                  - img [ref=e4400]
+                - generic [ref=e4404]:
+                  - generic [ref=e4405]: 在线
+                  - generic [ref=e4406]: 终端
+                  - generic [ref=e4407]: 裂隙扩张监测
+                - generic [ref=e4408]:
+                  - generic [ref=e4409]:
+                    - img [ref=e4410]
+                    - generic [ref=e4412]: 37%
+                  - generic [ref=e4413]:
+                    - img [ref=e4414]
+                    - generic [ref=e4415]: "-42dBm"
+                  - generic [ref=e4416]: Z=20.7m
+                  - generic [ref=e4417]: 3m前
+              - generic [ref=e4418] [cursor=pointer]:
+                - generic [ref=e4419]:
+                  - generic [ref=e4420]:
+                    - generic [ref=e4422]: R-174
+                    - generic [ref=e4423]: 蛇形
+                  - img [ref=e4424]
+                - generic [ref=e4428]:
+                  - generic [ref=e4429]: 在线
+                  - generic [ref=e4430]: 终端
+                  - generic [ref=e4431]: 气体泄漏排查
+                - generic [ref=e4432]:
+                  - generic [ref=e4433]:
+                    - img [ref=e4434]
+                    - generic [ref=e4436]: 34%
+                  - generic [ref=e4437]:
+                    - img [ref=e4438]
+                    - generic [ref=e4439]: "-56dBm"
+                  - generic [ref=e4440]: Z=23.6m
+                  - generic [ref=e4441]: 3m前
+              - generic [ref=e4442] [cursor=pointer]:
+                - generic [ref=e4443]:
+                  - generic [ref=e4444]:
+                    - generic [ref=e4446]: R-175
+                    - generic [ref=e4447]: 蛇形
+                  - img [ref=e4448]
+                - generic [ref=e4452]:
+                  - generic [ref=e4453]: 低电量
+                  - generic [ref=e4454]: 终端
+                  - generic [ref=e4455]: 裂缝精细探测
+                - generic [ref=e4456]:
+                  - generic [ref=e4457]:
+                    - img [ref=e4458]
+                    - generic [ref=e4460]: 10%
+                  - generic [ref=e4461]:
+                    - img [ref=e4462]
+                    - generic [ref=e4463]: "-48dBm"
+                  - generic [ref=e4464]: Z=25m
+                  - generic [ref=e4465]: 1m前
+              - generic [ref=e4466] [cursor=pointer]:
+                - generic [ref=e4467]:
+                  - generic [ref=e4468]:
+                    - generic [ref=e4470]: R-176
+                    - generic [ref=e4471]: 蛇形
+                  - img [ref=e4472]
+                - generic [ref=e4476]:
+                  - generic [ref=e4477]: 在线
+                  - generic [ref=e4478]: 边缘
+                  - generic [ref=e4479]: Mesh 中继转发
+                - generic [ref=e4480]:
+                  - generic [ref=e4481]:
+                    - img [ref=e4482]
+                    - generic [ref=e4484]: 61%
+                  - generic [ref=e4485]:
+                    - img [ref=e4486]
+                    - generic [ref=e4487]: "-55dBm"
+                  - generic [ref=e4488]: Z=24.2m
+                  - generic [ref=e4489]: 2m前
+              - generic [ref=e4490] [cursor=pointer]:
+                - generic [ref=e4491]:
+                  - generic [ref=e4492]:
+                    - generic [ref=e4494]: R-177
+                    - generic [ref=e4495]: 蛇形
+                  - img [ref=e4496]
+                - generic [ref=e4503]:
+                  - generic [ref=e4504]: 故障
+                  - generic [ref=e4505]: 边缘
+                  - generic [ref=e4506]: 裂缝精细探测
+                - generic [ref=e4507]:
+                  - generic [ref=e4508]:
+                    - img [ref=e4509]
+                    - generic [ref=e4511]: 73%
+                  - generic [ref=e4512]:
+                    - img [ref=e4513]
+                    - generic [ref=e4514]: "-43dBm"
+                  - generic [ref=e4515]: Z=25.5m
+                  - generic [ref=e4516]: 4m前
+              - generic [ref=e4517] [cursor=pointer]:
+                - generic [ref=e4518]:
+                  - generic [ref=e4519]:
+                    - generic [ref=e4521]: R-178
+                    - generic [ref=e4522]: 蛇形
+                  - img [ref=e4523]
+                - generic [ref=e4527]:
+                  - generic [ref=e4528]: 在线
+                  - generic [ref=e4529]: 网关
+                  - generic [ref=e4530]: 狭窄裂缝爬行
+                - generic [ref=e4531]:
+                  - generic [ref=e4532]:
+                    - img [ref=e4533]
+                    - generic [ref=e4535]: 32%
+                  - generic [ref=e4536]:
+                    - img [ref=e4537]
+                    - generic [ref=e4538]: "-57dBm"
+                  - generic [ref=e4539]: Z=24m
+                  - generic [ref=e4540]: 3m前
+              - generic [ref=e4541] [cursor=pointer]:
+                - generic [ref=e4542]:
+                  - generic [ref=e4543]:
+                    - generic [ref=e4545]: R-179
+                    - generic [ref=e4546]: 蛇形
+                  - img [ref=e4547]
+                - generic [ref=e4551]:
+                  - generic [ref=e4552]: 在线
+                  - generic [ref=e4553]: 终端
+                  - generic [ref=e4554]: 水文参数探查
+                - generic [ref=e4555]:
+                  - generic [ref=e4556]:
+                    - img [ref=e4557]
+                    - generic [ref=e4559]: 36%
+                  - generic [ref=e4560]:
+                    - img [ref=e4561]
+                    - generic [ref=e4562]: "-51dBm"
+                  - generic [ref=e4563]: Z=21.3m
+                  - generic [ref=e4564]: 1m前
+              - generic [ref=e4565] [cursor=pointer]:
+                - generic [ref=e4566]:
+                  - generic [ref=e4567]:
+                    - generic [ref=e4569]: R-180
+                    - generic [ref=e4570]: 蛇形
+                  - img [ref=e4571]
+                - generic [ref=e4575]:
+                  - generic [ref=e4576]: 在线
+                  - generic [ref=e4577]: 网关
+                  - generic [ref=e4578]: 深部取样分析
+                - generic [ref=e4579]:
+                  - generic [ref=e4580]:
+                    - img [ref=e4581]
+                    - generic [ref=e4583]: 90%
+                  - generic [ref=e4584]:
+                    - img [ref=e4585]
+                    - generic [ref=e4586]: "-52dBm"
+                  - generic [ref=e4587]: Z=21.5m
+                  - generic [ref=e4588]: 4m前
+              - generic [ref=e4589] [cursor=pointer]:
+                - generic [ref=e4590]:
+                  - generic [ref=e4591]:
+                    - generic [ref=e4593]: R-181
+                    - generic [ref=e4594]: 蛇形
+                  - img [ref=e4595]
+                - generic [ref=e4599]:
+                  - generic [ref=e4600]: 在线
+                  - generic [ref=e4601]: 中继
+                  - generic [ref=e4602]: 深部取样分析
+                - generic [ref=e4603]:
+                  - generic [ref=e4604]:
+                    - img [ref=e4605]
+                    - generic [ref=e4607]: 33%
+                  - generic [ref=e4608]:
+                    - img [ref=e4609]
+                    - generic [ref=e4610]: "-46dBm"
+                  - generic [ref=e4611]: Z=21.2m
+                  - generic [ref=e4612]: 1m前
+              - generic [ref=e4613] [cursor=pointer]:
+                - generic [ref=e4614]:
+                  - generic [ref=e4615]:
+                    - generic [ref=e4617]: R-182
+                    - generic [ref=e4618]: 蛇形
+                  - img [ref=e4619]
+                - generic [ref=e4626]:
+                  - generic [ref=e4627]: 在线
+                  - generic [ref=e4628]: 网关
+                  - generic [ref=e4629]: 深部取样分析
+                - generic [ref=e4630]:
+                  - generic [ref=e4631]:
+                    - img [ref=e4632]
+                    - generic [ref=e4634]: 63%
+                  - generic [ref=e4635]:
+                    - img [ref=e4636]
+                    - generic [ref=e4637]: "-54dBm"
+                  - generic [ref=e4638]: Z=22.9m
+                  - generic [ref=e4639]: 3m前
+              - generic [ref=e4640] [cursor=pointer]:
+                - generic [ref=e4641]:
+                  - generic [ref=e4642]:
+                    - generic [ref=e4644]: R-183
+                    - generic [ref=e4645]: 蛇形
+                  - img [ref=e4646]
+                - generic [ref=e4653]:
+                  - generic [ref=e4654]: 在线
+                  - generic [ref=e4655]: 边缘
+                  - generic [ref=e4656]: 裂缝精细探测
+                - generic [ref=e4657]:
+                  - generic [ref=e4658]:
+                    - img [ref=e4659]
+                    - generic [ref=e4661]: 54%
+                  - generic [ref=e4662]:
+                    - img [ref=e4663]
+                    - generic [ref=e4664]: "-50dBm"
+                  - generic [ref=e4665]: Z=19.1m
+                  - generic [ref=e4666]: 3m前
+              - generic [ref=e4667] [cursor=pointer]:
+                - generic [ref=e4668]:
+                  - generic [ref=e4669]:
+                    - generic [ref=e4671]: R-184
+                    - generic [ref=e4672]: 蛇形
+                  - img [ref=e4673]
+                - generic [ref=e4677]:
+                  - generic [ref=e4678]: 在线
+                  - generic [ref=e4679]: 边缘
+                  - generic [ref=e4680]: 裂缝精细探测
+                - generic [ref=e4681]:
+                  - generic [ref=e4682]:
+                    - img [ref=e4683]
+                    - generic [ref=e4685]: 27%
+                  - generic [ref=e4686]:
+                    - img [ref=e4687]
+                    - generic [ref=e4688]: "-42dBm"
+                  - generic [ref=e4689]: Z=22.8m
+                  - generic [ref=e4690]: 1m前
+              - generic [ref=e4691] [cursor=pointer]:
+                - generic [ref=e4692]:
+                  - generic [ref=e4693]:
+                    - generic [ref=e4695]: R-185
+                    - generic [ref=e4696]: 蛇形
+                  - img [ref=e4697]
+                - generic [ref=e4704]:
+                  - generic [ref=e4705]: 故障
+                  - generic [ref=e4706]: 中继
+                  - generic [ref=e4707]: 水文参数探查
+                - generic [ref=e4708]:
+                  - generic [ref=e4709]:
+                    - img [ref=e4710]
+                    - generic [ref=e4712]: 85%
+                  - generic [ref=e4713]:
+                    - img [ref=e4714]
+                    - generic [ref=e4715]: "-55dBm"
+                  - generic [ref=e4716]: Z=21.4m
+                  - generic [ref=e4717]: 2m前
+              - generic [ref=e4718] [cursor=pointer]:
+                - generic [ref=e4719]:
+                  - generic [ref=e4720]:
+                    - generic [ref=e4722]: R-186
+                    - generic [ref=e4723]: 蛇形
+                  - img [ref=e4724]
+                - generic [ref=e4728]:
+                  - generic [ref=e4729]: 在线
+                  - generic [ref=e4730]: 终端
+                  - generic [ref=e4731]: 声发射信号采集
+                - generic [ref=e4732]:
+                  - generic [ref=e4733]:
+                    - img [ref=e4734]
+                    - generic [ref=e4736]: 89%
+                  - generic [ref=e4737]:
+                    - img [ref=e4738]
+                    - generic [ref=e4739]: "-39dBm"
+                  - generic [ref=e4740]: Z=22m
+                  - generic [ref=e4741]: 41s前
+              - generic [ref=e4742] [cursor=pointer]:
+                - generic [ref=e4743]:
+                  - generic [ref=e4744]:
+                    - generic [ref=e4746]: R-187
+                    - generic [ref=e4747]: 蛇形
+                  - img [ref=e4748]
+                - generic [ref=e4755]:
+                  - generic [ref=e4756]: 故障
+                  - generic [ref=e4757]: 中继
+                  - generic [ref=e4758]: 裂缝精细探测
+                - generic [ref=e4759]:
+                  - generic [ref=e4760]:
+                    - img [ref=e4761]
+                    - generic [ref=e4763]: 85%
+                  - generic [ref=e4764]:
+                    - img [ref=e4765]
+                    - generic [ref=e4766]: "-60dBm"
+                  - generic [ref=e4767]: Z=26m
+                  - generic [ref=e4768]: 4m前
+              - generic [ref=e4769] [cursor=pointer]:
+                - generic [ref=e4770]:
+                  - generic [ref=e4771]:
+                    - generic [ref=e4773]: R-188
+                    - generic [ref=e4774]: 蛇形
+                  - img [ref=e4775]
+                - generic [ref=e4779]:
+                  - generic [ref=e4780]: 在线
+                  - generic [ref=e4781]: 终端
+                  - generic [ref=e4782]: 声发射信号采集
+                - generic [ref=e4783]:
+                  - generic [ref=e4784]:
+                    - img [ref=e4785]
+                    - generic [ref=e4787]: 59%
+                  - generic [ref=e4788]:
+                    - img [ref=e4789]
+                    - generic [ref=e4790]: "-54dBm"
+                  - generic [ref=e4791]: Z=25.1m
+                  - generic [ref=e4792]: 31s前
+              - generic [ref=e4793] [cursor=pointer]:
+                - generic [ref=e4794]:
+                  - generic [ref=e4795]:
+                    - generic [ref=e4797]: R-189
+                    - generic [ref=e4798]: 蛇形
+                  - img [ref=e4799]
+                - generic [ref=e4803]:
+                  - generic [ref=e4804]: 在线
+                  - generic [ref=e4805]: 边缘
+                  - generic [ref=e4806]: 待命中
+                - generic [ref=e4807]:
+                  - generic [ref=e4808]:
+                    - img [ref=e4809]
+                    - generic [ref=e4811]: 62%
+                  - generic [ref=e4812]:
+                    - img [ref=e4813]
+                    - generic [ref=e4814]: "-56dBm"
+                  - generic [ref=e4815]: Z=25.5m
+                  - generic [ref=e4816]: 48s前
+              - generic [ref=e4817] [cursor=pointer]:
+                - generic [ref=e4818]:
+                  - generic [ref=e4819]:
+                    - generic [ref=e4821]: R-190
+                    - generic [ref=e4822]: 蛇形
+                  - img [ref=e4823]
+                - generic [ref=e4827]:
+                  - generic [ref=e4828]: 在线
+                  - generic [ref=e4829]: 终端
+                  - generic [ref=e4830]: 狭窄裂缝爬行
+                - generic [ref=e4831]:
+                  - generic [ref=e4832]:
+                    - img [ref=e4833]
+                    - generic [ref=e4835]: 29%
+                  - generic [ref=e4836]:
+                    - img [ref=e4837]
+                    - generic [ref=e4838]: "-54dBm"
+                  - generic [ref=e4839]: Z=26.7m
+                  - generic [ref=e4840]: 37s前
+              - generic [ref=e4841] [cursor=pointer]:
+                - generic [ref=e4842]:
+                  - generic [ref=e4843]:
+                    - generic [ref=e4845]: R-191
+                    - generic [ref=e4846]: 蛇形
+                  - img [ref=e4847]
+                - generic [ref=e4851]:
+                  - generic [ref=e4852]: 在线
+                  - generic [ref=e4853]: 中继
+                  - generic [ref=e4854]: 三维扫描建图
+                - generic [ref=e4855]:
+                  - generic [ref=e4856]:
+                    - img [ref=e4857]
+                    - generic [ref=e4859]: 45%
+                  - generic [ref=e4860]:
+                    - img [ref=e4861]
+                    - generic [ref=e4862]: "-53dBm"
+                  - generic [ref=e4863]: Z=28.4m
+                  - generic [ref=e4864]: 19s前
+              - generic [ref=e4865] [cursor=pointer]:
+                - generic [ref=e4866]:
+                  - generic [ref=e4867]:
+                    - generic [ref=e4869]: R-192
+                    - generic [ref=e4870]: 蛇形
+                  - img [ref=e4871]
+                - generic [ref=e4875]:
+                  - generic [ref=e4876]: 在线
+                  - generic [ref=e4877]: 边缘
+                  - generic [ref=e4878]: 水文参数探查
+                - generic [ref=e4879]:
+                  - generic [ref=e4880]:
+                    - img [ref=e4881]
+                    - generic [ref=e4883]: 31%
+                  - generic [ref=e4884]:
+                    - img [ref=e4885]
+                    - generic [ref=e4886]: "-50dBm"
+                  - generic [ref=e4887]: Z=20.6m
+                  - generic [ref=e4888]: 1m前
+              - generic [ref=e4889] [cursor=pointer]:
+                - generic [ref=e4890]:
+                  - generic [ref=e4891]:
+                    - generic [ref=e4893]: R-193
+                    - generic [ref=e4894]: 蛇形
+                  - img [ref=e4895]
+                - generic [ref=e4899]:
+                  - generic [ref=e4900]: 在线
+                  - generic [ref=e4901]: 边缘
+                  - generic [ref=e4902]: 狭窄裂缝爬行
+                - generic [ref=e4903]:
+                  - generic [ref=e4904]:
+                    - img [ref=e4905]
+                    - generic [ref=e4907]: 97%
+                  - generic [ref=e4908]:
+                    - img [ref=e4909]
+                    - generic [ref=e4910]: "-43dBm"
+                  - generic [ref=e4911]: Z=22.8m
+                  - generic [ref=e4912]: 2m前
+              - generic [ref=e4913] [cursor=pointer]:
+                - generic [ref=e4914]:
+                  - generic [ref=e4915]:
+                    - generic [ref=e4917]: R-194
+                    - generic [ref=e4918]: 蛇形
+                  - img [ref=e4919]
+                - generic [ref=e4923]:
+                  - generic [ref=e4924]: 在线
+                  - generic [ref=e4925]: 边缘
+                  - generic [ref=e4926]: 三维扫描建图
+                - generic [ref=e4927]:
+                  - generic [ref=e4928]:
+                    - img [ref=e4929]
+                    - generic [ref=e4931]: 79%
+                  - generic [ref=e4932]:
+                    - img [ref=e4933]
+                    - generic [ref=e4934]: "-50dBm"
+                  - generic [ref=e4935]: Z=24.3m
+                  - generic [ref=e4936]: 1m前
+              - generic [ref=e4937] [cursor=pointer]:
+                - generic [ref=e4938]:
+                  - generic [ref=e4939]:
+                    - generic [ref=e4941]: R-195
+                    - generic [ref=e4942]: 蛇形
+                  - img [ref=e4943]
+                - generic [ref=e4947]:
+                  - generic [ref=e4948]: 低电量
+                  - generic [ref=e4949]: 终端
+                  - generic [ref=e4950]: 温度梯度测绘
+                - generic [ref=e4951]:
+                  - generic [ref=e4952]:
+                    - img [ref=e4953]
+                    - generic [ref=e4955]: 17%
+                  - generic [ref=e4956]:
+                    - img [ref=e4957]
+                    - generic [ref=e4958]: "-47dBm"
+                  - generic [ref=e4959]: Z=24.4m
+                  - generic [ref=e4960]: 2m前
+              - generic [ref=e4961] [cursor=pointer]:
+                - generic [ref=e4962]:
+                  - generic [ref=e4963]:
+                    - generic [ref=e4965]: R-196
+                    - generic [ref=e4966]: 蛇形
+                  - img [ref=e4967]
+                - generic [ref=e4971]:
+                  - generic [ref=e4972]: 故障
+                  - generic [ref=e4973]: 中继
+                  - generic [ref=e4974]: 三维扫描建图
+                - generic [ref=e4975]:
+                  - generic [ref=e4976]:
+                    - img [ref=e4977]
+                    - generic [ref=e4979]: 28%
+                  - generic [ref=e4980]:
+                    - img [ref=e4981]
+                    - generic [ref=e4982]: "-44dBm"
+                  - generic [ref=e4983]: Z=24.9m
+                  - generic [ref=e4984]: 2m前
+              - generic [ref=e4985] [cursor=pointer]:
+                - generic [ref=e4986]:
+                  - generic [ref=e4987]:
+                    - generic [ref=e4989]: R-197
+                    - generic [ref=e4990]: 蛇形
+                  - img [ref=e4991]
+                - generic [ref=e4995]:
+                  - generic [ref=e4996]: 在线
+                  - generic [ref=e4997]: 终端
+                  - generic [ref=e4998]: 夹层结构成像
+                - generic [ref=e4999]:
+                  - generic [ref=e5000]:
+                    - img [ref=e5001]
+                    - generic [ref=e5003]: 96%
+                  - generic [ref=e5004]:
+                    - img [ref=e5005]
+                    - generic [ref=e5006]: "-42dBm"
+                  - generic [ref=e5007]: Z=8.7m
+                  - generic [ref=e5008]: 1m前
+              - generic [ref=e5009] [cursor=pointer]:
+                - generic [ref=e5010]:
+                  - generic [ref=e5011]:
+                    - generic [ref=e5013]: R-198
+                    - generic [ref=e5014]: 蛇形
+                  - img [ref=e5015]
+                - generic [ref=e5022]:
+                  - generic [ref=e5023]: 离线
+                  - generic [ref=e5024]: 边缘
+                  - generic [ref=e5025]: 气体泄漏排查
+                - generic [ref=e5026]:
+                  - generic [ref=e5027]:
+                    - img [ref=e5028]
+                    - generic [ref=e5030]: 11%
+                  - generic [ref=e5031]:
+                    - img [ref=e5032]
+                    - generic [ref=e5033]: "-49dBm"
+                  - generic [ref=e5034]: Z=11.8m
+                  - generic [ref=e5035]: 2m前
+              - generic [ref=e5036] [cursor=pointer]:
+                - generic [ref=e5037]:
+                  - generic [ref=e5038]:
+                    - generic [ref=e5040]: R-199
+                    - generic [ref=e5041]: 蛇形
+                  - img [ref=e5042]
+                - generic [ref=e5046]:
+                  - generic [ref=e5047]: 在线
+                  - generic [ref=e5048]: 终端
+                  - generic [ref=e5049]: 顶板位移监测
+                - generic [ref=e5050]:
+                  - generic [ref=e5051]:
+                    - img [ref=e5052]
+                    - generic [ref=e5054]: 61%
+                  - generic [ref=e5055]:
+                    - img [ref=e5056]
+                    - generic [ref=e5057]: "-38dBm"
+                  - generic [ref=e5058]: Z=11.6m
+                  - generic [ref=e5059]: 56s前
+              - generic [ref=e5060] [cursor=pointer]:
+                - generic [ref=e5061]:
+                  - generic [ref=e5062]:
+                    - generic [ref=e5064]: R-200
+                    - generic [ref=e5065]: 蛇形
+                  - img [ref=e5066]
+                - generic [ref=e5070]:
+                  - generic [ref=e5071]: 低电量
+                  - generic [ref=e5072]: 边缘
+                  - generic [ref=e5073]: 声发射信号采集
+                - generic [ref=e5074]:
+                  - generic [ref=e5075]:
+                    - img [ref=e5076]
+                    - generic [ref=e5078]: 10%
+                  - generic [ref=e5079]:
+                    - img [ref=e5080]
+                    - generic [ref=e5081]: "-43dBm"
+                  - generic [ref=e5082]: Z=11.9m
+                  - generic [ref=e5083]: 1m前
+        - generic [ref=e5084]:
+          - heading "传感器趋势 近 2.5 小时" [level=3] [ref=e5086] [cursor=pointer]:
+            - img [ref=e5087]
+            - generic [ref=e5089]: 传感器趋势
+            - generic [ref=e5090]: 近 2.5 小时
+            - img [ref=e5091]
+          - generic [ref=e5093]:
+            - generic [ref=e5094]:
+              - generic [ref=e5095]:
+                - generic [ref=e5096]: CH4 浓度
+                - generic [ref=e5097]:
+                  - generic [ref=e5098]: 0.74%
+                  - generic [ref=e5099]: ▼0.1
+              - img [ref=e5100]
+            - generic [ref=e5104]:
+              - generic [ref=e5105]:
+                - generic [ref=e5106]: 环境温度
+                - generic [ref=e5107]:
+                  - generic [ref=e5108]: 36.9°C
+                  - generic [ref=e5109]: ▼0.2
+              - img [ref=e5110]
+            - generic [ref=e5114]:
+              - generic [ref=e5115]:
+                - generic [ref=e5116]: 大气压力
+                - generic [ref=e5117]:
+                  - generic [ref=e5118]: 105.2kPa
+                  - generic [ref=e5119]: ▼1.2
+              - img [ref=e5120]
+        - generic [ref=e5124]:
+          - heading "图层控制" [level=3] [ref=e5126]
+          - generic [ref=e5127]:
+            - generic [ref=e5128] [cursor=pointer]:
+              - img [ref=e5130]
+              - generic [ref=e5133]: 地质岩体
+              - switch [checked] [ref=e5134]
+            - generic [ref=e5135] [cursor=pointer]:
+              - img [ref=e5137]
+              - generic [ref=e5142]: 裂缝网络
+              - switch [checked] [ref=e5143]
+            - generic [ref=e5144] [cursor=pointer]:
+              - img [ref=e5146]
+              - generic [ref=e5150]: 机器人集群
+              - switch [ref=e5151]
+            - generic [ref=e5152] [cursor=pointer]:
+              - img [ref=e5154]
+              - generic [ref=e5158]: 兴趣点标注
+              - switch [checked] [ref=e5159]
+        - generic [ref=e5160]:
+          - generic [ref=e5162]:
+            - generic [ref=e5163]:
+              - heading "瓦斯报警红线" [level=3] [ref=e5164]
+              - img [ref=e5165]
+            - generic [ref=e5167]: 1.5%
+          - generic [ref=e5168]:
+            - slider [ref=e5173]
+            - generic [ref=e5174]:
+              - generic [ref=e5175]: 0.5%
+              - generic [ref=e5176]: 1.5%
+              - generic [ref=e5177]: 5%
+            - generic [ref=e5180]: 安全 → 危险
+        - generic [ref=e5181]:
+          - heading "测量标注工具" [level=3] [ref=e5184]
+          - generic [ref=e5185]:
+            - button "剖面线 F1" [ref=e5186] [cursor=pointer]:
+              - img [ref=e5187]
+              - generic [ref=e5193]: 剖面线
+              - generic [ref=e5194]: F1
+            - button "区域框选 F2" [ref=e5195] [cursor=pointer]:
+              - img [ref=e5196]
+              - generic [ref=e5199]: 区域框选
+              - generic [ref=e5200]: F2
+            - button "文字标注 F3" [ref=e5201] [cursor=pointer]:
+              - img [ref=e5202]
+              - generic [ref=e5204]: 文字标注
+              - generic [ref=e5205]: F3
+            - button "测距 F4" [ref=e5206] [cursor=pointer]:
+              - img [ref=e5207]
+              - generic [ref=e5209]: 测距
+              - generic [ref=e5210]: F4
+            - button "还原物理真实面貌" [ref=e5212] [cursor=pointer]:
+              - img [ref=e5213]
+              - generic [ref=e5216]: 还原物理真实面貌
+    - generic [ref=e5217]:
+      - generic [ref=e5218]:
+        - generic [ref=e5219]:
+          - generic:
+            - generic: CAMERA
+            - generic: "X: 30.0"
+            - generic: "Y: 42.0"
+            - generic: "Z: 50.0"
+            - generic:
+              - text: "ZOOM:"
+              - generic: 42%
+          - generic:
+            - generic: Three.js R3F
+            - generic: Fracture Network
+            - generic: DeepSeek AI
+        - generic:
+          - generic:
+            - generic:
+              - generic: "N"
+              - generic: S
+            - generic:
+              - generic: 裂缝地质体
+              - generic: FRACTURE-ZONE
+      - generic [ref=e5224]:
+        - generic [ref=e5225]:
+          - img [ref=e5227]
+          - generic [ref=e5230]:
+            - generic [ref=e5231]: 地质裂缝分析AI助手
+            - generic [ref=e5232]: Mock 模式 · 请在设置中配置API Key
+          - generic [ref=e5234]: MOCK
+          - button [ref=e5235] [cursor=pointer]:
+            - img [ref=e5236]
+        - generic [ref=e5243]:
+          - img [ref=e5245]
+          - generic [ref=e5249]:
+            - heading "系统就绪" [level=2] [ref=e5250]
+            - paragraph [ref=e5251]: 地质裂缝分析AI助手已上线。
+            - paragraph [ref=e5252]:
+              - text: 当前监测
+              - strong [ref=e5253]: "18"
+              - text: 条裂缝，
+              - strong [ref=e5254]: "200"
+              - text: 台探测机器人已就位。
+            - paragraph [ref=e5255]: 请在设置中配置AI模型（推荐 DeepSeek），或使用快捷指令。
+        - generic [ref=e5256]:
+          - generic [ref=e5257]: 快捷指令
+          - generic [ref=e5258]:
+            - generic [ref=e5259] [cursor=pointer]: 裂缝分布概览
+            - generic [ref=e5260] [cursor=pointer]: 瓦斯浓度分析
+            - generic [ref=e5261] [cursor=pointer]: 应力场分析
+            - generic [ref=e5262] [cursor=pointer]: F-003风险评估
+            - generic [ref=e5263] [cursor=pointer]: 渗透率评估
+            - generic [ref=e5264] [cursor=pointer]: 可用实验
+        - generic [ref=e5266]:
+          - textbox "输入指令..." [ref=e5267]
+          - button [disabled]:
+            - img
+    - generic [ref=e5268]:
+      - generic [ref=e5271]: 裂缝详情
+      - generic [ref=e5272]:
+        - generic [ref=e5273]: 🔬
+        - generic [ref=e5274]:
+          - text: 点击 3D 场景中的裂缝
+          - text: 查看详细参数和传感器数据
+        - generic [ref=e5275]: "当前场景: 煤矿"
+  - generic [ref=e5276]:
+    - img [ref=e5280]
+    - paragraph [ref=e5283]: 合规声明：本系统基于受限条件感知融合，所有3D建模与参数预测仅作工程参考，绝对禁止作为下井作业的唯一安全决策依据。
