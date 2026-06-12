@@ -278,6 +278,8 @@ export function generateFractureNetwork(scenario: ScenarioType): Fracture[] {
 
   // 收集所有节点位置供外部使用
   cachedNodePositions = fractures.flatMap((f) => f.nodes.map((n) => n.position));
+  // 收集所有路径点（更密集，供机器人精确部署在裂缝线上）
+  cachedPathPoints = fractures.flatMap((f) => f.path);
 
   cache[scenario] = fractures;
   return fractures;
@@ -286,6 +288,14 @@ export function generateFractureNetwork(scenario: ScenarioType): Fracture[] {
 /** 获取所有裂缝节点的位置（供其他数据生成器使用） */
 export function getAllNodePositions(): [number, number, number][] {
   return cachedNodePositions;
+}
+
+/** 缓存所有裂缝路径点（比节点更密集） */
+let cachedPathPoints: [number, number, number][] = [];
+
+/** 获取所有裂缝路径上的所有点（供机器人部署用，密度远高于节点） */
+export function getAllPathPoints(): [number, number, number][] {
+  return cachedPathPoints;
 }
 
 /** 将机器人 ID 分配到裂缝节点上 */

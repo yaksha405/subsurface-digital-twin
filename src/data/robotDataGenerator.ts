@@ -1,5 +1,5 @@
 import type { Robot, RobotModel, RobotStatus, MeshRole } from '../types';
-import { getAllNodePositions, generateFractureNetwork } from './fractureDataGenerator';
+import { getAllPathPoints, generateFractureNetwork } from './fractureDataGenerator';
 
 // Seeded random
 let seed = 7777;
@@ -60,25 +60,26 @@ function weightedPick<T extends { weight: number }>(items: T[]): T {
 
 /**
  * 获取机器人在裂缝网络中的部署位置
- * - 优先用裂缝节点位置
- * - 如果节点不够，在裂缝节点附近生成偏移位置
+ * - 使用裂缝路径点（密集），确保机器人始终在裂缝线上
+ * - 偏移 ±0.5 以内，视觉上紧贴裂缝
  */
 function getRobotPosition(index: number): [number, number, number] {
-  const nodePositions = getAllNodePositions();
+  const pathPoints = getAllPathPoints();
 
-  if (nodePositions.length > 0) {
-    // 有裂缝节点：沿着裂缝网络部署
-    const nodeIdx = index % nodePositions.length;
-    const basePos = nodePositions[nodeIdx];
-    // 加小幅随机偏移（机器人不一定正好在节点上）
+  if (pathPoints.length > 0) {
+    // 沿裂缝路径均匀分布（加少量抖动避免完全重叠）
+    const idx = index % pathPoints.length;
+    const jitter = Math.floor(index / pathPoints.length); // 循环时叠加偏移
+    const basePos = pathPoints[(idx + jitter * 7) % pathPoints.length];
+    // 极小偏移 — 机器人贴着裂缝壁，不漂到岩层里
     return [
-      Math.round((basePos[0] + rand(-2, 2)) * 10) / 10,
-      Math.round((basePos[1] + rand(-1.5, 1.5)) * 10) / 10,
-      Math.round((basePos[2] + rand(-2, 2)) * 10) / 10,
+      Math.round((basePos[0] + rand(-0.5, 0.5)) * 10) / 10,
+      Math.round((basePos[1] + rand(-0.3, 0.3)) * 10) / 10,
+      Math.round((basePos[2] + rand(-0.5, 0.5)) * 10) / 10,
     ];
   }
 
-  // 兜底：如果没有裂缝数据，在岩体范围内生成
+  // 兜底
   return [
     Math.round(rand(-45, 45) * 10) / 10,
     Math.round(rand(-15, 15) * 10) / 10,
