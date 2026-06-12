@@ -93,9 +93,9 @@ export function SensorTrends() {
       clearHighlight();
     } else {
       setActiveRegion(r.regionId);
-      // 高亮区域 + 相机飞过去
-      highlightWithTimer(r.center, r.radius, 8000);
-      flyTo({ position: r.center, region: r.regionName });
+      // 高亮区域 — 用小半径精确框选传感器簇，不覆盖整个岩层
+      highlightWithTimer(r.center, 4, 8000);
+      flyTo({ position: r.center, region: r.regionName, zoom: 'close' });
     }
   };
 

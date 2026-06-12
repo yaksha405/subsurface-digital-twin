@@ -65,8 +65,8 @@ export function AlertFeed() {
   const handleAlertClick = (alert: AlertEvent) => {
     if (alert.position) {
       const pos = alert.position;
-      flyTo({ position: pos, region: `alert-${alert.id}` });
-      highlightWithTimer(pos, 10, 5000);
+      flyTo({ position: pos, region: `alert-${alert.id}`, zoom: 'close' });
+      highlightWithTimer(pos, 5, 5000);
     }
   };
 

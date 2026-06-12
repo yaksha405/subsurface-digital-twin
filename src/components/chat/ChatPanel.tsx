@@ -150,9 +150,9 @@ function executeActions(action: SceneAction) {
   switch (action.type) {
     case 'flyTo': {
       if (action.position) {
-        store.flyTo({ position: action.position, region: action.region });
+        store.flyTo({ position: action.position, region: action.region, zoom: 'close' });
         setTimeout(() => {
-          store.highlightWithTimer(action.position!, action.radius || 12, 4500);
+          store.highlightWithTimer(action.position!, action.radius || 5, 4500);
         }, 1800);
       }
       break;
@@ -160,7 +160,7 @@ function executeActions(action: SceneAction) {
 
     case 'highlight': {
       if (action.position) {
-        store.highlightWithTimer(action.position, action.radius || 12, 5000);
+        store.highlightWithTimer(action.position, action.radius || 5, 5000);
       }
       break;
     }

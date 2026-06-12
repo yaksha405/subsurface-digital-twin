@@ -181,9 +181,19 @@ function CameraFlyToHandler() {
   useEffect(() => {
     if (!cameraTarget) return;
     const target = cameraTarget.position;
+    const zoom = cameraTarget.zoom || 'normal';
+
+    // 根据缩放级别确定相机偏移
+    const offsets = {
+      close: [4, 2.5, 4],     // 贴近看单个机器人/节点
+      normal: [15, 8, 15],    // 默认
+      wide: [30, 18, 30],     // 远景
+    };
+    const [ox, oy, oz] = offsets[zoom];
+
     // Camera end position: offset from target
-    endPos.current.set(target[0] + 15, target[1] + 8, target[2] + 15);
-    // OrbitControls target: look at the alert/robot position itself
+    endPos.current.set(target[0] + ox, target[1] + oy, target[2] + oz);
+    // OrbitControls target: look at the target position
     endTarget.current.set(target[0], target[1], target[2]);
 
     startPos.current.copy(camera.position);

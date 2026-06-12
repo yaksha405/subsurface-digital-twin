@@ -1,5 +1,7 @@
-import { useState } from 'react';
 import { Html } from '@react-three/drei';
+import { useFrame } from '@react-three/fiber';
+import { useRef, useState } from 'react';
+import * as THREE from 'three';
 import { useAllRobots } from '../../hooks/useRobots';
 import { useSceneStore } from '../../store/useSceneStore';
 import type { Robot, RobotStatus } from '../../types';
@@ -12,32 +14,59 @@ const STATUS_COLORS: Record<RobotStatus, string> = {
   maintenance: '#4DA6FF',
 };
 
-function RobotMarker({ robot, onClick }: { robot: Robot; onClick: () => void }) {
+function RobotMarker({ robot, isFocused, onClick }: { robot: Robot; isFocused: boolean; onClick: () => void }) {
   const [hovered, setHovered] = useState(false);
   const color = STATUS_COLORS[robot.status];
+  const ringRef = useRef<THREE.Mesh>(null);
+
+  useFrame((state) => {
+    if (ringRef.current && isFocused) {
+      const t = state.clock.elapsedTime;
+      const scale = 1 + Math.sin(t * 4) * 0.3;
+      ringRef.current.scale.setScalar(scale);
+      const mat = ringRef.current.material as THREE.MeshBasicMaterial;
+      mat.opacity = 0.5 + Math.sin(t * 4) * 0.3;
+    }
+  });
+
+  const baseSize = isFocused ? 0.7 : (hovered ? 0.6 : 0.35);
 
   return (
     <group position={robot.position}>
-      {/* 小光点 — 简洁 */}
+      {/* 选中时的脉冲光环 */}
+      {isFocused && (
+        <>
+          <mesh ref={ringRef}>
+            <ringGeometry args={[1.2, 1.8, 24]} />
+            <meshBasicMaterial color="#FFE600" transparent opacity={0.7} side={THREE.DoubleSide} />
+          </mesh>
+          <mesh>
+            <sphereGeometry args={[0.9, 16, 16]} />
+            <meshBasicMaterial color="#FFE600" transparent opacity={0.12} />
+          </mesh>
+        </>
+      )}
+
+      {/* 小光点 */}
       <mesh
         onClick={(e) => { e.stopPropagation(); onClick(); }}
         onPointerOver={(e) => { e.stopPropagation(); setHovered(true); document.body.style.cursor = 'pointer'; }}
         onPointerOut={() => { setHovered(false); document.body.style.cursor = 'auto'; }}
       >
-        <sphereGeometry args={[hovered ? 0.6 : 0.35, 8, 8]} />
-        <meshBasicMaterial color={color} transparent opacity={robot.status === 'offline' ? 0.25 : 0.85} />
+        <sphereGeometry args={[baseSize, 12, 12]} />
+        <meshBasicMaterial color={color} transparent opacity={robot.status === 'offline' ? 0.25 : 0.9} />
       </mesh>
 
-      {hovered && (
+      {(hovered || isFocused) && (
         <Html distanceFactor={30} style={{ pointerEvents: 'none' }}>
           <div style={{
             background: 'rgba(10,10,18,0.95)',
-            border: `1px solid ${color}40`,
+            border: `1px solid ${isFocused ? '#FFE600' : color}40`,
             borderRadius: '6px',
             padding: '4px 8px',
             whiteSpace: 'nowrap',
             fontSize: '10px',
-            color: '#E0E0E8',
+            color: isFocused ? '#FFE600' : '#E0E0E8',
             fontFamily: 'monospace',
           }}>
             {robot.id}
@@ -50,44 +79,28 @@ function RobotMarker({ robot, onClick }: { robot: Robot; onClick: () => void }) 
 
 export function RobotMarkers() {
   const { data: robots, loading } = useAllRobots();
-  const [visibleCount, setVisibleCount] = useState(100);
   const flyTo = useSceneStore((s) => s.flyTo);
-  const highlightWithTimer = useSceneStore((s) => s.highlightWithTimer);
   const openRobotDetail = useSceneStore((s) => s.openRobotDetail);
+  const focusedRobotId = useSceneStore((s) => s.focusedRobotId);
 
   if (loading || !robots) return null;
-  const visible = robots.slice(0, visibleCount);
 
   const handleRobotClick = (robot: Robot) => {
-    flyTo({ position: robot.position, region: `robot-${robot.id}` });
-    highlightWithTimer(robot.position, 8, 5000);
+    // 放大聚焦到该机器人 — 不用大球高亮，相机贴近视即可看清
+    flyTo({ position: robot.position, region: `robot-${robot.id}`, zoom: 'close' });
     openRobotDetail(robot);
   };
 
   return (
     <group>
-      {visible.map((robot) => (
-        <RobotMarker key={robot.id} robot={robot} onClick={() => handleRobotClick(robot)} />
+      {robots.map((robot) => (
+        <RobotMarker
+          key={robot.id}
+          robot={robot}
+          isFocused={focusedRobotId === robot.id}
+          onClick={() => handleRobotClick(robot)}
+        />
       ))}
-      {visibleCount < robots.length && (
-        <Html position={[0, 10, 0]} center style={{ pointerEvents: 'auto' }}>
-          <button
-            onClick={() => setVisibleCount((c) => Math.min(c + 50, robots.length))}
-            style={{
-              background: 'rgba(26,29,42,0.9)',
-              border: '1px solid rgba(255,230,0,0.2)',
-              borderRadius: '4px',
-              padding: '4px 12px',
-              color: '#FFE600',
-              fontSize: '10px',
-              cursor: 'pointer',
-              fontFamily: 'monospace',
-            }}
-          >
-            +{robots.length - visibleCount} 台未显示
-          </button>
-        </Html>
-      )}
     </group>
   );
 }

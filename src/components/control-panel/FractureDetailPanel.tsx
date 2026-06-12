@@ -183,7 +183,7 @@ export function FractureDetailPanel() {
                   key={node.id}
                   onClick={() => {
                     selectFractureNode(node.id);
-                    flyTo({ position: node.position, region: node.id });
+                    flyTo({ position: node.position, region: node.id, zoom: 'close' });
                     setTimeout(() => {
                       highlightWithTimer(node.position, 5, 4000);
                     }, 1800);

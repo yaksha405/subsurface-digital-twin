@@ -78,6 +78,7 @@ export async function streamChat(
   const systemContent = `${SYSTEM_PROMPT}\n\n${contextStr}`;
   const systemMsg: CoreMessage = { role: 'system', content: systemContent };
   const allMessages = [systemMsg, ...messages];
+  const userInput = messages[messages.length - 1]?.content || '';
 
   try {
     const response = await fetch(url, {
@@ -160,6 +161,16 @@ export async function streamChat(
       }
     }
 
+    // 如果 LLM 没有调用任何工具，用 mock 逻辑补充场景动作
+    if (actions.length === 0 && sceneContext) {
+      const mockResp = generateMockAIResponse(userInput, sceneContext);
+      if (mockResp.actions && mockResp.actions.length > 0) {
+        for (const a of mockResp.actions) {
+          executeMockAction(a);
+        }
+      }
+    }
+
     return { message: fullMessage || '(执行场景操作)', actions: actions.length > 0 ? actions : undefined };
   } catch (err: any) {
     if (err.name === 'AbortError') throw err;
@@ -202,8 +213,8 @@ function executeMockAction(action: any) {
   const store = useSceneStore.getState();
   switch (action.type) {
     case 'flyTo':
-      store.flyTo({ position: action.position, region: action.region });
-      store.highlightWithTimer(action.position, action.radius || 12, 5000);
+      store.flyTo({ position: action.position, region: action.region, zoom: 'close' });
+      store.highlightWithTimer(action.position, action.radius || 5, 5000);
       break;
     case 'markPoints':
       if (action.points?.length) {

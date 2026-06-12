@@ -94,6 +94,8 @@ export interface LayerState {
 export interface CameraTarget {
   position: [number, number, number];
   region?: string;
+  /** 'close' = 贴近放大看单个机器人/裂缝节点; 'normal' = 默认; 'wide' = 远景 */
+  zoom?: 'close' | 'normal' | 'wide';
 }
 
 export interface HighlightRegion {

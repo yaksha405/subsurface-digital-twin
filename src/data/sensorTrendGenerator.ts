@@ -47,16 +47,16 @@ function computeFractureCluster(
   fractures: Fracture[]
 ): { center: [number, number, number]; radius: number } {
   if (fractures.length === 0) {
-    return { center: [0, 0, 0], radius: 15 };
+    return { center: [0, 0, 0], radius: 4 };
   }
   const allPoints = fractures.flatMap((f) => f.path);
-  if (allPoints.length === 0) return { center: [0, 0, 0], radius: 15 };
+  if (allPoints.length === 0) return { center: [0, 0, 0], radius: 4 };
 
   const cx = allPoints.reduce((s, p) => s + p[0], 0) / allPoints.length;
   const cy = allPoints.reduce((s, p) => s + p[1], 0) / allPoints.length;
   const cz = allPoints.reduce((s, p) => s + p[2], 0) / allPoints.length;
 
-  // 半径 = 最远点到中心 * 1.2
+  // 半径 = 最远点到中心，但上限 5（传感器区域是局部概念，不应覆盖全场景）
   let maxDist = 0;
   for (const p of allPoints) {
     const d = Math.sqrt((p[0]-cx)**2 + (p[1]-cy)**2 + (p[2]-cz)**2);
@@ -65,7 +65,7 @@ function computeFractureCluster(
 
   return {
     center: [+cx.toFixed(1), +cy.toFixed(1), +cz.toFixed(1)],
-    radius: Math.max(10, +(maxDist * 1.2).toFixed(1)),
+    radius: Math.min(5, Math.max(3, +(maxDist * 0.3).toFixed(1))),
   };
 }
 

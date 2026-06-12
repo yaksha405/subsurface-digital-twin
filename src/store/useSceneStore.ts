@@ -29,6 +29,8 @@ interface SceneStore {
   // Selected robot for detail dialog
   selectedRobot: Robot | null;
   robotDetailOpen: boolean;
+  /** 当前聚焦的机器人 ID（3D 场景中显示放大指示器） */
+  focusedRobotId: string | null;
 
   // === v2: 裂缝网络 ===
   scenario: ScenarioType;
@@ -108,6 +110,7 @@ export const useSceneStore = create<SceneStore>((set, get) => ({
   cameraInfo: { x: 30, y: 15, z: 60, dist: 68.7 },
   selectedRobot: null,
   robotDetailOpen: false,
+  focusedRobotId: null,
 
   // v2 state
   scenario: 'coal',
@@ -164,6 +167,7 @@ export const useSceneStore = create<SceneStore>((set, get) => ({
       selectedFractureNode: null,
       aiMarkers: [],
       fractureColorMode: 'gas' as const,
+      focusedRobotId: null,
     }));
   },
 
@@ -176,7 +180,7 @@ export const useSceneStore = create<SceneStore>((set, get) => ({
 
   setCameraInfo: (info) => set({ cameraInfo: info }),
 
-  openRobotDetail: (robot) => set({ selectedRobot: robot, robotDetailOpen: true }),
+  openRobotDetail: (robot) => set({ selectedRobot: robot, robotDetailOpen: true, focusedRobotId: robot.id }),
   closeRobotDetail: () => set({ robotDetailOpen: false }),
 
   // v2 actions

@@ -76,13 +76,17 @@ function timeAgo(ts: number): string {
   return `${Math.floor(s / 3600)}h前`;
 }
 
-function RobotCard({ robot, onClick }: { robot: Robot; onClick: () => void }) {
+function RobotCard({ robot, isFocused, onClick }: { robot: Robot; isFocused: boolean; onClick: () => void }) {
   const color = STATUS_COLORS[robot.status];
 
   return (
     <div
       onClick={onClick}
-      className="group px-2.5 py-2 rounded-md bg-[#1A1D2A]/60 border border-white/5 hover:border-[#FFE600]/30 hover:bg-[#1A1D2A] cursor-pointer transition-all"
+      className={`group px-2.5 py-2 rounded-md border cursor-pointer transition-all ${
+        isFocused
+          ? 'bg-[#FFE600]/8 border-[#FFE600]/40 shadow-[0_0_10px_rgba(255,230,0,0.15)]'
+          : 'bg-[#1A1D2A]/60 border border-white/5 hover:border-[#FFE600]/30 hover:bg-[#1A1D2A]'
+      }`}
     >
       {/* Row 1: ID + status */}
       <div className="flex items-center justify-between mb-1">
@@ -128,12 +132,12 @@ export function RobotFleet() {
   const { data: stats } = useRobotStats();
   const { data: robots, loading, total } = useFilteredRobots(filter);
   const flyTo = useSceneStore((s) => s.flyTo);
-  const highlightWithTimer = useSceneStore((s) => s.highlightWithTimer);
   const openRobotDetail = useSceneStore((s) => s.openRobotDetail);
+  const focusedRobotId = useSceneStore((s) => s.focusedRobotId);
 
   const handleRobotClick = (robot: Parameters<typeof openRobotDetail>[0]) => {
-    flyTo({ position: robot.position, region: `robot-${robot.id}` });
-    highlightWithTimer(robot.position, 8, 5000);
+    // 放大聚焦到该机器人，不用大球高亮
+    flyTo({ position: robot.position, region: `robot-${robot.id}`, zoom: 'close' });
     openRobotDetail(robot);
   };
 
@@ -204,7 +208,7 @@ export function RobotFleet() {
           {/* Robot list */}
           <div className="max-h-[300px] overflow-y-auto space-y-1 pr-0.5 custom-scroll">
             {robots.map((robot) => (
-              <RobotCard key={robot.id} robot={robot} onClick={() => handleRobotClick(robot)} />
+              <RobotCard key={robot.id} robot={robot} isFocused={focusedRobotId === robot.id} onClick={() => handleRobotClick(robot)} />
             ))}
             {!loading && robots.length === 0 && (
               <div className="text-[10px] text-[#A0A0B0]/40 text-center py-4">
