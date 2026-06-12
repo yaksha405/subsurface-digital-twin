@@ -3,6 +3,7 @@ import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { useSceneStore } from '../../store/useSceneStore';
 import { useCanvasInteraction } from './useCanvasInteraction';
+import { getMeasureConfig } from '../../lib/sceneMeasureConfig';
 import type { Annotation } from '../../types';
 
 /**
@@ -151,6 +152,10 @@ export function DistanceMeasureTool() {
     : points.length === 1 && previewPoint ? calcMeasurements(points[0], previewPoint)
     : null;
 
+  const scenario = useSceneStore.getState().scenario;
+  const gasThreshold = useSceneStore.getState().gasThreshold;
+  const measureCfg = getMeasureConfig(scenario, gasThreshold);
+
   return (
     <>
       {previewLine}
@@ -194,7 +199,7 @@ export function DistanceMeasureTool() {
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-[#A0A0B0]">坡角</span>
+                <span className="text-[#A0A0B0]">{measureCfg.slopeAngleLabel}</span>
                 <span className="text-[#FFCC00] font-mono">{m.slopeAngle.toFixed(1)}°</span>
               </div>
               <div className="flex justify-between">

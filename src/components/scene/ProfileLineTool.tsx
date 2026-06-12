@@ -3,6 +3,7 @@ import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { useSceneStore } from '../../store/useSceneStore';
 import { useCanvasInteraction } from './useCanvasInteraction';
+import { getMeasureConfig } from '../../lib/sceneMeasureConfig';
 import type { Annotation, FractureNode } from '../../types';
 
 const SCENE_Y_MIN = -20;
@@ -236,11 +237,13 @@ function ProfileCrossSection({
   const fractures = useSceneStore((s) => s.fractures);
   const scenario = useSceneStore((s) => s.scenario);
   const gasThreshold = useSceneStore((s) => s.gasThreshold);
+  const measureCfg = getMeasureConfig(scenario, gasThreshold);
   const profileLen = p0.distanceTo(p1);
 
-  // 主传感器字段名（按场景）
-  const sensorKey = scenario === 'coal' ? 'ch4_pct' : scenario === 'gold' ? 'stress_mpa' : 'pore_pressure_mpa';
-  const sensorLabel = scenario === 'coal' ? 'CH4%' : scenario === 'gold' ? '应力MPa' : '孔压MPa';
+  // 主传感器字段名（场景化）
+  const sensorKey = measureCfg.primaryKey;
+  const sensorLabel = `${measureCfg.primaryLabel}${measureCfg.primaryUnit}`;
+  const thresholdVal = measureCfg.primaryThreshold as number;
 
   // 投影裂缝节点到剖面平面 + 分段密度 + RQD
   const { projected, maxVal, dangerous, segmentDensity, rqd, avgVal } = useMemo(() => {
@@ -273,11 +276,7 @@ function ProfileCrossSection({
         mx = Math.max(mx, val);
         sumVal += val;
 
-        const isDangerous = scenario === 'coal'
-          ? val > gasThreshold
-          : scenario === 'gold'
-          ? val > 15
-          : val > 20;
+        const isDangerous = val > thresholdVal;
         if (isDangerous) dCount++;
 
         pts.push({ x: Math.max(0, Math.min(lineLen, along)), y: n.position[1], val, nodeId: n.id, fractureName: f.name });
@@ -321,8 +320,7 @@ function ProfileCrossSection({
     return '#FF4422';
   };
 
-  // 阈值线 Y 像素位置
-  const thresholdVal = scenario === 'coal' ? gasThreshold : scenario === 'gold' ? 15 : 20;
+  // 阈值线 Y 像素位置 — 已从 measureCfg 获取 thresholdVal
 
   return (
     <Html
@@ -332,7 +330,7 @@ function ProfileCrossSection({
       <div className="glass-panel p-3 min-w-[320px]" style={{ pointerEvents: 'auto' }}>
         {/* 标题栏 + 风险等级 */}
         <div className="flex items-center justify-between mb-2">
-          <span className="text-[#FF8800] font-bold text-[11px]">剖面截面分析</span>
+          <span className="text-[#FF8800] font-bold text-[11px]">{measureCfg.profileTitle}</span>
           <span className="px-1.5 py-0.5 rounded text-[8px] font-bold" style={{
             background: `${dangerous === 0 ? '#00CC66' : dangerous <= projected.length * 0.2 ? '#FFCC00' : dangerous <= projected.length * 0.5 ? '#FF8800' : '#FF3333'}20`,
             color: dangerous === 0 ? '#00CC66' : dangerous <= projected.length * 0.2 ? '#FFCC00' : dangerous <= projected.length * 0.5 ? '#FF8800' : '#FF3333'
@@ -382,11 +380,7 @@ function ProfileCrossSection({
           {/* 裂缝节点 */}
           {projected.map((p, i) => {
             const color = getColor(p.val);
-            const isDangerous = scenario === 'coal'
-              ? p.val > gasThreshold
-              : scenario === 'gold'
-              ? p.val > 15
-              : p.val > 20;
+            const isDangerous = p.val > thresholdVal;
             return (
               <g key={i}>
                 {isDangerous && (
@@ -410,10 +404,10 @@ function ProfileCrossSection({
             transform={`rotate(-90, 8, ${padT + plotH / 2})`}>深度 (m)</text>
         </svg>
 
-        {/* 统计栏 — 6列：节点/超阈值/峰值/均值/RQD/岩质 */}
+        {/* 统计栏 — 场景化6列 */}
         <div className="grid grid-cols-6 gap-1 mt-2 text-[8px]">
           <div className="text-center px-0.5 py-1 bg-[#0F0F16]/60 rounded">
-            <div className="text-[#A0A0B0]">节点</div>
+            <div className="text-[#A0A0B0]">{measureCfg.pointLabel}</div>
             <div className="text-[#E0E0E8] font-mono font-bold">{projected.length}</div>
           </div>
           <div className="text-center px-0.5 py-1 bg-[#0F0F16]/60 rounded">
@@ -428,16 +422,33 @@ function ProfileCrossSection({
             <div className="text-[#A0A0B0]">均值</div>
             <div className="text-[#88AAFF] font-mono font-bold">{avgVal.toFixed(1)}</div>
           </div>
-          <div className="text-center px-0.5 py-1 bg-[#0F0F16]/60 rounded">
-            <div className="text-[#A0A0B0]">RQD</div>
-            <div className="font-mono font-bold" style={{ color: rqd > 75 ? '#00CC66' : rqd > 50 ? '#88CC00' : rqd > 25 ? '#FFA500' : '#FF3333' }}>{rqd.toFixed(0)}</div>
-          </div>
-          <div className="text-center px-0.5 py-1 bg-[#0F0F16]/60 rounded">
-            <div className="text-[#A0A0B0]">岩质</div>
-            <div className="font-mono font-bold" style={{ color: rqd > 75 ? '#00CC66' : rqd > 50 ? '#88CC00' : rqd > 25 ? '#FFA500' : '#FF3333' }}>
-              {rqd > 75 ? 'Ⅰ优' : rqd > 50 ? 'Ⅱ良' : rqd > 25 ? 'Ⅲ差' : 'Ⅳ劣'}
-            </div>
-          </div>
+          {measureCfg.showRockGrade ? (
+            <>
+              <div className="text-center px-0.5 py-1 bg-[#0F0F16]/60 rounded">
+                <div className="text-[#A0A0B0]">RQD</div>
+                <div className="font-mono font-bold" style={{ color: rqd > 75 ? '#00CC66' : rqd > 50 ? '#88CC00' : rqd > 25 ? '#FFA500' : '#FF3333' }}>{rqd.toFixed(0)}</div>
+              </div>
+              <div className="text-center px-0.5 py-1 bg-[#0F0F16]/60 rounded">
+                <div className="text-[#A0A0B0]">岩质</div>
+                <div className="font-mono font-bold" style={{ color: rqd > 75 ? '#00CC66' : rqd > 50 ? '#88CC00' : rqd > 25 ? '#FFA500' : '#FF3333' }}>
+                  {rqd > 75 ? 'Ⅰ优' : rqd > 50 ? 'Ⅱ良' : rqd > 25 ? 'Ⅲ差' : 'Ⅳ劣'}
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="text-center px-0.5 py-1 bg-[#0F0F16]/60 rounded">
+                <div className="text-[#A0A0B0]">{measureCfg.secondaryLabel.replace('(均)', '')}</div>
+                <div className="text-[#E0E0E8] font-mono font-bold">{projected.length > 0 ? (projected.reduce((s, p) => s + (p.val * 0.1), 0) / projected.length).toFixed(2) : '0'}</div>
+              </div>
+              <div className="text-center px-0.5 py-1 bg-[#0F0F16]/60 rounded">
+                <div className="text-[#A0A0B0]">评估</div>
+                <div className="font-mono font-bold" style={{ color: dangerous === 0 ? '#00CC66' : dangerous <= projected.length * 0.2 ? '#FFCC00' : dangerous <= projected.length * 0.5 ? '#FFA500' : '#FF3333' }}>
+                  {dangerous === 0 ? '合格' : dangerous <= projected.length * 0.2 ? '关注' : dangerous <= projected.length * 0.5 ? '超标' : '危险'}
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         {/* 色标 */}

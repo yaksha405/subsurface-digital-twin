@@ -56,29 +56,41 @@ export function generateMockAIResponse(
   }
 
   // ========== 测距/剖面/框选 ==========
+  const areaTitle = scenario === 'pipeline' ? '区域管段分析' : scenario === 'nuclear' ? '区域辐射分析' : scenario === 'refinery' ? '区域设备分析' : scenario === 'gold' ? '区域应力分析' : scenario === 'oil' ? '区域储层分析' : '区域地质分析';
+  const profileTitle = scenario === 'pipeline' ? '管段截面分析' : scenario === 'nuclear' ? '管道截面分析' : scenario === 'refinery' ? '通道截面分析' : '剖面截面分析';
+
   if (lowerInput.includes('测距') || lowerInput.includes('测量距离')) {
+    const slopeLabel = ['pipeline', 'nuclear', 'refinery'].includes(scenario) ? '倾斜角' : '坡角';
     return {
-      message: `## 已激活测距工具\n\n请在3D场景中点击两个点进行距离测量。\n\n测量结果将包含：\n- 三维直线距离\n- 水平距离\n- 垂直高差（带方向）\n- 坡角\n- 方位角（含罗盘方位）`,
+      message: `## 已激活测距工具\n\n请在3D场景中点击两个点进行距离测量。\n\n测量结果将包含：\n- 三维直线距离\n- 水平距离\n- 垂直高差（带方向）\n- ${slopeLabel}\n- 方位角（含罗盘方位）`,
       actions: [{ type: 'activateTool', tool: 'distance' }],
     };
   }
   if (lowerInput.includes('剖面') || lowerInput.includes('截面')) {
+    const pointLabel = ['pipeline', 'nuclear', 'refinery'].includes(scenario) ? '管道/设备测点' : '裂缝节点';
     return {
-      message: `## 已激活剖面线工具\n\n请在3D场景中点击两点绘制剖面线。\n\n将生成专业地质剖面图，包含：\n- 裂缝节点投影\n- 10段密度热力带\n- RQD 估算\n- 风险分级`,
+      message: `## 已激活剖面线工具\n\n请在3D场景中点击两点绘制剖面线。\n\n将生成专业${profileTitle}，包含：\n- ${pointLabel}投影分布\n- 10段密度热力带\n- 风险分级`,
       actions: [{ type: 'activateTool', tool: 'profile' }],
     };
   }
   if (lowerInput.includes('框选') || lowerInput.includes('区域分析') || lowerInput.includes('体积') || lowerInput.includes('区域地质')) {
+    const features = scenario === 'pipeline' ? '管段密度 & 壁厚损失\n- 天然气泄漏检测\n- 腐蚀速率评估' :
+      scenario === 'nuclear' ? '管道密度 & 剂量率分布\n- FAC速率评估\n- 疲劳使用因子' :
+      scenario === 'refinery' ? '通道密度 & 壁厚减薄\n- 腐蚀速率评估\n- 泄漏浓度检测' :
+      scenario === 'gold' ? '裂缝密度 & 应力分布\n- 微震活动评估\n- 风险等级' :
+      scenario === 'oil' ? '裂缝密度 & 孔隙压力\n- 渗透率评估\n- 含油饱和度' :
+      '裂缝密度 & 渗透率\n- RQD 岩质分级\n- 风险等级评估';
     return {
-      message: `## 已激活区域框选工具\n\n请在3D场景中拖拽选择一个立方体区域。\n\n将生成完整区域地质分析报告，包含：\n- 裂缝密度 & 渗透率\n- RQD 岩质分级\n- 风险等级评估`,
+      message: `## 已激活区域框选工具\n\n请在3D场景中拖拽选择一个立方体区域。\n\n将生成完整${areaTitle}报告，包含：\n- ${features}`,
       actions: [{ type: 'activateTool', tool: 'area' }],
     };
   }
 
   // ========== 全景/重置 ==========
   if (lowerInput.includes('全景') || lowerInput.includes('重置') || lowerInput.includes('全图') || lowerInput.includes('home')) {
+    const sceneLabel = scenario === 'pipeline' ? '管线网络' : scenario === 'nuclear' ? '反应堆管道' : scenario === 'refinery' ? '设备通道网络' : '裂缝网络';
     return {
-      message: `## 已重置到全景视角\n\n当前场景展示全部裂缝网络。`,
+      message: `## 已重置到全景视角\n\n当前场景展示全部${sceneLabel}。`,
       actions: [
         { type: 'fitAll' },
         { type: 'clearMarkers' },

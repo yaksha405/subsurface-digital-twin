@@ -3,6 +3,7 @@ import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { useSceneStore } from '../../store/useSceneStore';
 import { useCanvasInteraction } from './useCanvasInteraction';
+import { getMeasureConfig } from '../../lib/sceneMeasureConfig';
 import type { Annotation, SensorReading } from '../../types';
 
 /** 岩体 Y 范围（RockMass: 100×40×80 居中，Y 从 -20 到 +20） */
@@ -136,8 +137,9 @@ export function VolumeMeasure() {
   const fractures = useSceneStore.getState().fractures;
   const scenario = useSceneStore.getState().scenario;
   const gasThreshold = useSceneStore.getState().gasThreshold;
+  const measureCfg = getMeasureConfig(scenario, gasThreshold);
 
-  // === 区域内裂缝分析 ===
+  // === 区域内测点分析 ===
   const analysis = useMemo(() => {
     if (!box) return null;
 
@@ -157,28 +159,25 @@ export function VolumeMeasure() {
     const volM3 = volume;
     const density = volM3 > 0 ? nodeCount / volM3 * 1000 : 0; // nodes per 1000m³
 
-    // 主传感器字段
-    const sensorKey = scenario === 'coal' ? 'ch4_pct' : scenario === 'gold' ? 'stress_mpa' : 'pore_pressure_mpa';
+    // 主传感器字段（场景化）
+    const sensorKey = measureCfg.primaryKey;
     const vals = inBoxNodes.map(n => (n.sensors as Record<string, number>)[sensorKey] || 0);
     const maxSensor = vals.length > 0 ? Math.max(...vals) : 0;
     const avgSensor = vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
-    const threshold = scenario === 'coal' ? gasThreshold : scenario === 'gold' ? 15 : 20;
+    const threshold = measureCfg.primaryThreshold as number;
     const overThreshold = vals.filter(v => v > threshold).length;
 
-    // 渗透率均值
-    const permVals = inBoxNodes.map(n => n.sensors.permeability_md || 0);
-    const avgPerm = permVals.length > 0 ? permVals.reduce((a, b) => a + b, 0) / permVals.length : 0;
-
-    // 开度均值
-    const apVals = inBoxNodes.map(n => n.sensors.fracture_aperture_um || 0);
-    const avgAperture = apVals.length > 0 ? apVals.reduce((a, b) => a + b, 0) / apVals.length : 0;
+    // 次传感器均值
+    const secKey = measureCfg.secondaryKey;
+    const secVals = inBoxNodes.map(n => (n.sensors as Record<string, number>)[secKey] || 0);
+    const avgSecondary = secVals.length > 0 ? secVals.reduce((a, b) => a + b, 0) / secVals.length : 0;
 
     // 温度均值
     const tempVals = inBoxNodes.map(n => n.sensors.temperature_c || 0);
     const avgTemp = tempVals.length > 0 ? tempVals.reduce((a, b) => a + b, 0) / tempVals.length : 0;
 
-    // RQD 估算（基于节点密度反向估算）
-    const rqd = Math.max(0, Math.min(100, 100 - density * 2));
+    // RQD 估算（仅地质场景）
+    const rqd = measureCfg.showRockGrade ? Math.max(0, Math.min(100, 100 - density * 2)) : 0;
 
     // 风险等级
     const riskPct = nodeCount > 0 ? overThreshold / nodeCount : 0;
@@ -187,12 +186,12 @@ export function VolumeMeasure() {
       riskPct <= 0.5 ? { label: '中风险', color: '#FF8800' } :
       { label: '高风险', color: '#FF3333' };
 
-    // 岩质等级
+    // 岩质等级（仅地质场景）
     const rockGrade = rqd > 75 ? 'Ⅰ优' : rqd > 50 ? 'Ⅱ良' : rqd > 25 ? 'Ⅲ差' : 'Ⅳ劣';
     const rockColor = rqd > 75 ? '#00CC66' : rqd > 50 ? '#88CC00' : rqd > 25 ? '#FFA500' : '#FF3333';
 
-    return { nodeCount, density, maxSensor, avgSensor, overThreshold, avgPerm, avgAperture, avgTemp, rqd, riskLevel, rockGrade, rockColor, sensorKey, threshold };
-  }, [box, fractures, scenario, gasThreshold, volume]);
+    return { nodeCount, density, maxSensor, avgSensor, overThreshold, avgSecondary, avgTemp, rqd, riskLevel, rockGrade, rockColor, sensorKey, threshold };
+  }, [box, fractures, scenario, gasThreshold, volume, measureCfg]);
 
   if (!isActive && !box) return null;
 
@@ -253,7 +252,7 @@ export function VolumeMeasure() {
             <Html position={[(box.min[0] + box.max[0]) / 2, box.max[1] + 2, (box.min[2] + box.max[2]) / 2]} center>
               <div className="glass-panel px-4 py-3 text-xs min-w-[260px]" style={{ pointerEvents: 'auto' }}>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[#FFE600] font-bold text-[11px]">区域地质分析</span>
+                  <span className="text-[#FFE600] font-bold text-[11px]">{measureCfg.areaTitle}</span>
                   {analysis && (
                     <span className="px-1.5 py-0.5 rounded text-[8px] font-bold" style={{ background: `${analysis.riskLevel.color}20`, color: analysis.riskLevel.color }}>
                       {analysis.riskLevel.label}
@@ -273,52 +272,50 @@ export function VolumeMeasure() {
                   </div>
                 </div>
 
-                {/* 地质分析数据 */}
+                {/* 场景化分析数据 */}
                 {analysis && analysis.nodeCount > 0 && (
                   <div className="space-y-1 text-[10px] mb-2 pt-2 border-t border-white/5">
                     <div className="flex justify-between">
-                      <span className="text-[#A0A0B0]">裂缝测点</span>
+                      <span className="text-[#A0A0B0]">{measureCfg.pointLabel}</span>
                       <span className="text-[#E0E0E8] font-mono">{analysis.nodeCount} 个</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-[#A0A0B0]">裂缝密度</span>
+                      <span className="text-[#A0A0B0]">{measureCfg.densityLabel}</span>
                       <span className="text-[#FF8800] font-mono">{analysis.density.toFixed(1)} /千m³</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-[#A0A0B0]">{scenario === 'coal' ? 'CH₄峰值' : scenario === 'gold' ? '应力峰值' : '孔压峰值'}</span>
-                      <span className={`font-mono ${analysis.overThreshold > 0 ? 'text-[#FF3333]' : 'text-[#00CC66]'} font-bold`}>{analysis.maxSensor.toFixed(2)}</span>
+                      <span className="text-[#A0A0B0]">{measureCfg.primaryLabel}峰值</span>
+                      <span className={`font-mono ${analysis.overThreshold > 0 ? 'text-[#FF3333]' : 'text-[#00CC66]'} font-bold`}>{analysis.maxSensor.toFixed(2)} {measureCfg.primaryUnit}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-[#A0A0B0]">{scenario === 'coal' ? 'CH₄均值' : scenario === 'gold' ? '应力均值' : '孔压均值'}</span>
-                      <span className="text-[#88AAFF] font-mono">{analysis.avgSensor.toFixed(2)}</span>
+                      <span className="text-[#A0A0B0]">{measureCfg.primaryLabel}均值</span>
+                      <span className="text-[#88AAFF] font-mono">{analysis.avgSensor.toFixed(2)} {measureCfg.primaryUnit}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-[#A0A0B0]">超阈值点</span>
                       <span className={`font-mono ${analysis.overThreshold > 0 ? 'text-[#FF4422]' : 'text-[#00CCAA]'}`}>{analysis.overThreshold} / {analysis.nodeCount}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-[#A0A0B0]">渗透率(均)</span>
-                      <span className="text-[#E0E0E8] font-mono">{analysis.avgPerm.toFixed(3)} mD</span>
+                      <span className="text-[#A0A0B0]">{measureCfg.secondaryLabel}</span>
+                      <span className="text-[#E0E0E8] font-mono">{analysis.avgSecondary.toFixed(3)} {measureCfg.secondaryUnit}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-[#A0A0B0]">开度(均)</span>
-                      <span className="text-[#E0E0E8] font-mono">{analysis.avgAperture.toFixed(0)} µm</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-[#A0A0B0]">温度(均)</span>
+                      <span className="text-[#A0A0B0]">{measureCfg.tempLabel}</span>
                       <span className="text-[#E0E0E8] font-mono">{analysis.avgTemp.toFixed(1)} °C</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-[#A0A0B0]">RQD 岩质</span>
-                      <span className="font-mono font-bold" style={{ color: analysis.rockColor }}>
-                        {analysis.rqd.toFixed(0)} · {analysis.rockGrade}
-                      </span>
-                    </div>
+                    {measureCfg.showRockGrade && (
+                      <div className="flex justify-between">
+                        <span className="text-[#A0A0B0]">RQD 岩质</span>
+                        <span className="font-mono font-bold" style={{ color: analysis.rockColor }}>
+                          {analysis.rqd.toFixed(0)} · {analysis.rockGrade}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 )}
                 {analysis && analysis.nodeCount === 0 && (
                   <div className="text-[9px] text-[#A0A0B0]/50 text-center py-2 border-t border-white/5">
-                    此区域无裂缝测点
+                    此区域无{measureCfg.pointLabel}
                   </div>
                 )}
 
