@@ -50,26 +50,46 @@ export function PotreeCameraSync() {
 // 模块级共享：Potree viewer 实例（供 PotreeCameraSync 读取）
 export let potreeViewer: any = null;
 
-// 动态加载 Potree 脚本（非 ES module，需要全局注入）
+// 动态加载脚本（顺序：jQuery → Potree CSS → Potree JS）
 let potreeScriptPromise: Promise<void> | null = null;
+
+function loadScript(src: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error(`Failed to load: ${src}`));
+    document.head.appendChild(s);
+  });
+}
+
 function loadPotreeScript(): Promise<void> {
   if (potreeScriptPromise) return potreeScriptPromise;
-  potreeScriptPromise = new Promise((resolve, reject) => {
-    if ((window as any).Potree) {
-      resolve();
-      return;
-    }
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = `${import.meta.env.BASE_URL}potree/potree.css`;
-    document.head.appendChild(link);
+  potreeScriptPromise = (async () => {
+    const base = import.meta.env.BASE_URL;
 
-    const script = document.createElement('script');
-    script.src = `${import.meta.env.BASE_URL}potree/potree.js`;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error('Failed to load Potree script'));
-    document.head.appendChild(script);
-  });
+    // 1. jQuery（Potree 1.8 依赖）
+    if (!(window as any).jQuery) {
+      await loadScript(`${base}potree/jquery.min.js`);
+    }
+
+    // 2. Potree CSS
+    if (!document.querySelector('link[href*="potree.css"]')) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = `${base}potree/potree.css`;
+      document.head.appendChild(link);
+    }
+
+    // 3. Potree JS
+    if (!(window as any).Potree?.Viewer) {
+      await loadScript(`${base}potree/potree.js`);
+      // 验证 Potree 正确导出
+      if (!(window as any).Potree?.Viewer) {
+        throw new Error('Potree 加载失败 — Viewer 未导出（jQuery 可能未正确加载）');
+      }
+    }
+  })();
   return potreeScriptPromise;
 }
 
