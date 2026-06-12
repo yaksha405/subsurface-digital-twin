@@ -50,7 +50,7 @@ export function AlertFeed() {
   const [filter, setFilter] = useState<'all' | 'danger' | 'warning' | 'unack'>('all');
   const { data: alerts, loading } = useAlerts();
   const flyTo = useSceneStore((s) => s.flyTo);
-  const setHighlightRegion = useSceneStore((s) => s.setHighlightRegion);
+  const highlightWithTimer = useSceneStore((s) => s.highlightWithTimer);
 
   const filtered = useMemo(() => {
     if (!alerts) return [];
@@ -66,8 +66,7 @@ export function AlertFeed() {
     if (alert.position) {
       const pos = alert.position;
       flyTo({ position: pos, region: `alert-${alert.id}` });
-      setHighlightRegion({ position: pos, radius: 10, active: true });
-      setTimeout(() => setHighlightRegion({ position: pos, radius: 10, active: false }), 5000);
+      highlightWithTimer(pos, 10, 5000);
     }
   };
 

@@ -151,13 +151,8 @@ function executeActions(action: SceneAction) {
     case 'flyTo': {
       if (action.position) {
         store.flyTo({ position: action.position, region: action.region });
-        // 自动高亮
         setTimeout(() => {
-          store.setHighlightRegion({ position: action.position!, radius: action.radius || 12, active: true });
-          setTimeout(() => {
-            const cur = useSceneStore.getState().highlightRegion;
-            store.setHighlightRegion({ ...cur, active: false });
-          }, 4500);
+          store.highlightWithTimer(action.position!, action.radius || 12, 4500);
         }, 1800);
       }
       break;
@@ -165,11 +160,7 @@ function executeActions(action: SceneAction) {
 
     case 'highlight': {
       if (action.position) {
-        store.setHighlightRegion({ position: action.position, radius: action.radius || 12, active: true });
-        setTimeout(() => {
-          const cur = useSceneStore.getState().highlightRegion;
-          store.setHighlightRegion({ ...cur, active: false });
-        }, 5000);
+        store.highlightWithTimer(action.position, action.radius || 12, 5000);
       }
       break;
     }

@@ -203,11 +203,7 @@ function executeMockAction(action: any) {
   switch (action.type) {
     case 'flyTo':
       store.flyTo({ position: action.position, region: action.region });
-      store.setHighlightRegion({ position: action.position, radius: action.radius || 12, active: true });
-      setTimeout(() => {
-        const cur = useSceneStore.getState().highlightRegion;
-        store.setHighlightRegion({ ...cur, active: false });
-      }, 5000);
+      store.highlightWithTimer(action.position, action.radius || 12, 5000);
       break;
     case 'markPoints':
       if (action.points?.length) {

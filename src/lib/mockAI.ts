@@ -151,6 +151,7 @@ export function generateMockAIResponse(
       .join('\n');
 
     const actions: SceneAction[] = [
+      { type: 'clearMarkers' },
       { type: 'toggleLayer', layer: 'gasHeatmap' },
     ];
 
@@ -194,7 +195,7 @@ export function generateMockAIResponse(
       })
       .join('\n');
 
-    const actions: SceneAction[] = [];
+    const actions: SceneAction[] = [{ type: 'clearMarkers' }];
 
     // 标记应力集中区
     if (top.length > 0) {
@@ -243,7 +244,7 @@ export function generateMockAIResponse(
       })
       .join('\n');
 
-    const actions: SceneAction[] = [];
+    const actions: SceneAction[] = [{ type: 'clearMarkers' }];
 
     // 标记高渗透率裂缝（适合抽采）
     const highPerm = top.filter((x) => x.perm > 1.0);
@@ -282,6 +283,7 @@ export function generateMockAIResponse(
     const top = tempSorted.slice(0, 5);
 
     const actions: SceneAction[] = [
+      { type: 'clearMarkers' },
       { type: 'toggleLayer', layer: 'tempHeatmap' },
     ];
     if (top.length > 0) {
@@ -308,7 +310,7 @@ export function generateMockAIResponse(
       .sort((a, b) => b.water - a.water);
     const top = waterSorted.slice(0, 5);
 
-    const actions: SceneAction[] = [];
+    const actions: SceneAction[] = [{ type: 'clearMarkers' }];
     const danger = top.filter((x) => x.water > 5);
     if (danger.length > 0) {
       actions.push({
@@ -400,6 +402,7 @@ function analyzeFracture(f: Fracture, gasThreshold: number): AIResponse {
   const overallRisk = risks.length >= 3 ? '🔴 **高风险**' : risks.length >= 1 ? '⚠️ **中风险**' : '🟢 **低风险**';
 
   const actions: SceneAction[] = [
+    { type: 'clearMarkers' },
     { type: 'selectFracture', fractureId: f.id },
   ];
   if (markers.length > 0) {
@@ -487,6 +490,7 @@ function findDangerousPoints(
   return {
     message: `## 最危险区域分析\n\n根据实时传感器数据综合评分，标记了 ${top3.length} 个高风险点位：\n\n| 编号 | 裂缝 | 坐标 [X,Y,Z] | 关键指标 | 等级 |\n|------|------|------------|---------|------|\n${tableRows}\n\n已自动飞行到最危险区域（${top3[0].fractureId}），脉冲标记已标注在3D场景中。`,
     actions: [
+      { type: 'clearMarkers' },
       { type: 'markPoints', points },
       { type: 'flyTo', position: top3[0].position as [number, number, number], region: `最危险: ${top3[0].fractureId}` },
     ],

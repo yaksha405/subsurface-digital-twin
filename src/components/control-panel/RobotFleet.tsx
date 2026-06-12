@@ -128,15 +128,12 @@ export function RobotFleet() {
   const { data: stats } = useRobotStats();
   const { data: robots, loading, total } = useFilteredRobots(filter);
   const flyTo = useSceneStore((s) => s.flyTo);
-  const setHighlightRegion = useSceneStore((s) => s.setHighlightRegion);
+  const highlightWithTimer = useSceneStore((s) => s.highlightWithTimer);
   const openRobotDetail = useSceneStore((s) => s.openRobotDetail);
 
   const handleRobotClick = (robot: Parameters<typeof openRobotDetail>[0]) => {
     flyTo({ position: robot.position, region: `robot-${robot.id}` });
-    setHighlightRegion({ position: robot.position, radius: 8, active: true });
-    setTimeout(() => {
-      setHighlightRegion({ position: robot.position, radius: 8, active: false });
-    }, 5000);
+    highlightWithTimer(robot.position, 8, 5000);
     openRobotDetail(robot);
   };
 

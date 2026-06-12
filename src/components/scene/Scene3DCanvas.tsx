@@ -25,6 +25,11 @@ export function Scene3DCanvas() {
   const physicalTruthMode = useSceneStore((s) => s.physicalTruthMode);
   const setCaptureScreenshot = useSceneStore((s) => s.setCaptureScreenshot);
   const activeTool = useSceneStore((s) => s.activeTool);
+  const highlightActive = useSceneStore((s) => s.highlightRegion.active);
+  const aiMarkerCount = useSceneStore((s) => s.aiMarkers.length);
+  const clearHighlight = useSceneStore((s) => s.clearHighlight);
+  const clearAIMarkers = useSceneStore((s) => s.clearAIMarkers);
+  const resetSceneView = useSceneStore((s) => s.resetSceneView);
 
   return (
     <div className="relative w-full h-full grid-bg overflow-hidden">
@@ -33,6 +38,13 @@ export function Scene3DCanvas() {
           camera={{ position: [30, 42, 50], fov: 50, near: 0.1, far: 3000 }}
           gl={{ preserveDrawingBuffer: true, antialias: true }}
           dpr={[1, 1.5]}
+          onPointerMissed={() => {
+            // 点击空白处取消高亮
+            const store = useSceneStore.getState();
+            if (store.highlightRegion.active) {
+              store.clearHighlight();
+            }
+          }}
           onCreated={({ gl, scene, camera }) => {
             gl.setClearColor('#080812');
             console.log('[Scene3D] WebGL context created OK');
@@ -109,6 +121,47 @@ export function Scene3DCanvas() {
         <span className="text-[8px] px-1.5 py-0.5 bg-[#1A1D2A]/80 text-[#44AAFF]/70 rounded border border-white/5">Potree LOD</span>
         <span className="text-[8px] px-1.5 py-0.5 bg-[#1A1D2A]/80 text-[#FF8800]/70 rounded border border-white/5">Open3D Backend</span>
         <span className="text-[8px] px-1.5 py-0.5 bg-[#1A1D2A]/80 text-[#FFE600]/70 rounded border border-white/5">DeepSeek AI</span>
+      </div>
+
+      {/* 浮动场景控制工具栏 — 右上角 */}
+      <div className="absolute top-3 right-3 z-30 flex flex-col gap-1.5">
+        <button
+          onClick={() => resetSceneView()}
+          title="重置视角 · 清除所有标记和高亮"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] bg-[#1A1D2A]/85 backdrop-blur-md text-[#E0E0E8] hover:text-[#FFE600] rounded-lg border border-white/10 hover:border-[#FFE600]/30 transition-all shadow-lg"
+        >
+          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M3 12l9-9 9 9M5 10v10h14V10" />
+          </svg>
+          全景
+        </button>
+
+        {highlightActive && (
+          <button
+            onClick={() => clearHighlight()}
+            title="关闭高亮球体"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] bg-[#1A1D2A]/85 backdrop-blur-md text-[#FFE600] hover:text-[#FFF] rounded-lg border border-[#FFE600]/30 hover:border-[#FFE600]/50 transition-all shadow-lg animate-fade-in"
+          >
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M9 9l6 6M15 9l-6 6" />
+            </svg>
+            取消高亮
+          </button>
+        )}
+
+        {aiMarkerCount > 0 && (
+          <button
+            onClick={() => clearAIMarkers()}
+            title="清除AI分析标记"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] bg-[#1A1D2A]/85 backdrop-blur-md text-[#FF6666] hover:text-[#FF9999] rounded-lg border border-[#FF3333]/30 hover:border-[#FF3333]/50 transition-all shadow-lg animate-fade-in"
+          >
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 2v6m0 0l-3-3m3 3l3-3M5 14v6h14v-6M3 14h18" />
+            </svg>
+            清除标记 ({aiMarkerCount})
+          </button>
+        )}
       </div>
     </div>
   );

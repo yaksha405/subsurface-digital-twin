@@ -20,7 +20,7 @@ export function FractureDetailPanel() {
   const selectFracture = useSceneStore((s) => s.selectFracture);
   const selectFractureNode = useSceneStore((s) => s.selectFractureNode);
   const flyTo = useSceneStore((s) => s.flyTo);
-  const setHighlightRegion = useSceneStore((s) => s.setHighlightRegion);
+  const highlightWithTimer = useSceneStore((s) => s.highlightWithTimer);
 
   if (!selectedFracture) {
     return (
@@ -183,17 +183,9 @@ export function FractureDetailPanel() {
                   key={node.id}
                   onClick={() => {
                     selectFractureNode(node.id);
-                    // 双向联动：飞到该节点位置
                     flyTo({ position: node.position, region: node.id });
                     setTimeout(() => {
-                      setHighlightRegion({
-                        position: node.position,
-                        radius: 5,
-                        active: true,
-                      });
-                      setTimeout(() => {
-                        setHighlightRegion({ position: node.position, radius: 5, active: false });
-                      }, 4000);
+                      highlightWithTimer(node.position, 5, 4000);
                     }, 1800);
                   }}
                   className={`flex items-center justify-between px-2 py-1.5 rounded text-[9px] cursor-pointer transition-all ${

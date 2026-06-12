@@ -83,17 +83,18 @@ export function SensorTrends() {
   const [activeRegion, setActiveRegion] = useState<string | null>(null);
   const { data: trend, loading } = useSensorTrend();
   const flyTo = useSceneStore((s) => s.flyTo);
-  const setHighlightRegion = useSceneStore((s) => s.setHighlightRegion);
+  const highlightWithTimer = useSceneStore((s) => s.highlightWithTimer);
+  const clearHighlight = useSceneStore((s) => s.clearHighlight);
 
   const handleRegionClick = (r: typeof trend.regions[0]) => {
     if (activeRegion === r.regionId) {
       // 再次点击取消选择
       setActiveRegion(null);
-      setHighlightRegion({ position: [0, 0, 0], radius: 10, active: false });
+      clearHighlight();
     } else {
       setActiveRegion(r.regionId);
       // 高亮区域 + 相机飞过去
-      setHighlightRegion({ position: r.center, radius: r.radius, active: true });
+      highlightWithTimer(r.center, r.radius, 8000);
       flyTo({ position: r.center, region: r.regionName });
     }
   };
@@ -102,7 +103,7 @@ export function SensorTrends() {
     setView(v);
     setActiveRegion(null);
     if (v === 'aggregate') {
-      setHighlightRegion({ position: [0, 0, 0], radius: 10, active: false });
+      clearHighlight();
     }
   };
 

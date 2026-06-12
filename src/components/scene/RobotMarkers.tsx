@@ -52,7 +52,7 @@ export function RobotMarkers() {
   const { data: robots, loading } = useAllRobots();
   const [visibleCount, setVisibleCount] = useState(100);
   const flyTo = useSceneStore((s) => s.flyTo);
-  const setHighlightRegion = useSceneStore((s) => s.setHighlightRegion);
+  const highlightWithTimer = useSceneStore((s) => s.highlightWithTimer);
   const openRobotDetail = useSceneStore((s) => s.openRobotDetail);
 
   if (loading || !robots) return null;
@@ -60,8 +60,7 @@ export function RobotMarkers() {
 
   const handleRobotClick = (robot: Robot) => {
     flyTo({ position: robot.position, region: `robot-${robot.id}` });
-    setHighlightRegion({ position: robot.position, radius: 8, active: true });
-    setTimeout(() => setHighlightRegion({ position: robot.position, radius: 8, active: false }), 5000);
+    highlightWithTimer(robot.position, 8, 5000);
     openRobotDetail(robot);
   };
 

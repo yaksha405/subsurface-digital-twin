@@ -1,6 +1,9 @@
 import { create } from 'zustand';
 import type { LayerState, CameraTarget, HighlightRegion, ChatMessage, SceneAction, Robot, ScenarioType, AnnotationTool, Annotation, Fracture, AIMarker } from '../types';
 
+// 模块级高亮计时器 — 统一管理，避免多组件 setTimeout 竞态
+let _highlightTimer: ReturnType<typeof setTimeout> | null = null;
+
 interface SceneStore {
   // Layer visibility
   layers: LayerState;
@@ -46,6 +49,12 @@ interface SceneStore {
   flyTo: (target: CameraTarget) => void;
   clearCameraTarget: () => void;
   setHighlightRegion: (region: HighlightRegion) => void;
+  /** 设置高亮并自动定时消失（统一计时器，避免竞态） */
+  highlightWithTimer: (position: [number, number, number], radius: number, duration?: number) => void;
+  /** 立即清除高亮 */
+  clearHighlight: () => void;
+  /** 重置场景视角：清除高亮、选中、AI标记，相机回到全景 */
+  resetSceneView: () => void;
   setVolumeMeasureMode: (value: boolean) => void;
   toggleChatCollapsed: () => void;
   setCaptureScreenshot: (fn: (() => string | null) | null) => void;
@@ -127,7 +136,36 @@ export const useSceneStore = create<SceneStore>((set, get) => ({
 
   clearCameraTarget: () => set({ cameraTarget: null }),
 
-  setHighlightRegion: (region) => set({ highlightRegion: region }),
+  setHighlightRegion: (region) => {
+    if (_highlightTimer) { clearTimeout(_highlightTimer); _highlightTimer = null; }
+    set({ highlightRegion: region });
+  },
+
+  highlightWithTimer: (position, radius, duration = 5000) => {
+    if (_highlightTimer) clearTimeout(_highlightTimer);
+    set({ highlightRegion: { position, radius, active: true } });
+    _highlightTimer = setTimeout(() => {
+      set((state) => ({ highlightRegion: { ...state.highlightRegion, active: false } }));
+      _highlightTimer = null;
+    }, duration);
+  },
+
+  clearHighlight: () => {
+    if (_highlightTimer) { clearTimeout(_highlightTimer); _highlightTimer = null; }
+    set((state) => ({ highlightRegion: { ...state.highlightRegion, active: false } }));
+  },
+
+  resetSceneView: () => {
+    if (_highlightTimer) { clearTimeout(_highlightTimer); _highlightTimer = null; }
+    set((state) => ({
+      highlightRegion: { ...state.highlightRegion, active: false },
+      cameraTarget: { position: [0, 0, 0] },
+      selectedFracture: null,
+      selectedFractureNode: null,
+      aiMarkers: [],
+      fractureColorMode: 'gas' as const,
+    }));
+  },
 
   setVolumeMeasureMode: (value) => set({ volumeMeasureMode: value }),
 

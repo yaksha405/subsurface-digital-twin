@@ -21,7 +21,6 @@ const LEVEL_COLORS: Record<AIMarker['level'], string> = {
 
 export function AIMarkers3D() {
   const markers = useSceneStore((s) => s.aiMarkers);
-  const clearAIMarkers = useSceneStore((s) => s.clearAIMarkers);
 
   if (markers.length === 0) return null;
 
@@ -30,26 +29,6 @@ export function AIMarkers3D() {
       {markers.map((marker) => (
         <AIMarkerPin key={marker.id} marker={marker} />
       ))}
-      {/* 清除按钮（HTML overlay inside Canvas via drei Html） */}
-      <Html position={[0, 0, 0]} center transform={false} style={{ pointerEvents: 'none' }}>
-        <div style={{ position: 'absolute', top: '-200px', right: '-200px', pointerEvents: 'auto' }}>
-          <button
-            onClick={() => clearAIMarkers()}
-            style={{
-              padding: '4px 10px',
-              fontSize: '10px',
-              background: 'rgba(20,20,30,0.85)',
-              color: '#FF6666',
-              border: '1px solid rgba(255,50,50,0.3)',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              backdropFilter: 'blur(8px)',
-            }}
-          >
-            ✕ 清除AI标记 ({markers.length})
-          </button>
-        </div>
-      </Html>
     </>
   );
 }
