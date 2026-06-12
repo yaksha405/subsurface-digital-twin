@@ -18,7 +18,7 @@ import { SceneErrorBoundary } from './SceneErrorBoundary';
 import { RockMass } from './RockMass';
 import { FractureNetwork } from './FractureNetwork';
 import { PointCloudLayer } from './PointCloudLayer';
-import { PotreeViewer } from './PotreeViewer';
+import { DeckGlHeatmap } from './DeckGlHeatmap';
 
 export function Scene3DCanvas() {
   const layers = useSceneStore((s) => s.layers);
@@ -96,13 +96,13 @@ export function Scene3DCanvas() {
       {/* HTML overlays outside Canvas */}
       <CameraInfo />
 
-      {/* Potree 大规模点云渲染层（十亿级 LOD，独立于 R3F） */}
-      <PotreeViewer visible={layers.pointCloud} />
+      {/* deck.gl 热力图叠加层（瓦斯/温度，独立 WebGL context） */}
+      <DeckGlHeatmap />
 
       {/* Tech stack badges */}
       <div className="absolute bottom-3 left-3 z-20 flex gap-1 pointer-events-none">
         <span className="text-[8px] px-1.5 py-0.5 bg-[#1A1D2A]/80 text-[#A0A0B0] rounded border border-white/5">Three.js R3F</span>
-        <span className="text-[8px] px-1.5 py-0.5 bg-[#1A1D2A]/80 text-[#44AAFF]/70 rounded border border-white/5">Potree LOD</span>
+        <span className="text-[8px] px-1.5 py-0.5 bg-[#1A1D2A]/80 text-[#44AAFF]/70 rounded border border-white/5">GPU Point Cloud</span>
         <span className="text-[8px] px-1.5 py-0.5 bg-[#1A1D2A]/80 text-[#FF8800]/70 rounded border border-white/5">Open3D Backend</span>
         <span className="text-[8px] px-1.5 py-0.5 bg-[#1A1D2A]/80 text-[#FFE600]/70 rounded border border-white/5">DeepSeek AI</span>
       </div>

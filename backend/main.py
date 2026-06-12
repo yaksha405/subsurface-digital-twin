@@ -1,19 +1,17 @@
 """
-井下点云处理与裂缝重建后端服务
+井下数字孪生后端服务
 
-技术栈：FastAPI + Open3D + NumPy + SciPy
+两个职责：
+1. 数据提供 — 匹配前端 API_CONTRACT.md 定义的全部 REST 接口
+2. 点云处理 — Open3D 去噪/ICP配准/Poisson重建/RANSAC裂缝提取/SLAM适配
 
-API 端点：
-1. POST /api/process/pointcloud  — 点云去噪（Open3D 统计离群点过滤 + 体素下采样）
-2. POST /api/process/register    — 多帧点云 ICP 配准
-3. POST /api/reconstruct/fractures — 从点云提取裂缝网络（去噪→法线→Poisson→RANSAC）
-4. POST /api/process/slam-pose   — SLAM 位姿适配（局部坐标转全局坐标）
-5. GET  /api/health              — 健康检查
-
-启动方法：
+启动：
     cd backend
     pip install -r requirements.txt
     uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+前端切换到 live 模式：
+    修改 .env: VITE_API_MODE=live, VITE_API_BASE_URL=http://localhost:8000/api
 """
 
 import traceback
@@ -25,14 +23,24 @@ from pydantic import BaseModel
 
 from processors.pointcloud_processor import PointCloudProcessor
 from processors.slam_adapter import SlamAdapter
-
-app = FastAPI(
-    title="井下点云处理与裂缝重建服务",
-    description="基于 Open3D 的点云去噪、ICP 配准、Poisson 重建、RANSAC 裂缝提取",
-    version="1.0.0",
+from processors.data_provider import (
+    generate_fractures,
+    generate_scene_nodes,
+    generate_flat_geometry,
+    generate_robots,
+    generate_pois,
+    generate_alerts,
+    get_scene_stats,
+    data_store,
 )
 
-# CORS — 允许前端跨域访问
+app = FastAPI(
+    title="井下数字孪生后端",
+    description="数据提供 + 点云处理 + 裂缝重建",
+    version="2.0.0",
+)
+
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -46,7 +54,132 @@ pc_processor = PointCloudProcessor()
 slam_adapter = SlamAdapter()
 
 
-# ==================== 数据模型 ====================
+# ====================================================================
+# 第一部分：数据提供接口（匹配前端 API_CONTRACT.md）
+# ====================================================================
+
+@app.get("/api/fractures")
+async def get_fractures(scenario: str = Query("coal")):
+    """
+    GET /api/fractures?scenario=coal|gold|oil
+    返回 Fracture[] — 裂缝网络数据
+
+    优先返回真实数据（通过点云处理管线上传的），
+    否则返回 mock 数据。
+    """
+    real = data_store.get_fractures(scenario)
+    if real:
+        return real
+    return generate_fractures(scenario)
+
+
+@app.get("/api/fractures/{fracture_id}")
+async def get_fracture_by_id(fracture_id: str, scenario: str = Query("coal")):
+    """GET /api/fractures/:id — 单条裂缝详情"""
+    real = data_store.get_fractures(scenario)
+    fractures = real if real else generate_fractures(scenario)
+    for f in fractures:
+        if f["id"] == fracture_id:
+            return f
+    raise HTTPException(404, f"裂缝 {fracture_id} 不存在")
+
+
+@app.get("/api/scene/nodes")
+async def get_scene_nodes(scenario: str = Query("coal")):
+    """GET /api/scene/nodes → SceneNode[]"""
+    return generate_scene_nodes(scenario)
+
+
+@app.get("/api/scene/geometry")
+async def get_scene_geometry():
+    """
+    GET /api/scene/geometry → FlatGeometryData
+    返回点云的扁平几何数据（positions, confidences, gasValues, ...）
+    """
+    return generate_flat_geometry(60000)
+
+
+@app.get("/api/scene/stats")
+async def get_scene_stats_endpoint(scenario: str = Query("coal")):
+    """GET /api/scene/stats → SceneStats"""
+    return get_scene_stats(scenario)
+
+
+@app.get("/api/robots")
+async def get_robots(
+    status: Optional[str] = Query(None),
+    model: Optional[str] = Query(None),
+    mesh_role: Optional[str] = Query(None),
+    q: Optional[str] = Query(None),
+):
+    """GET /api/robots → Robot[]（支持过滤）"""
+    robots = generate_robots()
+    if q:
+        robots = [r for r in robots if q.lower() in r["id"].lower()]
+    if status and status != "all":
+        robots = [r for r in robots if r["status"] == status]
+    if model and model != "all":
+        robots = [r for r in robots if r["model"] == model]
+    if mesh_role and mesh_role != "all":
+        robots = [r for r in robots if r["meshRole"] == mesh_role]
+    return robots
+
+
+@app.get("/api/robots/{robot_id}")
+async def get_robot_by_id(robot_id: str):
+    """GET /api/robots/:id → Robot"""
+    robots = generate_robots()
+    for r in robots:
+        if r["id"] == robot_id:
+            return r
+    raise HTTPException(404, f"机器人 {robot_id} 不存在")
+
+
+@app.get("/api/robots/stats")
+async def get_robot_stats():
+    """GET /api/robots/stats → RobotFleetStats"""
+    robots = generate_robots()
+    return {
+        "total": len(robots),
+        "active": sum(1 for r in robots if r["status"] == "active"),
+        "idle": sum(1 for r in robots if r["status"] == "idle"),
+        "charging": sum(1 for r in robots if r["status"] == "charging"),
+        "warning": sum(1 for r in robots if r["status"] == "warning"),
+        "error": sum(1 for r in robots if r["status"] == "error"),
+        "avgBattery": round(sum(r["battery"] for r in robots) / len(robots), 1),
+    }
+
+
+@app.get("/api/pois")
+async def get_pois(scenario: str = Query("coal")):
+    """GET /api/pois → POI[]"""
+    return generate_pois(scenario)
+
+
+@app.get("/api/alerts")
+async def get_alerts(level: Optional[str] = Query(None)):
+    """GET /api/alerts → AlertEvent[]"""
+    alerts = generate_alerts()
+    if level:
+        alerts = [a for a in alerts if a["level"] == level]
+    return alerts
+
+
+@app.get("/api/health")
+async def health():
+    """健康检查"""
+    return {
+        "status": "ok",
+        "service": "subsurface-digital-twin-backend",
+        "version": "2.0.0",
+        "open3d_available": pc_processor.o3d is not None,
+        "has_real_data": data_store.has_real_data,
+    }
+
+
+# ====================================================================
+# 第二部分：点云处理接口（Open3D）
+# ====================================================================
 
 class RegisterRequest(BaseModel):
     source: List[List[float]]
@@ -72,19 +205,6 @@ class TransformRequest(BaseModel):
     pose: dict
 
 
-# ==================== 端点 ====================
-
-@app.get("/api/health")
-async def health():
-    """健康检查"""
-    return {
-        "status": "ok",
-        "service": "pointcloud-backend",
-        "version": "1.0.0",
-        "open3d_available": pc_processor.o3d is not None,
-    }
-
-
 @app.post("/api/process/pointcloud")
 async def process_pointcloud(
     file: UploadFile = File(...),
@@ -95,7 +215,7 @@ async def process_pointcloud(
     """
     点云去噪 — 上传 .ply/.las/.xyz/.pcd，返回去噪后点云
 
-    管线：统计离群点过滤 → 体素下采样
+    处理后的点云会存入 data_store，后续 GET /api/scene/geometry 会返回这些点
     """
     try:
         raw_bytes = await file.read()
@@ -111,13 +231,17 @@ async def process_pointcloud(
         # ② 体素下采样
         ds_points, ds_stats = pc_processor.voxel_downsample(clean_points, voxel_size)
 
+        # 存储去噪后的点云
+        ds_list = ds_points.tolist()
+        data_store.set_pointcloud(ds_list)
+
         return {
             "status": "ok",
             "filename": file.filename,
             "denoise": denoise_stats,
             "downsample": ds_stats,
-            "points": ds_points.tolist(),
-            "point_count": len(ds_points),
+            "points": ds_list,
+            "point_count": len(ds_list),
         }
     except HTTPException:
         raise
@@ -128,11 +252,7 @@ async def process_pointcloud(
 
 @app.post("/api/process/register")
 async def register_pointclouds(req: RegisterRequest):
-    """
-    ICP 配准 — 将源点云对齐到目标点云
-
-    返回 4x4 变换矩阵、重叠率(fitness)、均方根误差(RMSE)
-    """
+    """ICP 配准 — 将源点云对齐到目标点云"""
     try:
         source = np.array(req.source)
         target = np.array(req.target)
@@ -150,13 +270,17 @@ async def reconstruct_fractures(req: FractureRequest):
 
     完整管线：去噪 → 法线估计 → Poisson 重建 → RANSAC 平面分割 → Fracture JSON
 
-    返回 Fracture[] JSON（格式匹配前端 types/index.ts）
+    处理后的裂缝数据会存入 data_store，后续 GET /api/fractures 会返回这些真实数据
     """
     try:
         points = np.array(req.points)
         fractures = pc_processor.extract_fracture_network(
             points, req.scenario, req.voxel_size, req.poisson_depth
         )
+
+        # 存储真实裂缝数据 — 这之后 GET /api/fractures 就会返回真实数据
+        data_store.set_fractures(req.scenario, fractures)
+
         return {
             "status": "ok",
             "input_points": len(points),
@@ -185,12 +309,7 @@ async def process_slam_pose(req: SlamPoseRequest):
 
 @app.post("/api/process/transform")
 async def transform_points(req: TransformRequest):
-    """
-    坐标变换 — 将机器人局部坐标系点云转到全局坐标系
-
-    输入：局部点云 + SLAM 位姿
-    输出：全局坐标系点云
-    """
+    """坐标变换 — 将机器人局部坐标系点云转到全局坐标系"""
     try:
         local = np.array(req.local_points)
         global_pts = slam_adapter.transform_to_global(local, req.pose)
@@ -204,7 +323,9 @@ async def transform_points(req: TransformRequest):
         raise HTTPException(500, f"坐标变换失败: {str(e)}")
 
 
-# ==================== 辅助函数 ====================
+# ====================================================================
+# 辅助函数
+# ====================================================================
 
 def _parse_pointcloud(raw_bytes: bytes, filename: str) -> np.ndarray:
     """解析上传的点云文件（支持 .ply/.pcd/.xyz/.las/.json）"""
@@ -221,17 +342,17 @@ def _parse_pointcloud(raw_bytes: bytes, filename: str) -> np.ndarray:
         finally:
             os.unlink(tmp_path)
 
-    # 降级：尝试解析 XYZ / JSON
+    # 降级：尝试解析 JSON
     try:
-        text = raw_bytes.decode("utf-8")
         import json
+        text = raw_bytes.decode("utf-8")
         data = json.loads(text)
         if isinstance(data, list):
             return np.array(data)
     except Exception:
         pass
 
-    # XYZ 格式（每行 x y z）
+    # XYZ 格式
     try:
         lines = raw_bytes.decode("utf-8").strip().split("\n")
         points = []

@@ -238,13 +238,13 @@ function pathLength(path: [number, number, number][]): number {
 
 // ==================== 裂缝网络 + 机器人统一生成 ====================
 
-/** 缓存 */
-let cachedFractures: Fracture[] | null = null;
+/** 缓存（按场景分别缓存，切换场景时重新生成） */
+const cache: Partial<Record<ScenarioType, Fracture[]>> = {};
 let cachedNodePositions: [number, number, number][] = [];
 
 /** 生成完整裂缝网络（主裂缝从地表 Y≈20 向下延伸，分支从主裂缝分叉） */
 export function generateFractureNetwork(scenario: ScenarioType): Fracture[] {
-  if (cachedFractures) return cachedFractures;
+  if (cache[scenario]) return cache[scenario]!;
 
   const fractures: Fracture[] = [];
 
@@ -279,7 +279,7 @@ export function generateFractureNetwork(scenario: ScenarioType): Fracture[] {
   // 收集所有节点位置供外部使用
   cachedNodePositions = fractures.flatMap((f) => f.nodes.map((n) => n.position));
 
-  cachedFractures = fractures;
+  cache[scenario] = fractures;
   return fractures;
 }
 

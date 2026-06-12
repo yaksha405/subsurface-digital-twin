@@ -241,10 +241,11 @@ function executeActions(action: SceneAction) {
     case 'switchScenario': {
       if (action.scenario) {
         store.setScenario(action.scenario);
-        // 重新生成裂缝数据
-        import('../../data/fractureDataGenerator').then(({ generateFractureNetwork }) => {
-          const newFractures = generateFractureNetwork(action.scenario!);
-          useSceneStore.getState().setFractures(newFractures);
+        // 通过 API 层获取裂缝数据
+        import('../../api/fractureApi').then(({ fetchFractures }) => {
+          fetchFractures(action.scenario!).then((newFractures) => {
+            useSceneStore.getState().setFractures(newFractures);
+          });
         });
       }
       break;

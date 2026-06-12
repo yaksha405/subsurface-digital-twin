@@ -1,6 +1,6 @@
 import { useSceneStore } from '../../store/useSceneStore';
 import type { ScenarioType } from '../../types';
-import { generateFractureNetwork } from '../../data/fractureDataGenerator';
+import { fetchFractures } from '../../api/fractureApi';
 import { useEffect } from 'react';
 
 const SCENARIOS: { key: ScenarioType; label: string; icon: string }[] = [
@@ -14,16 +14,19 @@ export function ScenarioSelector() {
   const setScenario = useSceneStore((s) => s.setScenario);
   const setFractures = useSceneStore((s) => s.setFractures);
 
-  const handleSwitch = (key: ScenarioType) => {
+  const handleSwitch = async (key: ScenarioType) => {
     setScenario(key);
-    const fractures = generateFractureNetwork(key);
+    // 通过 API 层获取裂缝数据（mock 模式用生成器，live 模式请求后端）
+    const fractures = await fetchFractures(key);
     setFractures(fractures);
   };
 
-  // 初始化时生成默认数据
+  // 初始化时通过 API 加载数据
   useEffect(() => {
-    const fractures = generateFractureNetwork(scenario);
-    setFractures(fractures);
+    (async () => {
+      const fractures = await fetchFractures(scenario);
+      setFractures(fractures);
+    })();
   }, []);
 
   return (

@@ -68,10 +68,10 @@ interface SceneStore {
 export const useSceneStore = create<SceneStore>((set, get) => ({
   layers: {
     mesh: false,
-    pointCloud: false,
+    pointCloud: true,
     gasHeatmap: false,
     tempHeatmap: false,
-    robots: false,
+    robots: true,
     fractures: true,
     rockMass: true,
     poi: true,
@@ -86,7 +86,7 @@ export const useSceneStore = create<SceneStore>((set, get) => ({
     {
       id: 'msg-0',
       role: 'assistant',
-      content: '## 系统就绪\n\n地质裂缝分析AI助手已上线。\n\n当前监测 **18** 条裂缝，**200** 台探测机器人已就位。\n\n请在设置中配置AI模型（推荐 DeepSeek），或使用快捷指令。',
+      content: '## 系统就绪\n\n地质裂缝分析AI助手已上线。\n\n请在设置中配置AI模型（推荐 DeepSeek），或使用快捷指令。',
       timestamp: Date.now(),
     },
   ],
@@ -151,40 +151,3 @@ export const useSceneStore = create<SceneStore>((set, get) => ({
   addAIMarkers: (markers) => set((state) => ({ aiMarkers: [...state.aiMarkers, ...markers] })),
   clearAIMarkers: () => set({ aiMarkers: [] }),
 }));
-
-function executeAction(
-  action: SceneAction,
-  set: (partial: Partial<SceneStore>) => void,
-  get: () => SceneStore
-) {
-  if (action.type === 'flyTo' && action.position) {
-    set({
-      cameraTarget: { position: action.position, region: action.region },
-    });
-    // Activate highlight
-    setTimeout(() => {
-      set({
-        highlightRegion: {
-          position: action.position!,
-          radius: 12,
-          active: true,
-        },
-      });
-      // Deactivate after 4.5 seconds
-      setTimeout(() => {
-        const current = get().highlightRegion;
-        set({ highlightRegion: { ...current, active: false } });
-      }, 4500);
-    }, 1800);
-  }
-
-  if (action.type === 'toggleLayer' && action.layer) {
-    const state = get();
-    const key = action.layer as keyof LayerState;
-    if (key in state.layers) {
-      set({
-        layers: { ...state.layers, [key]: !state.layers[key] },
-      });
-    }
-  }
-}

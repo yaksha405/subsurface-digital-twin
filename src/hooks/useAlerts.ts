@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { AlertEvent } from '../data/alertDataGenerator';
+import { fetchAlerts } from '../api/alertApi';
 
 // Module-level cache
 let cachedAlerts: AlertEvent[] | null = null;
@@ -12,12 +13,9 @@ export function useAlerts() {
     if (cachedAlerts) return;
     let cancelled = false;
     setLoading(true);
-    // Alerts depend on robot data, so we import both
+    // 通过 API 层获取告警数据（mock 模式用生成器，live 模式请求后端）
     (async () => {
-      const { generateMockRobots } = await import('../data/robotDataGenerator');
-      const { generateMockAlerts } = await import('../data/alertDataGenerator');
-      const robots = generateMockRobots();
-      const alerts = generateMockAlerts(robots);
+      const alerts = await fetchAlerts();
       if (!cancelled) {
         cachedAlerts = alerts;
         setData(alerts);
