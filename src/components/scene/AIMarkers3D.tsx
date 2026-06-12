@@ -87,13 +87,13 @@ function AIMarkerPin({ marker }: { marker: AIMarker }) {
       </mesh>
 
       {/* 指向线（从地面向上） */}
-      <mesh position={[0, 3, 0]}>
-        <cylinderGeometry args={[0.06, 0.06, 6, 8]} />
-        <meshBasicMaterial color={color} transparent opacity={0.4} />
+      <mesh position={[0, 1.5, 0]}>
+        <cylinderGeometry args={[0.05, 0.05, 3, 8]} />
+        <meshBasicMaterial color={color} transparent opacity={0.35} />
       </mesh>
 
       {/* 文字标签 */}
-      <Html position={[0, 7, 0]} center distanceFactor={40} style={{ pointerEvents: 'none' }}>
+      <Html position={[0, 3.5, 0]} center distanceFactor={40} style={{ pointerEvents: 'none' }}>
         <div
           style={{
             background: 'rgba(15,15,22,0.92)',

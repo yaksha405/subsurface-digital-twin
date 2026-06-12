@@ -144,23 +144,55 @@ function StreamingMarkdown({ content }: { content: string }) {
   return <div className="whitespace-pre-wrap">{content}</div>;
 }
 
+/** 将坐标吸附到最近的裂缝节点上 — 确保标记始终在裂缝表面 */
+function snapToFracture(pos: [number, number, number]): [number, number, number] {
+  const fractures = useSceneStore.getState().fractures;
+  if (fractures.length === 0) return pos;
+
+  let bestDist = Infinity;
+  let bestPos: [number, number, number] = pos;
+
+  for (const f of fractures) {
+    // 检查裂缝路径上的所有点
+    for (const p of f.path) {
+      const d = (p[0]-pos[0])**2 + (p[1]-pos[1])**2 + (p[2]-pos[2])**2;
+      if (d < bestDist) {
+        bestDist = d;
+        bestPos = [p[0], p[1], p[2]];
+      }
+    }
+    // 也检查裂缝节点
+    for (const n of f.nodes) {
+      const p = n.position;
+      const d = (p[0]-pos[0])**2 + (p[1]-pos[1])**2 + (p[2]-pos[2])**2;
+      if (d < bestDist) {
+        bestDist = d;
+        bestPos = [p[0], p[1], p[2]];
+      }
+    }
+  }
+  return bestPos;
+}
+
 function executeActions(action: SceneAction) {
   const store = useSceneStore.getState();
 
   switch (action.type) {
     case 'flyTo': {
       if (action.position) {
-        store.flyTo({ position: action.position, region: action.region, zoom: 'close' });
-        setTimeout(() => {
-          store.highlightWithTimer(action.position!, action.radius || 5, 4500);
-        }, 1800);
+        // 吸附到最近裂缝点 — 确保相机聚焦在裂缝上，不在岩层空白处
+        const snapped = snapToFracture(action.position);
+        store.flyTo({ position: snapped, region: action.region, zoom: 'close' });
+        // 不再创建高亮球体 — 球体和裂缝形状不匹配
       }
       break;
     }
 
     case 'highlight': {
       if (action.position) {
-        store.highlightWithTimer(action.position, action.radius || 5, 5000);
+        // 高亮也吸附到裂缝点
+        const snapped = snapToFracture(action.position);
+        store.highlightWithTimer(snapped, action.radius || 3, 5000);
       }
       break;
     }
@@ -169,7 +201,8 @@ function executeActions(action: SceneAction) {
       if (action.points && action.points.length > 0) {
         const markers = action.points.map((p, i) => ({
           id: `ai-marker-${Date.now()}-${i}`,
-          position: p.position,
+          // 吸附到最近裂缝点 — 确保标记在裂缝表面上
+          position: snapToFracture(p.position),
           label: p.label,
           level: p.level || 'info',
           createdAt: Date.now(),
@@ -207,7 +240,7 @@ function executeActions(action: SceneAction) {
         const fracture = useSceneStore.getState().fractures.find((f) => f.id === action.fractureId);
         if (fracture) {
           store.selectFracture(fracture);
-          // 同时飞到裂缝中心
+          // 飞到裂缝中心
           const center = fracture.path.reduce(
             (acc, p) => [acc[0] + p[0], acc[1] + p[1], acc[2] + p[2]],
             [0, 0, 0]
@@ -216,6 +249,7 @@ function executeActions(action: SceneAction) {
           store.flyTo({
             position: [center[0] / n, center[1] / n, center[2] / n],
             region: fracture.name,
+            zoom: 'close',
           });
         }
       }

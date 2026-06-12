@@ -208,19 +208,40 @@ async function mockStreamChat(
   return { ...response, actions: undefined, action: undefined };
 }
 
+/** 将坐标吸附到最近的裂缝路径点/节点 — 确保标记在裂缝上 */
+function snapToFracture(pos: [number, number, number]): [number, number, number] {
+  const fractures = useSceneStore.getState().fractures;
+  if (fractures.length === 0) return pos;
+
+  let bestDist = Infinity;
+  let bestPos: [number, number, number] = pos;
+  for (const f of fractures) {
+    for (const p of f.path) {
+      const d = (p[0]-pos[0])**2 + (p[1]-pos[1])**2 + (p[2]-pos[2])**2;
+      if (d < bestDist) { bestDist = d; bestPos = [p[0], p[1], p[2]]; }
+    }
+    for (const n of f.nodes) {
+      const p = n.position;
+      const d = (p[0]-pos[0])**2 + (p[1]-pos[1])**2 + (p[2]-pos[2])**2;
+      if (d < bestDist) { bestDist = d; bestPos = [p[0], p[1], p[2]]; }
+    }
+  }
+  return bestPos;
+}
+
 /** Mock 模式下直接执行场景动作 */
 function executeMockAction(action: any) {
   const store = useSceneStore.getState();
   switch (action.type) {
     case 'flyTo':
-      store.flyTo({ position: action.position, region: action.region, zoom: 'close' });
-      store.highlightWithTimer(action.position, action.radius || 5, 5000);
+      store.flyTo({ position: snapToFracture(action.position), region: action.region, zoom: 'close' });
+      // 不再创建高亮球体
       break;
     case 'markPoints':
       if (action.points?.length) {
         store.addAIMarkers(action.points.map((p: any, i: number) => ({
           id: `ai-marker-${Date.now()}-${i}`,
-          position: p.position,
+          position: snapToFracture(p.position),
           label: p.label,
           level: p.level || 'info',
           createdAt: Date.now(),
@@ -248,7 +269,7 @@ function executeMockAction(action: any) {
           store.selectFracture(f);
           const center = f.path.reduce((a: number[], p: number[]) => [a[0]+p[0], a[1]+p[1], a[2]+p[2]], [0,0,0]);
           const n = f.path.length || 1;
-          store.flyTo({ position: [center[0]/n, center[1]/n, center[2]/n], region: f.name });
+          store.flyTo({ position: [center[0]/n, center[1]/n, center[2]/n], region: f.name, zoom: 'close' });
         }
       }
       break;
