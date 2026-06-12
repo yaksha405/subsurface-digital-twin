@@ -6,7 +6,7 @@
  * - warning: 橙色脉冲
  * - info: 蓝色脉冲
  */
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { Html } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
@@ -33,11 +33,46 @@ export function AIMarkers3D() {
   );
 }
 
+/** 将 3D 坐标投影到屏幕坐标 — 用于显示对应标记列表 */
+export function AIMarkerList() {
+  const markers = useSceneStore((s) => s.aiMarkers);
+  const flyTo = useSceneStore((s) => s.flyTo);
+
+  if (markers.length === 0) return null;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+      {markers.map((m) => (
+        <div
+          key={m.id}
+          onClick={() => flyTo({ position: m.position, region: m.label, zoom: 'close' })}
+          style={{
+            cursor: 'pointer',
+            padding: '6px 10px',
+            borderRadius: '6px',
+            background: 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            fontSize: '12px',
+            transition: 'all 0.15s',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.14)')}
+          onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
+        >
+          <span style={{ color: LEVEL_COLORS[m.level], marginRight: '6px' }}>●</span>
+          {m.label}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function AIMarkerPin({ marker }: { marker: AIMarker }) {
   const ringRef = useRef<THREE.Mesh>(null);
   const ring2Ref = useRef<THREE.Mesh>(null);
   const sphereRef = useRef<THREE.Mesh>(null);
   const color = LEVEL_COLORS[marker.level];
+  const flyTo = useSceneStore((s) => s.flyTo);
+  const [hovered, setHovered] = useState(false);
 
   useFrame(({ clock }) => {
     const t = clock.getElapsedTime();
@@ -92,21 +127,27 @@ function AIMarkerPin({ marker }: { marker: AIMarker }) {
         <meshBasicMaterial color={color} transparent opacity={0.35} />
       </mesh>
 
-      {/* 文字标签 */}
-      <Html position={[0, 3.5, 0]} center distanceFactor={40} style={{ pointerEvents: 'none' }}>
+      {/* 文字标签 — 可点击，点击飞到标记位置 */}
+      <Html position={[0, 3.5, 0]} center distanceFactor={40} style={{ pointerEvents: 'auto' }}>
         <div
+          onClick={() => flyTo({ position: marker.position, region: marker.label, zoom: 'close' })}
+          onMouseEnter={() => setHovered(true)}
+          onMouseLeave={() => setHovered(false)}
           style={{
-            background: 'rgba(15,15,22,0.92)',
+            background: hovered ? 'rgba(25,25,35,0.95)' : 'rgba(15,15,22,0.92)',
             backdropFilter: 'blur(8px)',
-            border: `1px solid ${color}66`,
+            border: `1px solid ${hovered ? color : `${color}66`}`,
             borderRadius: '8px',
             padding: '6px 12px',
             whiteSpace: 'nowrap',
             fontSize: '12px',
             fontWeight: 600,
             color: '#E0E0E8',
-            boxShadow: `0 0 16px ${color}33`,
+            boxShadow: hovered ? `0 0 24px ${color}88` : `0 0 16px ${color}33`,
             transform: 'translateY(-50%)',
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+            userSelect: 'none',
           }}
         >
           <span style={{ color, marginRight: '6px' }}>●</span>
