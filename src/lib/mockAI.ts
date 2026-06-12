@@ -6,79 +6,43 @@ interface AIResponse {
   actions?: SceneAction[];
 }
 
-const commandMap: { keywords: string[]; response: AIResponse }[] = [
-  {
-    keywords: ['裂缝', '分布', '多少条'],
-    response: {
-      message: `## 裂缝网络分布概览\n\n当前探测区域共识别 **18 条裂缝**：\n\n| 类型 | 数量 | 平均长度 | 平均开度 |\n|------|------|---------|--------|\n| 主裂缝 | 6 条 | 35m | 52µm |\n| 分支裂缝 | 12 条 | 15m | 38µm |\n\n裂缝网络分形维数 **2.15-2.34**，属于中等复杂度裂缝系统。主要裂缝走向 NE-SW，倾角 3-35°。\n\n> 裂缝网络连通性良好，最大连通分支包含 8 条裂缝。`,
-      action: undefined,
-    },
-  },
-  {
-    keywords: ['瓦斯', 'ch4', 'CH4', '气体', '甲烷'],
-    response: {
-      message: `## 瓦斯浓度分析\n\n根据《煤矿安全规程》，当前监测数据：\n\n| 区域 | CH₄浓度 | 状态 |\n|------|---------|------|\n| F-001 裂缝带 | 2.8% | ⚠️ 超标 |\n| F-003 深部裂缝 | 3.5% | 🔴 危险 |\n| F-005 浅部裂缝 | 0.8% | 🟢 正常 |\n| F-008 交叉点 | 1.6% | ⚠️ 超标 |\n\n**安全阈值**: 1.0% (报警) / 1.5% (断电) / 5.0-16.0% (爆炸极限)\n\n建议加强 F-003 区域通风，并持续监测 CH₄ 浓度变化趋势。`,
-      action: { type: 'flyTo', position: [0, 0, 10], region: 'gas-zone' },
-    },
-  },
-  {
-    keywords: ['应力', '压力', 'stress', '稳定性', '岩爆'],
-    response: {
-      message: `## 地应力场分析\n\n基于三轴应力测量数据：\n\n- **最大主应力 σ₁**: 9-17 MPa\n- **中间主应力 σ₂**: 6-14 MPa\n- **最小主应力 σ₃**: 8-16 MPa\n\n### 应力集中区\nF-002 裂缝与 F-005 裂缝交汇处存在应力集中，应力比 σ₁/σ₃ ≈ 2.1，需关注岩爆风险。\n\n### 岩爆判据\n- σ₁/UCS > 0.4 → 高风险\n- 微震事件 > 15次/h → 需撤离\n\n当前微震事件 8 次/h，处于关注级别。`,
-      action: { type: 'flyTo', position: [-10, 0, 5], region: 'stress-zone' },
-    },
-  },
-  {
-    keywords: ['渗透', 'permeability', '渗透率', '水'],
-    response: {
-      message: `## 渗透率评估\n\n基于应力-渗透率耦合分析（SD模型）：\n\n| 裂缝 | 渗透率 (mD) | 应力敏感性 |\n|------|-----------|----------|\n| F-001 | 2.8 | 高 |\n| F-003 | 0.45 | 中 |\n| F-005 | 3.2 | 高 |\n| F-008 | 1.1 | 中 |\n\n> 渗透率随有效应力增加呈负指数下降（SD模型: k = k₀·e^(-Cf·σ)）\n\n渗透率 > 1.0 mD 的裂缝可作为瓦斯抽采通道，建议在 F-001 和 F-005 布置抽采钻孔。`,
-      action: undefined,
-    },
-  },
-  {
-    keywords: ['温度', '热', 'temperature'],
-    response: {
-      message: `## 温度场分析\n\n当前探测区域温度分布：\n\n- **浅部 (< -10m)**: 22-28°C — 正常\n- **中部 (-10m ~ -30m)**: 28-36°C — 微异常\n- **深部 (> -30m)**: 36-45°C — 需关注\n\nF-003 深部裂缝温度达 42°C，可能存在深层热源或机电设备散热影响。建议检查该区域设备运行状态。\n\n> 地温梯度约 3.0°C/100m，属于正常地温带。`,
-      action: { type: 'flyTo', position: [5, -5, -20], region: 'temp-zone' },
-    },
-  },
-  {
-    keywords: ['水', '突水', 'water', '涌水'],
-    response: {
-      message: `## 突水预警分析\n\n当前水压监测数据：\n\n| 裂缝 | 水压 (MPa) | 风险等级 |\n|------|----------|--------|\n| F-001 | 2.3 | 🟢 正常 |\n| F-003 | 5.8 | ⚠️ 关注 |\n| F-006 | 7.2 | 🔴 危险 |\n\nF-006 裂缝水压接近隔水层临界值，存在突水风险。建议：\n1. 加密 F-006 区域水压监测频率\n2. 准备排水系统应急预案\n3. 限制该区域作业人员数量`,
-      action: { type: 'flyTo', position: [15, -8, 10], region: 'water-zone' },
-    },
-  },
-  {
-    keywords: ['实验', '测试', 'experiment', '模拟', '压裂'],
-    response: {
-      message: `## 可用虚拟实验\n\n根据当前场景，可执行以下虚拟实验：\n\n| 实验 | 描述 | 适用场景 |\n|------|------|--------|\n| 瓦斯扩散模拟 | 预测CH₄扩散路径和影响范围 | 煤矿 |\n| 稳定性评估 | 评估裂缝围岩稳定性 | 通用 |\n| 突水预警 | 计算突水风险等级 | 煤矿/金矿 |\n| 岩爆预测 | 基于微震和应力数据 | 金矿 |\n| 渗透率评估 | 计算等效渗透率 | 油气 |\n| 裂缝连通性 | 分析裂缝网络连通性 | 油气 |\n\n请在3D场景中选中裂缝后，在右侧面板执行实验。`,
-      action: undefined,
-    },
-  },
-  {
-    keywords: ['机器人', '状态', '群智', '设备'],
-    response: {
-      message: `## 机器人集群状态\n\n当前部署 **200台** 仿生探测机器人：\n\n| 状态 | 数量 | 占比 |\n|------|------|------|\n| 🟢 在线 | 178 | 89% |\n| 🟡 低电量 | 12 | 6% |\n| 🔴 故障 | 5 | 2.5% |\n| ⚫ 离线 | 5 | 2.5% |\n\n数据回传正常，最新数据延迟 < 3秒。Mesh自组网连通率 97.5%。`,
-      action: undefined,
-    },
-  },
-  {
-    keywords: ['3号', '区域3', 'F-003', '危险区'],
-    response: {
-      message: `## F-003 裂缝风险评估\n\nF-003 深部主裂缝存在多重风险叠加：\n\n- **CH₄浓度**: 3.5%（🔴 超标，接近爆炸下限）\n- **温度**: 42.1°C（异常偏高）\n- **水压**: 5.8 MPa（接近临界值）\n- **微震**: 18 次/h（⚠️ 超过警戒线）\n- **渗透率**: 0.45 mD（偏低，瓦斯不易排出）\n\n### 综合评估\n该裂缝为**高风险区域**，建议：\n1. 立即撤离该区域 50m 范围内人员\n2. 启动应急通风系统\n3. 加强瓦斯抽采\n4. 持续微震监测`,
-      action: { type: 'flyTo', position: [5, -5, -15], region: 'F-003-risk' },
-    },
-  },
-];
+/** 计算裂缝中心点 */
+function fractureCenter(f: Fracture): [number, number, number] {
+  if (f.path.length === 0) return [0, 0, 0];
+  const sum = f.path.reduce(
+    (acc, p) => [acc[0] + p[0], acc[1] + p[1], acc[2] + p[2]],
+    [0, 0, 0]
+  );
+  const n = f.path.length;
+  return [sum[0] / n, sum[1] / n, sum[2] / n];
+}
+
+/** 找到 CH4 最高的裂缝 */
+function findHighGasFractures(fractures: Fracture[], gasThreshold: number) {
+  return fractures
+    .map((f) => ({
+      fracture: f,
+      ch4: f.sensorReading.ch4_pct,
+      temp: f.sensorReading.temperature_c,
+      water: f.sensorReading.water_pressure_mpa,
+      stress: f.sensorReading.stress_mpa,
+      perm: f.sensorReading.permeability_md,
+      micro: f.sensorReading.microseismic_count,
+    }))
+    .filter((x) => x.ch4 > 0)
+    .sort((a, b) => b.ch4 - a.ch4);
+}
 
 export function generateMockAIResponse(
   input: string,
   sceneContext?: { fractures: Fracture[]; scenario: ScenarioType; gasThreshold: number }
 ): AIResponse {
   const lowerInput = input.toLowerCase();
+  const fractures = sceneContext?.fractures ?? [];
+  const scenario = sceneContext?.scenario ?? 'coal';
+  const gasThreshold = sceneContext?.gasThreshold ?? 1.5;
 
-  // ========== 新指令：找出最危险的点 ==========
+  // ========== 找出最危险的点 ==========
   if (
     lowerInput.includes('最危险') ||
     lowerInput.includes('危险点') ||
@@ -89,8 +53,8 @@ export function generateMockAIResponse(
     return findDangerousPoints(input, sceneContext);
   }
 
-  // ========== 新指令：测距/剖面/框选 ==========
-  if (lowerInput.includes('测距') || lowerInput.includes('测量') || lowerInput.includes('距离')) {
+  // ========== 测距/剖面/框选 ==========
+  if (lowerInput.includes('测距') || lowerInput.includes('测量距离')) {
     return {
       message: `## 已激活测距工具\n\n请在3D场景中点击两个点进行距离测量。\n\n测量结果将包含：\n- 三维直线距离\n- 水平距离\n- 垂直高差（带方向）\n- 坡角\n- 方位角（含罗盘方位）`,
       actions: [{ type: 'activateTool', tool: 'distance' }],
@@ -109,23 +73,26 @@ export function generateMockAIResponse(
     };
   }
 
-  // ========== 新指令：全景/重置 ==========
+  // ========== 全景/重置 ==========
   if (lowerInput.includes('全景') || lowerInput.includes('重置') || lowerInput.includes('全图') || lowerInput.includes('home')) {
     return {
       message: `## 已重置到全景视角\n\n当前场景展示全部裂缝网络。`,
-      actions: [{ type: 'fitAll' }, { type: 'clearMarkers' }],
+      actions: [
+        { type: 'fitAll' },
+        { type: 'clearMarkers' },
+      ],
     };
   }
 
-  // ========== 新指令：清除标记 ==========
-  if (lowerInput.includes('清除标记') || lowerInput.includes('清除标记') || lowerInput.includes('清掉')) {
+  // ========== 清除标记 ==========
+  if (lowerInput.includes('清除标记') || lowerInput.includes('清掉')) {
     return {
       message: `已清除3D场景中所有AI标记。`,
       actions: [{ type: 'clearMarkers' }],
     };
   }
 
-  // ========== 新指令：切换场景 ==========
+  // ========== 切换场景 ==========
   if (lowerInput.includes('金矿') || lowerInput.includes('切到金矿')) {
     return {
       message: `## 已切换到金矿场景\n\n当前监测金矿巷道裂缝网络，重点关注岩爆风险。`,
@@ -145,55 +112,317 @@ export function generateMockAIResponse(
     };
   }
 
-  for (const cmd of commandMap) {
-    if (cmd.keywords.some((kw) => lowerInput.includes(kw.toLowerCase()))) {
-      return cmd.response;
+  // ========== 裂缝分布概览 ==========
+  if (lowerInput.includes('裂缝') && (lowerInput.includes('分布') || lowerInput.includes('概览') || lowerInput.includes('多少条'))) {
+    if (fractures.length === 0) {
+      return {
+        message: `当前场景尚未加载裂缝数据，请稍候。`,
+        actions: [{ type: 'fitAll' }],
+      };
     }
+
+    const mainFractures = fractures.filter((f) => f.type === 'main');
+    const branchFractures = fractures.filter((f) => f.type === 'branch');
+    const avgLen = fractures.reduce((s, f) => s + f.length, 0) / fractures.length;
+    const avgAperture = fractures.reduce((s, f) => s + f.aperture_um, 0) / fractures.length;
+    const avgConn = fractures.reduce((s, f) => s + f.connectivity, 0) / fractures.length;
+    const avgFractal = fractures.reduce((s, f) => s + f.fractal_dim, 0) / fractures.length;
+
+    return {
+      message: `## 裂缝网络分布概览\n\n当前探测区域共识别 **${fractures.length} 条裂缝**：\n\n| 类型 | 数量 | 平均长度 | 平均开度 |\n|------|------|---------|--------|\n| 主裂缝 | ${mainFractures.length} 条 | ${Math.round(mainFractures.reduce((s, f) => s + f.length, 0) / Math.max(mainFractures.length, 1))}m | ${Math.round(mainFractures.reduce((s, f) => s + f.aperture_um, 0) / Math.max(mainFractures.length, 1))}µm |\n| 分支裂缝 | ${branchFractures.length} 条 | ${Math.round(branchFractures.reduce((s, f) => s + f.length, 0) / Math.max(branchFractures.length, 1))}m | ${Math.round(branchFractures.reduce((s, f) => s + f.aperture_um, 0) / Math.max(branchFractures.length, 1))}µm |\n\n裂缝网络分形维数 **${avgFractal.toFixed(2)}**，平均连通性 **${avgConn.toFixed(2)}**。\n\n已展开全景视角，所有裂缝网络已高亮。`,
+      actions: [
+        { type: 'fitAll' },
+        { type: 'clearMarkers' },
+      ],
+    };
   }
 
+  // ========== 瓦斯浓度分析 ==========
+  if (lowerInput.includes('瓦斯') || lowerInput.includes('ch4') || lowerInput.includes('气体') || lowerInput.includes('甲烷') || lowerInput.includes('浓度')) {
+    const sorted = findHighGasFractures(fractures, gasThreshold);
+    const dangerous = sorted.filter((x) => x.ch4 >= gasThreshold).slice(0, 5);
+    const allAbove = sorted.filter((x) => x.ch4 >= gasThreshold);
+
+    const tableRows = sorted.slice(0, 6)
+      .map((x) => {
+        const status = x.ch4 >= 1.5 ? '🔴 危险' : x.ch4 >= gasThreshold ? '⚠️ 超标' : '🟢 正常';
+        return `| ${x.fracture.id} (${x.fracture.name}) | ${x.ch4.toFixed(2)}% | ${status} |`;
+      })
+      .join('\n');
+
+    const actions: SceneAction[] = [
+      { type: 'toggleLayer', layer: 'gasHeatmap' },
+    ];
+
+    // 标记危险裂缝
+    if (dangerous.length > 0) {
+      actions.push({
+        type: 'markPoints',
+        points: dangerous.map((x) => ({
+          position: fractureCenter(x.fracture),
+          label: `${x.fracture.id} CH4=${x.ch4.toFixed(2)}% ${x.ch4 >= 1.5 ? '🔴' : '⚠️'}`,
+          level: (x.ch4 >= 1.5 ? 'danger' : 'warning') as 'danger' | 'warning',
+        })),
+      });
+      // 飞到最危险的
+      actions.push({
+        type: 'flyTo',
+        position: fractureCenter(dangerous[0].fracture),
+        region: `最高瓦斯: ${dangerous[0].fracture.id}`,
+      });
+    }
+
+    return {
+      message: `## 瓦斯浓度分析\n\n已开启瓦斯热力图，数据来自裂缝节点传感器。\n\n| 裂缝 | CH₄浓度 | 状态 |\n|------|---------|------|\n${tableRows}\n\n**安全阈值**: ${gasThreshold.toFixed(1)}% (报警) / 1.5% (断电)\n\n${allAbove.length > 0 ? `⚠️ 共 **${allAbove.length}** 处裂缝瓦斯超标，已标记并飞行到最高浓度区域。` : '✅ 当前所有裂缝瓦斯浓度在安全范围内。'}`,
+      actions,
+    };
+  }
+
+  // ========== 应力场分析 ==========
+  if (lowerInput.includes('应力') || lowerInput.includes('压力') || lowerInput.includes('stress') || lowerInput.includes('稳定性') || lowerInput.includes('岩爆')) {
+    const stressSorted = fractures
+      .filter((f) => f.sensorReading.stress_mpa > 0)
+      .map((f) => ({ f, stress: f.sensorReading.stress_mpa, sigma1: f.sensorReading.stress_sigma1, sigma3: f.sensorReading.stress_sigma3, micro: f.sensorReading.microseismic_count }))
+      .sort((a, b) => b.stress - a.stress);
+    const top = stressSorted.slice(0, 5);
+
+    const tableRows = top
+      .map((x) => {
+        const ratio = x.sigma3 > 0 ? (x.sigma1 / x.sigma3).toFixed(2) : '—';
+        const risk = x.stress > 12 ? '🔴 高' : x.stress > 8 ? '⚠️ 中' : '🟢 低';
+        return `| ${x.f.id} | ${x.stress.toFixed(1)} | ${x.sigma1.toFixed(1)} | ${x.sigma3.toFixed(1)} | ${ratio} | ${x.micro}/h | ${risk} |`;
+      })
+      .join('\n');
+
+    const actions: SceneAction[] = [];
+
+    // 标记应力集中区
+    if (top.length > 0) {
+      const stressPoints = top
+        .filter((x) => x.stress > 8)
+        .map((x) => ({
+          position: fractureCenter(x.f),
+          label: `${x.f.id} σ₁=${x.stress.toFixed(1)}MPa ${x.micro > 15 ? '微震活跃' : ''}`,
+          level: (x.stress > 12 ? 'danger' : 'warning') as 'danger' | 'warning',
+        }));
+      if (stressPoints.length > 0) {
+        actions.push({ type: 'markPoints', points: stressPoints });
+      }
+      actions.push({
+        type: 'flyTo',
+        position: fractureCenter(top[0].f),
+        region: `应力集中: ${top[0].f.id}`,
+      });
+    }
+
+    return {
+      message: `## 地应力场分析\n\n基于三轴应力测量数据，已标记应力集中区域：\n\n| 裂缝 | 最大主应力 σ₁ (MPa) | σ₁ 值 | σ₃ 值 | σ₁/σ₃ | 微震/h | 岩爆风险 |\n|------|-------|-------|-------|-------|--------|--------|\n${tableRows}\n\n### 岩爆判据\n- σ₁/σ₃ > 2.0 → 需关注岩爆风险\n- 微震事件 > 15次/h → 需撤离\n\n${top[0] && top[0].micro > 15 ? `⚠️ **${top[0].f.id}** 微震事件 ${top[0].micro}/h 超过警戒线！` : '当前微震活动处于关注级别。'}`,
+      actions,
+    };
+  }
+
+  // ========== 渗透率评估 ==========
+  if (lowerInput.includes('渗透') || lowerInput.includes('permeability') || lowerInput.includes('抽采')) {
+    const permSorted = fractures
+      .filter((f) => f.sensorReading.permeability_md > 0)
+      .map((f) => ({
+        f,
+        perm: f.sensorReading.permeability_md,
+        aperture: f.aperture_um,
+        conn: f.connectivity,
+      }))
+      .sort((a, b) => b.perm - a.perm);
+    const top = permSorted.slice(0, 6);
+
+    const tableRows = top
+      .map((x) => {
+        const quality = x.perm > 2.0 ? '🟢 高（适合抽采）' : x.perm > 0.5 ? '🟡 中' : '🔴 低';
+        return `| ${x.f.id} (${x.f.name}) | ${x.perm.toFixed(2)} | ${x.aperture.toFixed(0)}µm | ${x.conn.toFixed(2)} | ${quality} |`;
+      })
+      .join('\n');
+
+    const actions: SceneAction[] = [];
+
+    // 标记高渗透率裂缝（适合抽采）
+    const highPerm = top.filter((x) => x.perm > 1.0);
+    if (highPerm.length > 0) {
+      actions.push({
+        type: 'markPoints',
+        points: highPerm.map((x) => ({
+          position: fractureCenter(x.f),
+          label: `${x.f.id} 渗透率=${x.perm.toFixed(2)}mD 抽采通道`,
+          level: 'info' as const,
+        })),
+      });
+    }
+    if (top.length > 0) {
+      actions.push({
+        type: 'flyTo',
+        position: fractureCenter(top[0].f),
+        region: `最高渗透率: ${top[0].f.id}`,
+      });
+    }
+
+    return {
+      message: `## 渗透率评估\n\n基于应力-渗透率耦合分析（SD模型），已标记高渗透率裂缝：\n\n| 裂缝 | 渗透率 (mD) | 开度 | 连通性 | 评价 |\n|------|-----------|------|--------|------|\n${tableRows}\n\n> 渗透率 > 1.0 mD 的裂缝可作为瓦斯抽采通道。\n\n${highPerm.length > 0 ? `✅ 已标记 **${highPerm.length}** 条高渗透率裂缝，建议在这些位置布置抽采钻孔。已飞行到渗透率最高区域。` : '当前裂缝渗透率普遍偏低。'}`,
+      actions,
+    };
+  }
+
+  // ========== 温度分析 ==========
+  if (lowerInput.includes('温度') || lowerInput.includes('热') || lowerInput.includes('temperature')) {
+    const tempSorted = fractures
+      .filter((f) => f.sensorReading.temperature_c > 0)
+      .map((f) => ({ f, temp: f.sensorReading.temperature_c }))
+      .sort((a, b) => b.temp - a.temp);
+    const top = tempSorted.slice(0, 5);
+
+    const actions: SceneAction[] = [
+      { type: 'toggleLayer', layer: 'tempHeatmap' },
+    ];
+    if (top.length > 0) {
+      actions.push({
+        type: 'flyTo',
+        position: fractureCenter(top[0].f),
+        region: `最高温度: ${top[0].f.id}`,
+      });
+    }
+
+    const tableRows = top.map((x) => `| ${x.f.id} | ${x.temp.toFixed(1)}°C | ${x.temp > 38 ? '⚠️ 异常' : '🟢 正常'} |`).join('\n');
+
+    return {
+      message: `## 温度场分析\n\n已开启温度热力图：\n\n| 裂缝 | 温度 | 状态 |\n|------|------|------|\n${tableRows}\n\n> 地温梯度约 3.0°C/100m，属于正常地温带。温度异常区需检查是否有深层热源或机电设备散热。`,
+      actions,
+    };
+  }
+
+  // ========== 突水预警 ==========
+  if (lowerInput.includes('突水') || lowerInput.includes('涌水') || lowerInput.includes('water')) {
+    const waterSorted = fractures
+      .filter((f) => f.sensorReading.water_pressure_mpa > 0)
+      .map((f) => ({ f, water: f.sensorReading.water_pressure_mpa }))
+      .sort((a, b) => b.water - a.water);
+    const top = waterSorted.slice(0, 5);
+
+    const actions: SceneAction[] = [];
+    const danger = top.filter((x) => x.water > 5);
+    if (danger.length > 0) {
+      actions.push({
+        type: 'markPoints',
+        points: danger.map((x) => ({
+          position: fractureCenter(x.f),
+          label: `${x.f.id} 水压=${x.water.toFixed(1)}MPa 🔴`,
+          level: 'danger' as const,
+        })),
+      });
+    }
+    if (top.length > 0) {
+      actions.push({
+        type: 'flyTo',
+        position: fractureCenter(top[0].f),
+        region: `最高水压: ${top[0].f.id}`,
+      });
+    }
+
+    const tableRows = top.map((x) => `| ${x.f.id} | ${x.water.toFixed(1)} | ${x.water > 5 ? '🔴 危险' : x.water > 3 ? '⚠️ 关注' : '🟢 正常'} |`).join('\n');
+
+    return {
+      message: `## 突水预警分析\n\n当前水压监测数据：\n\n| 裂缝 | 水压 (MPa) | 风险等级 |\n|------|----------|--------|\n${tableRows}\n\n${danger.length > 0 ? `🔴 **${danger.length}** 处裂缝水压接近临界值，存在突水风险！` : '✅ 当前水压数据正常。'}`,
+      actions,
+    };
+  }
+
+  // ========== 特定裂缝风险评估 (F-xxx) ==========
+  const fractureMatch = fractures.find(
+    (f) => lowerInput.includes(f.id.toLowerCase()) || lowerInput.includes(f.name.toLowerCase())
+  );
+  if (fractureMatch && (lowerInput.includes('风险') || lowerInput.includes('评估') || lowerInput.includes('分析'))) {
+    return analyzeFracture(fractureMatch, gasThreshold);
+  }
+
+  // ========== 实验指令 ==========
+  if (lowerInput.includes('实验') || lowerInput.includes('测试') || lowerInput.includes('模拟') || lowerInput.includes('压裂')) {
+    return {
+      message: `## 可用虚拟实验\n\n请在3D场景中选中裂缝后，在右侧面板执行实验：\n\n| 实验 | 描述 |\n|------|------|\n| 瓦斯扩散模拟 | 预测CH₄扩散路径 |\n| 稳定性评估 | 评估围岩稳定性 |\n| 突水预警 | 计算突水风险等级 |\n| 岩爆预测 | 基于微震和应力 |\n| 渗透率评估 | 计算等效渗透率 |\n| 裂缝连通性 | 分析网络连通性 |\n\n> 提示：点击3D场景中的裂缝线可选中并查看详情面板。`,
+      actions: [],
+    };
+  }
+
+  // ========== 机器人状态 ==========
+  if (lowerInput.includes('机器人') || lowerInput.includes('状态') || lowerInput.includes('群智') || lowerInput.includes('设备')) {
+    return {
+      message: `## 机器人集群状态\n\n当前部署的仿生探测机器人沿裂缝网络分布，实时回传传感器数据。\n\n左侧"机器人集群"面板可查看完整列表，点击告警可飞行到对应机器人位置。`,
+      actions: [],
+    };
+  }
+
+  // ========== 兜底 ==========
   return {
-    message: `我已收到您的指令："${input}"\n\n当前系统监测 **18** 条裂缝、**200** 台机器人持续回传数据。\n\n您可以询问：\n- 裂缝网络分布情况\n- 瓦斯/应力/温度/渗透率分析\n- 突水预警/岩爆预测\n- 机器人集群状态\n- 可用的虚拟实验\n\n请问还需要分析什么？`,
+    message: `我已收到您的指令："${input}"\n\n当前场景共 **${fractures.length}** 条裂缝，可通过以下指令分析：\n- 裂缝分布概览\n- 瓦斯浓度分析\n- 应力场分析\n- 渗透率评估\n- 温度场分析\n- 突水预警\n- 找出最危险的点\n- F-xxx 风险评估（如 F-003风险评估）\n\n请问还需要分析什么？`,
   };
 }
 
-export const quickCommands = [
-  { label: '裂缝分布概览', command: '裂缝网络分布情况' },
-  { label: '瓦斯浓度分析', command: '分析当前瓦斯浓度' },
-  { label: '应力场分析', command: '分析地应力场分布' },
-  { label: '找出最危险的点', command: '找出最危险的点并标记' },
-  { label: 'F-003风险评估', command: 'F-003裂缝风险评估' },
-  { label: '渗透率评估', command: '渗透率评估分析' },
-  { label: '可用实验', command: '有哪些可用的虚拟实验' },
-];
+/** 分析单条裂缝的综合风险 */
+function analyzeFracture(f: Fracture, gasThreshold: number): AIResponse {
+  const s = f.sensorReading;
+  const risks: string[] = [];
+  const markers: { position: [number, number, number]; label: string; level: 'danger' | 'warning' | 'info' }[] = [];
+
+  if (s.ch4_pct >= gasThreshold) {
+    risks.push(`- **CH₄浓度**: ${s.ch4_pct.toFixed(2)}% ${s.ch4_pct >= 1.5 ? '🔴 超标' : '⚠️ 超标'}`);
+    markers.push({
+      position: fractureCenter(f),
+      label: `${f.id} CH₄=${s.ch4_pct.toFixed(1)}%`,
+      level: s.ch4_pct >= 1.5 ? 'danger' : 'warning',
+    });
+  }
+  if (s.temperature_c > 38) {
+    risks.push(`- **温度**: ${s.temperature_c.toFixed(1)}°C ⚠️ 异常偏高`);
+    markers.push({ position: fractureCenter(f), label: `${f.id} 温度=${s.temperature_c.toFixed(0)}°C`, level: 'warning' });
+  }
+  if (s.water_pressure_mpa > 5) {
+    risks.push(`- **水压**: ${s.water_pressure_mpa.toFixed(1)} MPa 🔴 接近临界值`);
+    markers.push({ position: fractureCenter(f), label: `${f.id} 水压=${s.water_pressure_mpa.toFixed(1)}MPa`, level: 'danger' });
+  }
+  if (s.microseismic_count > 15) {
+    risks.push(`- **微震**: ${s.microseismic_count} 次/h ⚠️ 超过警戒线`);
+    markers.push({ position: fractureCenter(f), label: `${f.id} 微震=${s.microseismic_count}/h`, level: 'warning' });
+  }
+  if (s.stress_mpa > 12) {
+    risks.push(`- **应力**: σ₁=${s.stress_mpa.toFixed(1)} MPa ⚠️ 应力集中`);
+    markers.push({ position: fractureCenter(f), label: `${f.id} σ₁=${s.stress_mpa.toFixed(0)}MPa`, level: 'warning' });
+  }
+
+  const overallRisk = risks.length >= 3 ? '🔴 **高风险**' : risks.length >= 1 ? '⚠️ **中风险**' : '🟢 **低风险**';
+
+  const actions: SceneAction[] = [
+    { type: 'selectFracture', fractureId: f.id },
+  ];
+  if (markers.length > 0) {
+    actions.push({ type: 'markPoints', points: markers });
+  }
+
+  return {
+    message: `## ${f.id} (${f.name}) 风险评估\n\n已自动选中该裂缝并展开详情。\n\n### 基础参数\n- 类型: ${f.type === 'main' ? '主裂缝' : '分支裂缝'}\n- 长度: ${f.length.toFixed(1)}m\n- 开度: ${f.aperture_um.toFixed(0)}µm\n- 倾角: ${f.dip_angle.toFixed(1)}°\n- 连通性: ${f.connectivity.toFixed(2)}\n- 渗透率: ${s.permeability_md.toFixed(2)} mD\n\n### 风险因素\n${risks.length > 0 ? risks.join('\n') : '- 未检测到明显异常'}\n\n### 综合评估\n该裂缝为${overallRisk}区域。`,
+    actions,
+  };
+}
 
 /**
- * 分析裂缝数据找出最危险的点，生成标记动作
+ * 分析裂缝数据找出最危险的点
  */
 function findDangerousPoints(
   input: string,
   sceneContext?: { fractures: Fracture[]; scenario: ScenarioType; gasThreshold: number }
 ): AIResponse {
-  // 如果没有场景数据，用 mock 数据
   if (!sceneContext || sceneContext.fractures.length === 0) {
     return {
-      message: `## 最危险区域已标记\n\n根据传感器数据分析，标记了 3 个高风险点位：\n\n| 编号 | 位置 | 风险因素 | 等级 |\n|------|------|---------|------|\n| 1 | F-003 深部 | CH₄ 3.5%, 温度42°C | 🔴 危险 |\n| 2 | F-001 带中 | CH₄ 2.8%, 水压高 | ⚠️ 警告 |\n| 3 | F-008 交叉点 | CH₄ 1.6%, 微震活跃 | ⚠️ 警告 |\n\n已自动飞行到最危险区域，红色脉冲标记已标注。`,
-      actions: [
-        {
-          type: 'markPoints',
-          points: [
-            { position: [5, -5, -15], label: 'F-003 CH4=3.5% 🔴', level: 'danger' as const },
-            { position: [0, 0, 10], label: 'F-001 CH4=2.8% ⚠️', level: 'warning' as const },
-            { position: [-15, -3, 8], label: 'F-008 CH4=1.6% ⚠️', level: 'warning' as const },
-          ],
-        },
-        { type: 'flyTo', position: [5, -5, -15], region: '最危险区域' },
-      ],
+      message: `当前场景尚未加载裂缝数据。`,
     };
   }
 
   const { fractures, scenario, gasThreshold } = sceneContext;
 
-  // 收集所有节点并计算危险度评分
   const allNodes = fractures.flatMap((f) =>
     f.nodes.map((n) => {
       const ch4 = n.sensors.ch4_pct;
@@ -202,7 +431,6 @@ function findDangerousPoints(
       const micro = n.sensors.microseismic_count;
       const water = n.sensors.water_pressure_mpa;
 
-      // 综合危险评分
       let score = 0;
       if (scenario === 'coal') {
         score = ch4 * 25 + (ch4 > gasThreshold ? 30 : 0) + (temp > 38 ? 10 : 0) + (micro > 15 ? 20 : 0);
@@ -216,19 +444,14 @@ function findDangerousPoints(
         position: n.position,
         fractureId: f.id,
         fractureName: f.name,
-        ch4,
-        temp,
-        stress,
-        micro,
-        water,
+        ch4, temp, stress, micro, water,
         score,
       };
     })
   );
 
-  // 排序取 TOP 3
   const sorted = allNodes.sort((a, b) => b.score - a.score);
-  const top3 = sorted.slice(0, 3);
+  const top3 = sorted.filter((x) => x.score > 0).slice(0, 3);
 
   if (top3.length === 0) {
     return {
@@ -236,7 +459,6 @@ function findDangerousPoints(
     };
   }
 
-  // 生成标记点和消息
   const points = top3.map((n, i) => {
     const factors: string[] = [];
     if (n.ch4 > gasThreshold) factors.push(`CH₄=${n.ch4.toFixed(1)}%`);
@@ -251,7 +473,6 @@ function findDangerousPoints(
     };
   });
 
-  // 表格摘要
   const tableRows = top3
     .map((n, i) => {
       const level = i === 0 ? '🔴 危险' : '⚠️ 警告';
@@ -267,3 +488,13 @@ function findDangerousPoints(
     ],
   };
 }
+
+export const quickCommands = [
+  { label: '裂缝分布概览', command: '裂缝网络分布情况' },
+  { label: '瓦斯浓度分析', command: '分析当前瓦斯浓度' },
+  { label: '应力场分析', command: '分析地应力场分布' },
+  { label: '找出最危险的点', command: '找出最危险的点并标记' },
+  { label: '渗透率评估', command: '渗透率评估分析' },
+  { label: '突水预警', command: '突水风险预警' },
+  { label: '温度场分析', command: '分析温度场分布' },
+];

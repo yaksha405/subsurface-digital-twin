@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { useSceneStore } from '../../store/useSceneStore';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
@@ -7,10 +8,43 @@ import type { AnnotationTool } from '../../types';
 export function ToolActions() {
   const activeTool = useSceneStore((s) => s.activeTool);
   const setActiveTool = useSceneStore((s) => s.setActiveTool);
-  const physicalTruthMode = useSceneStore((s) => s.setPhysicalTruthMode);
+  const setPhysicalTruthMode = useSceneStore((s) => s.setPhysicalTruthMode);
   const isPhysicalTruth = useSceneStore((s) => s.physicalTruthMode);
   const annotations = useSceneStore((s) => s.annotations);
   const clearAnnotations = useSceneStore((s) => s.clearAnnotations);
+  const setLayer = useSceneStore((s) => s.setLayer);
+  const layers = useSceneStore((s) => s.layers);
+  const clearAIMarkers = useSceneStore((s) => s.clearAIMarkers);
+
+  // 保存进入物理真实模式前的图层状态
+  const prevLayersRef = useRef<typeof layers | null>(null);
+
+  const handlePhysicalTruth = (enable: boolean) => {
+    if (enable) {
+      // 保存当前图层状态
+      prevLayersRef.current = { ...layers };
+      // 物理真实模式：关闭 AI 解译图层，仅保留原始数据
+      setLayer('fractures', false);
+      setLayer('gasHeatmap', false);
+      setLayer('tempHeatmap', false);
+      setLayer('poi', false);
+      // 确保原始数据可见
+      setLayer('pointCloud', true);
+      setLayer('rockMass', true);
+      setLayer('robots', true);
+      // 清除 AI 标记
+      clearAIMarkers();
+    } else {
+      // 恢复之前的图层状态
+      if (prevLayersRef.current) {
+        (Object.keys(prevLayersRef.current) as (keyof typeof layers)[]).forEach((k) => {
+          setLayer(k, prevLayersRef.current![k]);
+        });
+        prevLayersRef.current = null;
+      }
+    }
+    setPhysicalTruthMode(enable);
+  };
 
   const tools: { key: AnnotationTool; label: string; Icon: any; shortcut: string }[] = [
     { key: 'profile', label: '剖面线', Icon: Ruler, shortcut: 'F1' },
@@ -52,7 +86,7 @@ export function ToolActions() {
           <Button
             variant={isPhysicalTruth ? 'destructive' : 'outline'}
             className="w-full justify-start"
-            onClick={() => physicalTruthMode(!isPhysicalTruth)}
+            onClick={() => handlePhysicalTruth(!isPhysicalTruth)}
           >
             <Eye className="w-3.5 h-3.5" />
             <span className="flex-1 text-left">
@@ -62,9 +96,9 @@ export function ToolActions() {
         </div>
 
         {isPhysicalTruth && (
-          <div className="text-[9px] text-[#FF3333]/80 flex items-start gap-1 animate-fade-in pt-1">
-            <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#FF3333] animate-pulse mt-0.5 flex-shrink-0" />
-            合规审计模式：仅显示原始雷达回波
+          <div className="text-[9px] text-[#FF6644]/80 flex items-start gap-1 animate-fade-in pt-1">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#FF6644] animate-pulse mt-0.5 flex-shrink-0" />
+            合规审计模式：已关闭AI解译图层，仅显示原始点云+岩体+机器人
           </div>
         )}
       </CardContent>

@@ -78,6 +78,7 @@ function TrendRow({
 
 export function SensorTrends() {
   const [collapsed, setCollapsed] = useState(false);
+  const [view, setView] = useState<'aggregate' | 'regional'>('aggregate');
   const { data: trend, loading } = useSensorTrend();
 
   return (
@@ -95,14 +96,70 @@ export function SensorTrends() {
 
       {!collapsed && (
         <CardContent className="space-y-1.5">
+          {/* Source label */}
+          {trend && (
+            <div className="text-[7px] text-[#A0A0B0]/40 text-center pb-0.5">
+              {trend.source}
+            </div>
+          )}
+
+          {/* View toggle */}
+          <div className="flex gap-0.5">
+            <button
+              onClick={(e) => { e.stopPropagation(); setView('aggregate'); }}
+              className={`flex-1 px-1 py-0.5 text-[8px] rounded transition-all ${
+                view === 'aggregate'
+                  ? 'bg-[#FFE600]/10 text-[#FFE600] border border-[#FFE600]/20'
+                  : 'text-[#A0A0B0]/50 border border-transparent hover:bg-white/5'
+              }`}
+            >
+              全局聚合
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); setView('regional'); }}
+              className={`flex-1 px-1 py-0.5 text-[8px] rounded transition-all ${
+                view === 'regional'
+                  ? 'bg-[#FFE600]/10 text-[#FFE600] border border-[#FFE600]/20'
+                  : 'text-[#A0A0B0]/50 border border-transparent hover:bg-white/5'
+              }`}
+            >
+              分区域
+            </button>
+          </div>
+
           {loading || !trend ? (
             <div className="text-[10px] text-[#A0A0B0]/40 text-center py-3">加载趋势...</div>
-          ) : (
+          ) : view === 'aggregate' ? (
             <>
-              <TrendRow label="CH4 浓度" unit="%" data={trend.ch4} color="#FFA500" threshold={1.5} />
-              <TrendRow label="环境温度" unit="°C" data={trend.temperature} color="#FF6B35" />
-              <TrendRow label="大气压力" unit="kPa" data={trend.pressure} color="#4DA6FF" />
+              <TrendRow label="CH4 浓度 (聚合)" unit="%" data={trend.ch4} color="#FFA500" threshold={1.5} />
+              <TrendRow label="环境温度 (聚合)" unit="°C" data={trend.temperature} color="#FF6B35" />
+              <TrendRow label="大气压力 (聚合)" unit="kPa" data={trend.pressure} color="#4DA6FF" />
             </>
+          ) : (
+            <div className="space-y-1.5 max-h-[180px] overflow-y-auto custom-scroll">
+              {trend.regions.map((r) => {
+                const ch4Now = r.ch4[r.ch4.length - 1] ?? 0;
+                return (
+                  <div key={r.regionId} className="px-1 py-1 rounded bg-[#0F0F16]/40 border border-white/5">
+                    <div className="flex items-center justify-between mb-0.5">
+                      <span className="text-[9px] text-[#E0E0E8] font-medium">{r.regionName}</span>
+                      <span className="text-[7px] text-[#A0A0B0]/40">{r.nodeCount} 节点</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-[9px] font-mono ${ch4Now > 1.5 ? 'text-[#FF3333]' : 'text-[#FFA500]'}`}>
+                        CH₄ {ch4Now.toFixed(2)}%
+                      </span>
+                      <span className="text-[9px] font-mono text-[#FF6B35]">
+                        {r.temperature[r.temperature.length - 1]?.toFixed(0)}°C
+                      </span>
+                    </div>
+                    <div className="mt-0.5">
+                      <Sparkline data={r.ch4} color={ch4Now > 1.5 ? '#FF3333' : '#FFA500'} height={24} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           )}
         </CardContent>
       )}
