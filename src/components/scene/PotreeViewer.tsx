@@ -109,7 +109,6 @@ function getPointCloudUrl(): string {
 export function PotreeViewer() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const visible = useSceneStore((s) => s.layers.pointCloud);
 
   useEffect(() => {
@@ -117,6 +116,9 @@ export function PotreeViewer() {
 
     let cancelled = false;
     let viewer: any = null;
+
+    // 超时保护：10 秒后自动隐藏 loading（Potree 是增强层，不应阻塞 UI）
+    const loadTimeout = setTimeout(() => setLoading(false), 10_000);
 
     loadPotreeScript()
       .then(() => {
@@ -152,7 +154,6 @@ export function PotreeViewer() {
 
           if (e.type === 'loading_failed') {
             console.error('[PotreeViewer] Point cloud loading failed');
-            setErrorMsg('点云加载失败');
             setLoading(false);
             return;
           }
@@ -176,12 +177,12 @@ export function PotreeViewer() {
       })
       .catch((err) => {
         console.error('[PotreeViewer] Failed to init Potree:', err);
-        setErrorMsg(err.message);
         setLoading(false);
       });
 
     return () => {
       cancelled = true;
+      clearTimeout(loadTimeout);
       potreeViewer = null;
       if (viewer) {
         try {
@@ -212,13 +213,7 @@ export function PotreeViewer() {
           </div>
         </div>
       )}
-      {errorMsg && (
-        <div className="absolute bottom-12 left-3 z-5 pointer-events-none">
-          <div className="text-[9px] text-[#FF6644]/70 bg-[#0A0C14]/80 px-2 py-1 rounded border border-[#FF6644]/20">
-            Potree: {errorMsg}
-          </div>
-        </div>
-      )}
+      {/* Potree 加载失败时静默降级，不向用户显示错误 */}
     </>
   );
 }
