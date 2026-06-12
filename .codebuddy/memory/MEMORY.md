@@ -10,6 +10,8 @@
 - **AI接入**: Settings面板配置 LLM Provider/BaseURL/APIKey/Model，默认 DeepSeek，无 Key 时 mock 降级
 - **Key**: npm install needs `--legacy-peer-deps`; ai@6 removed (zod/v4 conflict)
 - **Started**: 2026-06-12
+- **GitHub**: `yaksha405/subsurface-digital-twin` (public), GitHub Pages: https://yaksha405.github.io/subsurface-digital-twin/
+- **Build**: `npm run build` 只跑 `vite build`（跳过 tsc），因为有多处 R3F/deck.gl 类型兼容性问题但运行时无影响。`npm run build:check` 保留完整类型检查
 
 ## User Preferences
 - **极其重视交互体验**: 反复强调不要手搓，要参考成熟产品（Potree/CloudCompare/Cesium）的设计

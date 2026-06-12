@@ -3,7 +3,7 @@ import type { LayerState } from '../../types';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Switch } from '../ui/switch';
 import { Tooltip, TooltipTrigger, TooltipContent } from '../ui/tooltip';
-import { Bot, Mountain, GitBranch, MapPin } from 'lucide-react';
+import { Bot, Mountain, GitBranch, MapPin, Boxes } from 'lucide-react';
 
 const layerConfig: {
   key: keyof LayerState;
@@ -13,6 +13,7 @@ const layerConfig: {
 }[] = [
   { key: 'rockMass', label: '地质岩体', desc: '半透明地质体外壳 (200×40×80m)', Icon: Mountain },
   { key: 'fractures', label: '裂缝网络', desc: '地下裂缝网络可视化（从地表向下延伸）', Icon: GitBranch },
+  { key: 'pointCloud', label: '点云数据', desc: '原始扫描点云渲染（ShaderMaterial GPU着色 + Potree LOD）', Icon: Boxes },
   { key: 'robots', label: '机器人集群', desc: '蛇形探测机器人实时位置', Icon: Bot },
   { key: 'poi', label: '兴趣点标注', desc: '裂缝入口、传感器站点、危险区域', Icon: MapPin },
 ];
