@@ -4,6 +4,10 @@ import { exportPDF } from '../../lib/pdfExport';
 import { ScenarioSelector } from './ScenarioSelector';
 import { MeasurementToolbar } from './MeasurementToolbar';
 import { SettingsDialog } from './SettingsDialog';
+import { useAllRobots, useRobotStats } from '../../hooks/useRobots';
+import { useAlerts } from '../../hooks/useAlerts';
+import { useSceneStats } from '../../hooks/useSceneStats';
+import { usePOIs } from '../../hooks/usePOIs';
 
 export function TopBar() {
   const [time, setTime] = useState(new Date());
@@ -12,6 +16,17 @@ export function TopBar() {
   const gasThreshold = useSceneStore((s) => s.gasThreshold);
   const confidenceFilter = useSceneStore((s) => s.confidenceFilter);
   const layers = useSceneStore((s) => s.layers);
+  const scenario = useSceneStore((s) => s.scenario);
+  const fractures = useSceneStore((s) => s.fractures);
+  const annotations = useSceneStore((s) => s.annotations);
+  const messages = useSceneStore((s) => s.messages);
+  const cameraInfo = useSceneStore((s) => s.cameraInfo);
+  // hooks 有模块级缓存，不会重复请求
+  const { data: robots } = useAllRobots();
+  const { data: robotStats } = useRobotStats();
+  const { data: alerts } = useAlerts();
+  const { data: stats } = useSceneStats();
+  const { data: pois } = usePOIs();
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
@@ -21,7 +36,10 @@ export function TopBar() {
   const handleExport = async () => {
     setExporting(true);
     try {
-      await exportPDF(captureScreenshot, { gasThreshold, confidenceFilter, layers });
+      await exportPDF(captureScreenshot, {
+        gasThreshold, confidenceFilter, layers, scenario,
+        stats, robots, robotStats, alerts, fractures, pois, annotations, messages, cameraInfo,
+      });
     } catch (e) {
       console.error('PDF export failed', e);
     }
