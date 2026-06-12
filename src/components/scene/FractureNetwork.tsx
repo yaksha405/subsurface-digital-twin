@@ -85,6 +85,7 @@ export function FractureNetwork() {
   const selectFracture = useSceneStore((s) => s.selectFracture);
   const selectFractureNode = useSceneStore((s) => s.selectFractureNode);
   const scenario = useSceneStore((s) => s.scenario);
+  const highlightedFractureIds = useSceneStore((s) => s.highlightedFractureIds);
 
   if (!visible || fractures.length === 0) return null;
 
@@ -95,6 +96,11 @@ export function FractureNetwork() {
           key={fracture.id}
           fracture={fracture}
           isSelected={selectedFracture?.id === fracture.id}
+          isHighlighted={
+            highlightedFractureIds === null
+              ? null  // 没有区域筛选 — 正常渲染
+              : highlightedFractureIds.includes(fracture.id)  // 在选中区域内 → 高亮
+          }
           onSelect={selectFracture}
           scenario={scenario}
         />
@@ -160,11 +166,13 @@ function FractureEntrance({
 function FractureSurface({
   fracture,
   isSelected,
+  isHighlighted,
   onSelect,
   scenario,
 }: {
   fracture: Fracture;
   isSelected: boolean;
+  isHighlighted: boolean | null;
   onSelect: (f: Fracture) => void;
   scenario: string;
 }) {
@@ -283,6 +291,18 @@ function FractureSurface({
   const emissiveIntensity = isSelected ? 0.4 : hovered ? 0.2 : 0;
   const edgeColor = isSelected ? '#FFE600' : hovered ? '#FFCC00' : '#8B7355';
 
+  // 传感器区域筛选：在区域内 → 高亮加亮 + 发光；不在区域 → 变暗
+  const inRegion = isHighlighted === true;
+  const filtered = isHighlighted !== null;
+  const baseOpacity = isSelected ? 0.85 : hovered ? 0.75 : 0.65;
+  const finalOpacity = filtered
+    ? (inRegion ? 0.95 : 0.12)  // 区域内高亮，区域外变暗
+    : baseOpacity;
+  const finalEmissive = filtered && inRegion ? '#FFE600' : emissiveColor;
+  const finalEmissiveIntensity = filtered && inRegion ? 0.35 : emissiveIntensity;
+  const finalEdgeColor = filtered && inRegion ? '#FFE600' : edgeColor;
+  const finalEdgeOpacity = filtered ? (inRegion ? 0.9 : 0.1) : (isSelected ? 0.9 : 0.5);
+
   return (
     <group
       onClick={handleClick}
@@ -295,9 +315,9 @@ function FractureSurface({
           vertexColors
           side={THREE.DoubleSide}
           transparent
-          opacity={isSelected ? 0.85 : hovered ? 0.75 : 0.65}
-          emissive={emissiveColor}
-          emissiveIntensity={emissiveIntensity}
+          opacity={finalOpacity}
+          emissive={finalEmissive}
+          emissiveIntensity={finalEmissiveIntensity}
           roughness={0.8}
           depthWrite={false}
         />
@@ -305,10 +325,10 @@ function FractureSurface({
 
       {/* 裂缝两侧轮廓线 */}
       <line geometry={leftEdgeGeo}>
-        <lineBasicMaterial color={edgeColor} transparent opacity={isSelected ? 0.9 : 0.5} linewidth={1} />
+        <lineBasicMaterial color={finalEdgeColor} transparent opacity={finalEdgeOpacity} linewidth={1} />
       </line>
       <line geometry={rightEdgeGeo}>
-        <lineBasicMaterial color={edgeColor} transparent opacity={isSelected ? 0.9 : 0.5} linewidth={1} />
+        <lineBasicMaterial color={finalEdgeColor} transparent opacity={finalEdgeOpacity} linewidth={1} />
       </line>
     </group>
   );

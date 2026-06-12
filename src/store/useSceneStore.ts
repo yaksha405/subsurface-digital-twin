@@ -37,6 +37,8 @@ interface SceneStore {
   fractures: Fracture[];
   selectedFracture: Fracture | null;
   selectedFractureNode: string | null;
+  /** 高亮的裂缝 ID 列表（传感器区域点击时高亮对应裂缝面） */
+  highlightedFractureIds: string[] | null;
 
   // === v2: 标注工具 ===
   activeTool: AnnotationTool;
@@ -68,6 +70,7 @@ interface SceneStore {
   setFractures: (f: Fracture[]) => void;
   selectFracture: (f: Fracture | null) => void;
   selectFractureNode: (id: string | null) => void;
+  setHighlightedFractureIds: (ids: string[] | null) => void;
   setActiveTool: (t: AnnotationTool) => void;
   addAnnotation: (a: Annotation) => void;
   removeAnnotation: (id: string) => void;
@@ -117,6 +120,7 @@ export const useSceneStore = create<SceneStore>((set, get) => ({
   fractures: [],
   selectedFracture: null,
   selectedFractureNode: null,
+  highlightedFractureIds: null,
   activeTool: 'none',
   annotations: [],
 
@@ -165,6 +169,7 @@ export const useSceneStore = create<SceneStore>((set, get) => ({
       cameraTarget: { position: [0, 0, 0] },
       selectedFracture: null,
       selectedFractureNode: null,
+      highlightedFractureIds: null,
       aiMarkers: [],
       fractureColorMode: 'gas' as const,
       focusedRobotId: null,
@@ -188,6 +193,7 @@ export const useSceneStore = create<SceneStore>((set, get) => ({
   setFractures: (f) => set({ fractures: f }),
   selectFracture: (f) => set({ selectedFracture: f, selectedFractureNode: null }),
   selectFractureNode: (id) => set({ selectedFractureNode: id }),
+  setHighlightedFractureIds: (ids) => set({ highlightedFractureIds: ids }),
   setActiveTool: (t) => set({ activeTool: t }),
   addAnnotation: (a) => set((state) => ({ annotations: [...state.annotations, a] })),
   removeAnnotation: (id) => set((state) => ({ annotations: state.annotations.filter((a) => a.id !== id) })),

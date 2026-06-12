@@ -83,18 +83,17 @@ export function SensorTrends() {
   const [activeRegion, setActiveRegion] = useState<string | null>(null);
   const { data: trend, loading } = useSensorTrend();
   const flyTo = useSceneStore((s) => s.flyTo);
-  const highlightWithTimer = useSceneStore((s) => s.highlightWithTimer);
-  const clearHighlight = useSceneStore((s) => s.clearHighlight);
+  const setHighlightedFractureIds = useSceneStore((s) => s.setHighlightedFractureIds);
 
   const handleRegionClick = (r: typeof trend.regions[0]) => {
     if (activeRegion === r.regionId) {
       // 再次点击取消选择
       setActiveRegion(null);
-      clearHighlight();
+      setHighlightedFractureIds(null);
     } else {
       setActiveRegion(r.regionId);
-      // 高亮区域 — 用小半径精确框选传感器簇，不覆盖整个岩层
-      highlightWithTimer(r.center, 4, 8000);
+      // 直接高亮该区域内的裂缝面 — 不用球体
+      setHighlightedFractureIds(r.fractureIds);
       flyTo({ position: r.center, region: r.regionName, zoom: 'close' });
     }
   };
@@ -103,7 +102,7 @@ export function SensorTrends() {
     setView(v);
     setActiveRegion(null);
     if (v === 'aggregate') {
-      clearHighlight();
+      setHighlightedFractureIds(null);
     }
   };
 

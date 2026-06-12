@@ -20,6 +20,8 @@ export interface RegionTrend {
   center: [number, number, number];
   /** 区域包围球半径 */
   radius: number;
+  /** 该区域包含的裂缝 ID 列表 — 点击区域时高亮这些裂缝 */
+  fractureIds: string[];
 }
 
 export interface SensorTrend {
@@ -69,7 +71,7 @@ function computeFractureCluster(
   };
 }
 
-/** 按象限将裂缝分为4个区域，每个区域计算实际中心 */
+/** 按象限将裂缝分为4个区域，每个区域计算实际中心 + 记录裂缝ID */
 function divideFracturesIntoRegions(fractures: Fracture[]) {
   if (fractures.length === 0) {
     // 无数据时用默认坐标
@@ -77,6 +79,7 @@ function divideFracturesIntoRegions(fractures: Fracture[]) {
       ...def,
       center: [[-25, 0, -25], [0, 0, 0], [25, -10, 25], [35, 0, -10]][i] as [number, number, number],
       radius: 15,
+      fractureIds: [] as string[],
     }));
   }
 
@@ -86,7 +89,12 @@ function divideFracturesIntoRegions(fractures: Fracture[]) {
   const cz = allPoints.reduce((s, p) => s + p[2], 0) / allPoints.length;
 
   // 按象限分组：北(z<cz, x<cx), 中央(x近cx, z近cz), 南(z>cz, x>cx), 东(x>cx)
-  const groups: Fracture[][] = [[], [], [], []];
+  const groups: { fractures: Fracture[]; ids: string[] }[] = [
+    { fractures: [], ids: [] },
+    { fractures: [], ids: [] },
+    { fractures: [], ids: [] },
+    { fractures: [], ids: [] },
+  ];
   for (const f of fractures) {
     const fCenter = f.path.reduce((a, p) => [a[0]+p[0], a[1]+p[1], a[2]+p[2]], [0,0,0]);
     const fx = fCenter[0] / f.path.length;
@@ -96,19 +104,19 @@ function divideFracturesIntoRegions(fractures: Fracture[]) {
     const dist = Math.sqrt(dx*dx + dz*dz);
 
     if (dist < 15) {
-      groups[1].push(f); // 中央
+      groups[1].fractures.push(f); groups[1].ids.push(f.id); // 中央
     } else if (dz < -5) {
-      groups[0].push(f); // 北
+      groups[0].fractures.push(f); groups[0].ids.push(f.id); // 北
     } else if (dx > 10) {
-      groups[3].push(f); // 东
+      groups[3].fractures.push(f); groups[3].ids.push(f.id); // 东
     } else {
-      groups[2].push(f); // 南
+      groups[2].fractures.push(f); groups[2].ids.push(f.id); // 南
     }
   }
 
   return REGION_DEFS.map((def, i) => {
-    const cluster = computeFractureCluster(groups[i] || []);
-    return { ...def, ...cluster };
+    const cluster = computeFractureCluster(groups[i].fractures);
+    return { ...def, ...cluster, fractureIds: groups[i].ids };
   });
 }
 
@@ -157,6 +165,7 @@ export function generateMockSensorTrend(totalNodes: number = 100, fractures?: Fr
       nodeCount: Math.round(totalNodes * cfg.nodeRatio),
       center: cfg.center,
       radius: cfg.radius,
+      fractureIds: cfg.fractureIds,
     };
   });
 
