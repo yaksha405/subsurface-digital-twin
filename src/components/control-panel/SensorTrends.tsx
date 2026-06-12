@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { useSensorTrend } from '../../hooks/useSensorTrend';
-import { ChevronDown } from 'lucide-react';
+import { useSceneStore } from '../../store/useSceneStore';
+import { ChevronDown, MapPin } from 'lucide-react';
 
 // Mini sparkline chart using SVG
 function Sparkline({ data, color, height = 36 }: { data: number[]; color: string; height?: number }) {
@@ -79,7 +80,31 @@ function TrendRow({
 export function SensorTrends() {
   const [collapsed, setCollapsed] = useState(false);
   const [view, setView] = useState<'aggregate' | 'regional'>('aggregate');
+  const [activeRegion, setActiveRegion] = useState<string | null>(null);
   const { data: trend, loading } = useSensorTrend();
+  const flyTo = useSceneStore((s) => s.flyTo);
+  const setHighlightRegion = useSceneStore((s) => s.setHighlightRegion);
+
+  const handleRegionClick = (r: typeof trend.regions[0]) => {
+    if (activeRegion === r.regionId) {
+      // 再次点击取消选择
+      setActiveRegion(null);
+      setHighlightRegion({ position: [0, 0, 0], radius: 10, active: false });
+    } else {
+      setActiveRegion(r.regionId);
+      // 高亮区域 + 相机飞过去
+      setHighlightRegion({ position: r.center, radius: r.radius, active: true });
+      flyTo({ position: r.center, region: r.regionName });
+    }
+  };
+
+  const handleViewChange = (v: 'aggregate' | 'regional') => {
+    setView(v);
+    setActiveRegion(null);
+    if (v === 'aggregate') {
+      setHighlightRegion({ position: [0, 0, 0], radius: 10, active: false });
+    }
+  };
 
   return (
     <Card>
@@ -106,7 +131,7 @@ export function SensorTrends() {
           {/* View toggle */}
           <div className="flex gap-0.5">
             <button
-              onClick={(e) => { e.stopPropagation(); setView('aggregate'); }}
+              onClick={(e) => { e.stopPropagation(); handleViewChange('aggregate'); }}
               className={`flex-1 px-1 py-0.5 text-[8px] rounded transition-all ${
                 view === 'aggregate'
                   ? 'bg-[#FFE600]/10 text-[#FFE600] border border-[#FFE600]/20'
@@ -116,7 +141,7 @@ export function SensorTrends() {
               全局聚合
             </button>
             <button
-              onClick={(e) => { e.stopPropagation(); setView('regional'); }}
+              onClick={(e) => { e.stopPropagation(); handleViewChange('regional'); }}
               className={`flex-1 px-1 py-0.5 text-[8px] rounded transition-all ${
                 view === 'regional'
                   ? 'bg-[#FFE600]/10 text-[#FFE600] border border-[#FFE600]/20'
@@ -139,10 +164,22 @@ export function SensorTrends() {
             <div className="space-y-1.5 max-h-[180px] overflow-y-auto custom-scroll">
               {trend.regions.map((r) => {
                 const ch4Now = r.ch4[r.ch4.length - 1] ?? 0;
+                const isActive = activeRegion === r.regionId;
                 return (
-                  <div key={r.regionId} className="px-1 py-1 rounded bg-[#0F0F16]/40 border border-white/5">
+                  <div
+                    key={r.regionId}
+                    onClick={(e) => { e.stopPropagation(); handleRegionClick(r); }}
+                    className={`px-1 py-1 rounded cursor-pointer transition-all border ${
+                      isActive
+                        ? 'bg-[#FFE600]/8 border-[#FFE600]/30 shadow-[0_0_8px_rgba(255,230,0,0.15)]'
+                        : 'bg-[#0F0F16]/40 border-white/5 hover:border-[#FFE600]/15 hover:bg-[#0F0F16]/60'
+                    }`}
+                  >
                     <div className="flex items-center justify-between mb-0.5">
-                      <span className="text-[9px] text-[#E0E0E8] font-medium">{r.regionName}</span>
+                      <div className="flex items-center gap-1">
+                        <MapPin className={`w-2.5 h-2.5 ${isActive ? 'text-[#FFE600]' : 'text-[#A0A0B0]/40'}`} />
+                        <span className={`text-[9px] font-medium ${isActive ? 'text-[#FFE600]' : 'text-[#E0E0E8]'}`}>{r.regionName}</span>
+                      </div>
                       <span className="text-[7px] text-[#A0A0B0]/40">{r.nodeCount} 节点</span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -156,6 +193,11 @@ export function SensorTrends() {
                     <div className="mt-0.5">
                       <Sparkline data={r.ch4} color={ch4Now > 1.5 ? '#FF3333' : '#FFA500'} height={24} />
                     </div>
+                    {isActive && (
+                      <div className="text-[7px] text-[#FFE600]/50 text-center mt-0.5 animate-fade-in">
+                        已框选 · 再次点击取消
+                      </div>
+                    )}
                   </div>
                 );
               })}

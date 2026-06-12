@@ -13,6 +13,10 @@ export interface RegionTrend {
   pressure: number[];
   /** 该区域包含的机器人/节点数 */
   nodeCount: number;
+  /** 3D 场景中心坐标，用于点击区域时相机飞过去 */
+  center: [number, number, number];
+  /** 区域包围球半径 */
+  radius: number;
 }
 
 export interface SensorTrend {
@@ -27,11 +31,12 @@ export interface SensorTrend {
 }
 
 // 区域配置 — 模拟不同空间位置的传感器差异
+// center/radius 对应 3D 场景中的实际坐标范围，用于点击区域时框选+飞过去
 const REGION_CONFIGS = [
-  { id: 'north', name: '北部裂缝带', baseCh4: 1.8, baseTemp: 35, basePressure: 108, nodeRatio: 0.3 },
-  { id: 'central', name: '中央交叉区', baseCh4: 2.6, baseTemp: 40, basePressure: 112, nodeRatio: 0.25 },
-  { id: 'south', name: '南部深部区', baseCh4: 0.6, baseTemp: 28, basePressure: 103, nodeRatio: 0.25 },
-  { id: 'east', name: '东部分支带', baseCh4: 1.2, baseTemp: 32, basePressure: 106, nodeRatio: 0.2 },
+  { id: 'north', name: '北部裂缝带', baseCh4: 1.8, baseTemp: 35, basePressure: 108, nodeRatio: 0.3, center: [-25, 0, -30] as [number, number, number], radius: 18 },
+  { id: 'central', name: '中央交叉区', baseCh4: 2.6, baseTemp: 40, basePressure: 112, nodeRatio: 0.25, center: [0, 0, 0] as [number, number, number], radius: 15 },
+  { id: 'south', name: '南部深部区', baseCh4: 0.6, baseTemp: 28, basePressure: 103, nodeRatio: 0.25, center: [25, -10, 25] as [number, number, number], radius: 16 },
+  { id: 'east', name: '东部分支带', baseCh4: 1.2, baseTemp: 32, basePressure: 106, nodeRatio: 0.2, center: [35, 0, -10] as [number, number, number], radius: 14 },
 ];
 
 let cachedTrend: SensorTrend | null = null;
@@ -74,6 +79,8 @@ export function generateMockSensorTrend(totalNodes: number = 100): SensorTrend {
       temperature: rTemp,
       pressure: rPressure,
       nodeCount: Math.round(totalNodes * cfg.nodeRatio),
+      center: cfg.center,
+      radius: cfg.radius,
     };
   });
 
