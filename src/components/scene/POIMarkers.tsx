@@ -44,23 +44,23 @@ function POISphere({
 }) {
   return (
     <group position={poi.position}>
-      {/* Click target */}
-      <mesh onClick={(e) => { e.stopPropagation(); onClick(); }}>
+      {/* Click target — depthTest 启用 */}
+      <mesh onClick={(e) => { e.stopPropagation(); onClick(); }} renderOrder={2}>
         <sphereGeometry args={[1.5, 16, 16]} />
-        <meshBasicMaterial color={color} transparent opacity={0.4} />
+        <meshBasicMaterial color={color} transparent opacity={0.4} depthTest={true} depthWrite={false} />
       </mesh>
 
       {/* Outer ring */}
-      <mesh rotation={[Math.PI / 2, 0, 0]}>
+      <mesh rotation={[Math.PI / 2, 0, 0]} renderOrder={2}>
         <ringGeometry args={[1.8, 2.2, 32]} />
-        <meshBasicMaterial color={color} transparent opacity={0.6} side={2} />
+        <meshBasicMaterial color={color} transparent opacity={0.6} side={2} depthTest={true} depthWrite={false} />
       </mesh>
 
       {/* Pulse marker */}
       <PulseRing color={color} />
 
       {isActive && (
-        <Html distanceFactor={15} position={[0, 3, 0]} center>
+        <Html distanceFactor={15} position={[0, 3, 0]} center occlude>
           <div className="glass-panel px-4 py-3 min-w-[200px] text-xs animate-fade-in" style={{ pointerEvents: 'auto' }}>
             <div className="flex items-center gap-2 mb-2 pb-2 border-b border-white/10">
               <span className="text-primary-yellow font-semibold">{poi.label}</span>
@@ -107,9 +107,9 @@ function PulseRing({ color }: { color: string }) {
   });
 
   return (
-    <mesh ref={meshRef} rotation={[Math.PI / 2, 0, 0]}>
+    <mesh ref={meshRef} rotation={[Math.PI / 2, 0, 0]} renderOrder={2}>
       <ringGeometry args={[1.5, 1.8, 32]} />
-      <meshBasicMaterial ref={matRef} color={color} transparent opacity={0.4} side={2} />
+      <meshBasicMaterial ref={matRef} color={color} transparent opacity={0.4} side={2} depthTest={true} depthWrite={false} />
     </mesh>
   );
 }

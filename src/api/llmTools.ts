@@ -262,22 +262,41 @@ export function buildSceneContext(
     coal: '煤矿',
     gold: '金矿',
     oil: '油气',
+    pipeline: '管线网络',
+    nuclear: '核反应堆',
+    refinery: '炼油化工设备',
   };
 
   const sensorKey: Record<ScenarioType, string> = {
     coal: 'ch4_pct',
     gold: 'stress_mpa',
     oil: 'permeability_md',
+    pipeline: 'ch4_pct',
+    nuclear: 'ch4_pct',
+    refinery: 'rock_strength_mpa',
   };
 
   const sensorLabel: Record<ScenarioType, string> = {
     coal: 'CH4浓度(%)',
     gold: '应力(MPa)',
     oil: '渗透率(mD)',
+    pipeline: '天然气泄漏(%LEL)',
+    nuclear: '剂量率(mSv/h)',
+    refinery: '壁厚减薄率(%)',
   };
 
   const key = sensorKey[scenario];
   const label = sensorLabel[scenario];
+
+  // 场景特定的报警阈值标签
+  const thresholdLabelMap: Record<ScenarioType, string> = {
+    coal: `瓦斯报警阈值：${gasThreshold}%`,
+    gold: `微震预警阈值：15 次/h`,
+    oil: `孔隙压力预警：30 MPa`,
+    pipeline: `天然气泄漏阈值：20 %LEL`,
+    nuclear: `剂量率控制阈值：25 mSv/h`,
+    refinery: `壁厚减薄报警阈值：3%`,
+  };
 
   // 找出最危险的节点（按场景关键传感器排序）
   const allNodes = fractures.flatMap((f) =>
@@ -296,10 +315,13 @@ export function buildSceneContext(
     }))
   );
 
-  // 按危险度排序（煤矿看CH4, 金矿看应力, 油气看渗透率）
+  // 按危险度排序
   const sorted = [...allNodes].sort((a, b) => {
     if (scenario === 'coal') return b.ch4 - a.ch4;
     if (scenario === 'gold') return b.stress - a.stress;
+    if (scenario === 'pipeline') return b.ch4 - a.ch4;
+    if (scenario === 'nuclear') return b.ch4 - a.ch4;
+    if (scenario === 'refinery') return b.value - a.value; // 按壁厚减薄率排序
     return b.permeability - a.permeability;
   });
 
@@ -307,6 +329,9 @@ export function buildSceneContext(
   const overThreshold = allNodes.filter((n) => {
     if (scenario === 'coal') return n.ch4 > gasThreshold;
     if (scenario === 'gold') return n.stress > 15;
+    if (scenario === 'pipeline') return n.ch4 > 20;
+    if (scenario === 'nuclear') return n.ch4 > 25;
+    if (scenario === 'refinery') return n.value > 3.0; // 壁厚减薄率 >3%
     return n.permeability > 1.0;
   });
 
@@ -317,22 +342,36 @@ export function buildSceneContext(
         f.nodes.length > 0
           ? (f.nodes.reduce((sum, n) => sum + ((n.sensors as any)[key] ?? 0), 0) / f.nodes.length).toFixed(2)
           : 'N/A';
-      return `  - ${f.id} (${f.name}): 类型=${f.type}, 长度=${f.length.toFixed(1)}m, 开度=${f.aperture_um}µm, 节点${f.nodes.length}个, 均值${label}=${avgSensor}`;
+      const isPipeMode = scenario === 'pipeline' || scenario === 'nuclear' || scenario === 'refinery';
+  const geomLabel = isPipeMode ? '壁厚' : '开度';
+  const geomUnit = isPipeMode ? 'mm' : 'µm';
+  const geomVal = isPipeMode ? (f.aperture_um / 1000).toFixed(1) : f.aperture_um.toString();
+  return `  - ${f.id} (${f.name}): 类型=${f.type}, 长度=${f.length.toFixed(1)}m, ${geomLabel}=${geomVal}${geomUnit}, 节点${f.nodes.length}个, 均值${label}=${avgSensor}`;
     })
     .join('\n');
+
+  // 场景特定的 TOP5 节点辅助参数描述
+  const auxDescMap: Record<ScenarioType, (n: typeof top5[0]) => string> = {
+    coal: (n) => `CH₄=${n.ch4}%, CO=${n.ch4}ppm, 温度=${n.temp}°C, 应力=${n.stress}MPa, 水压=${n.waterPressure}MPa, 渗透率=${n.permeability}mD`,
+    gold: (n) => `微震=${n.microseismic}次/h, 温度=${n.temp}°C, 应力=${n.stress}MPa, 渗透率=${n.permeability}mD`,
+    oil: (n) => `孔隙压力=${n.waterPressure}MPa, 温度=${n.temp}°C, 渗透率=${n.permeability}mD`,
+    pipeline: (n) => `泄漏=${n.ch4}%LEL, 温度=${n.temp}°C, 应力=${n.stress}MPa, 振动=${n.microseismic}Hz`,
+    nuclear: (n) => `剂量率=${n.ch4}mSv/h, 疲劳=${(n.waterPressure).toFixed(0)}%, FAC=${n.permeability}mm/yr, 振动=${n.microseismic}mm/s, 温度=${n.temp}°C`,
+    refinery: (n) => `壁厚减薄=${n.permeability}%, 温度=${n.temp}°C, 应力=${n.stress}MPa, 声发射=${n.microseismic}mV`,
+  };
 
   const topPoints = top5
     .map(
       (n, i) =>
-        `  ${i + 1}. [${n.position[0].toFixed(1)}, ${n.position[1].toFixed(1)}, ${n.position[2].toFixed(1)}] ${n.fractureId} ${n.fractureName} — ${label}=${n.value.toFixed(2)}, CH4=${n.ch4}%, 温度=${n.temp}°C, 应力=${n.stress}MPa, 渗透率=${n.permeability}mD`
+        `  ${i + 1}. [${n.position[0].toFixed(1)}, ${n.position[1].toFixed(1)}, ${n.position[2].toFixed(1)}] ${n.fractureId} ${n.fractureName} — ${label}=${n.value.toFixed(2)}, ${auxDescMap[scenario](n)}`
     )
     .join('\n');
 
   return `## 当前3D场景实时数据（供你分析和操作使用）
 
 ### 场景：${scenarioNames[scenario]}
-### 瓦斯报警阈值：${gasThreshold}%
-### 裂缝总数：${fractures.length} 条
+### ${thresholdLabelMap[scenario]}
+### 裂缝/管道总数：${fractures.length} 条
 ### 超阈值节点：${overThreshold.length} 个
 
 ### 裂缝概览（前8条）

@@ -3,6 +3,45 @@ import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { useSensorTrend } from '../../hooks/useSensorTrend';
 import { useSceneStore } from '../../store/useSceneStore';
 import { ChevronDown, MapPin } from 'lucide-react';
+import type { ScenarioType } from '../../types';
+
+/** 场景特定的趋势标签配置 */
+const TREND_LABELS: Record<ScenarioType, {
+  primary: { label: string; unit: string; threshold: number };
+  temp: { label: string };
+  aux: { label: string; unit: string };
+}> = {
+  coal: {
+    primary: { label: 'CH₄ 浓度', unit: '%', threshold: 1.5 },
+    temp: { label: '环境温度' },
+    aux: { label: '大气压力', unit: 'kPa' },
+  },
+  gold: {
+    primary: { label: '微震频率', unit: '次/h', threshold: 15 },
+    temp: { label: '岩温' },
+    aux: { label: '应力', unit: 'MPa' },
+  },
+  oil: {
+    primary: { label: '孔隙压力', unit: 'MPa', threshold: 30 },
+    temp: { label: '地层温度' },
+    aux: { label: '渗透率', unit: 'mD' },
+  },
+  pipeline: {
+    primary: { label: '天然气泄漏', unit: '%LEL', threshold: 20 },
+    temp: { label: '管道温度' },
+    aux: { label: '运行压力', unit: 'MPa' },
+  },
+  nuclear: {
+    primary: { label: '剂量率', unit: 'mSv/h', threshold: 25 },
+    temp: { label: '冷却剂温度' },
+    aux: { label: '运行压力', unit: 'MPa' },
+  },
+  refinery: {
+    primary: { label: '壁厚减薄', unit: '%', threshold: 3 },
+    temp: { label: '操作温度' },
+    aux: { label: '腐蚀速率', unit: 'mm/yr' },
+  },
+};
 
 // Mini sparkline chart using SVG
 function Sparkline({ data, color, height = 36 }: { data: number[]; color: string; height?: number }) {
@@ -84,6 +123,8 @@ export function SensorTrends() {
   const { data: trend, loading } = useSensorTrend();
   const flyTo = useSceneStore((s) => s.flyTo);
   const setHighlightedFractureIds = useSceneStore((s) => s.setHighlightedFractureIds);
+  const scenario = useSceneStore((s) => s.scenario);
+  const labels = TREND_LABELS[scenario] || TREND_LABELS.coal;
 
   const handleRegionClick = (r: typeof trend.regions[0]) => {
     if (activeRegion === r.regionId) {
@@ -156,9 +197,9 @@ export function SensorTrends() {
             <div className="text-[10px] text-[#A0A0B0]/40 text-center py-3">加载趋势...</div>
           ) : view === 'aggregate' ? (
             <>
-              <TrendRow label="CH4 浓度 (聚合)" unit="%" data={trend.ch4} color="#FFA500" threshold={1.5} />
-              <TrendRow label="环境温度 (聚合)" unit="°C" data={trend.temperature} color="#FF6B35" />
-              <TrendRow label="大气压力 (聚合)" unit="kPa" data={trend.pressure} color="#4DA6FF" />
+              <TrendRow label={`${labels.primary.label} (聚合)`} unit={labels.primary.unit} data={trend.ch4} color="#FFA500" threshold={labels.primary.threshold} />
+              <TrendRow label={`${labels.temp.label} (聚合)`} unit="°C" data={trend.temperature} color="#FF6B35" />
+              <TrendRow label={`${labels.aux.label} (聚合)`} unit={labels.aux.unit} data={trend.pressure} color="#4DA6FF" />
             </>
           ) : (
             <div className="space-y-1.5 max-h-[180px] overflow-y-auto custom-scroll">
@@ -183,15 +224,15 @@ export function SensorTrends() {
                       <span className="text-[7px] text-[#A0A0B0]/40">{r.nodeCount} 节点</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className={`text-[9px] font-mono ${ch4Now > 1.5 ? 'text-[#FF3333]' : 'text-[#FFA500]'}`}>
-                        CH₄ {ch4Now.toFixed(2)}%
+                      <span className={`text-[9px] font-mono ${ch4Now > labels.primary.threshold ? 'text-[#FF3333]' : 'text-[#FFA500]'}`}>
+                        {labels.primary.label} {ch4Now.toFixed(2)}{labels.primary.unit}
                       </span>
                       <span className="text-[9px] font-mono text-[#FF6B35]">
                         {r.temperature[r.temperature.length - 1]?.toFixed(0)}°C
                       </span>
                     </div>
                     <div className="mt-0.5">
-                      <Sparkline data={r.ch4} color={ch4Now > 1.5 ? '#FF3333' : '#FFA500'} height={24} />
+                      <Sparkline data={r.ch4} color={ch4Now > labels.primary.threshold ? '#FF3333' : '#FFA500'} height={24} />
                     </div>
                     {isActive && (
                       <div className="text-[7px] text-[#FFE600]/50 text-center mt-0.5 animate-fade-in">

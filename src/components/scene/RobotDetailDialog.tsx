@@ -1,6 +1,21 @@
 import { Badge } from '../ui/badge';
 import type { Robot, RobotModel, RobotStatus, MeshRole } from '../../types';
 import { Battery, Signal, Wifi, WifiOff, Activity, MapPin, Radio, X } from 'lucide-react';
+import { useSceneStore } from '../../store/useSceneStore';
+
+/** 场景特定传感器显示配置 — 机器人回传的三项传感器 */
+const ROBOT_SENSOR_CONFIG: Record<string, {
+  primary: { label: string; unit: string; threshold: number };
+  aux: { label: string; unit: string };
+  depthLabel: string;
+}> = {
+  coal:      { primary: { label: 'CH₄', unit: '%', threshold: 1.5 },   aux: { label: '湿度', unit: '%' },     depthLabel: '深度' },
+  gold:      { primary: { label: 'CH₄', unit: '%', threshold: 1.5 },   aux: { label: '湿度', unit: '%' },     depthLabel: '深度' },
+  oil:       { primary: { label: 'CH₄', unit: '%', threshold: 1.5 },   aux: { label: '湿度', unit: '%' },     depthLabel: '深度' },
+  pipeline:  { primary: { label: '泄漏', unit: '%LEL', threshold: 20 }, aux: { label: '压力', unit: 'MPa' },   depthLabel: '行程' },
+  nuclear:   { primary: { label: '剂量', unit: 'mSv/h', threshold: 25 },aux: { label: '压力', unit: 'MPa' },   depthLabel: '距RPV' },
+  refinery:  { primary: { label: '减薄', unit: '%', threshold: 3 },    aux: { label: '腐蚀', unit: 'mm/yr' }, depthLabel: '行程' },
+};
 
 const MODEL_LABELS: Record<RobotModel, string> = {
   snake: '蛇形',
@@ -8,6 +23,7 @@ const MODEL_LABELS: Record<RobotModel, string> = {
   wheeled: '轮式',
   climbing: '攀爬式',
   aerial: '飞行',
+  spider: '蛛型',
 };
 
 const STATUS_LABELS: Record<RobotStatus, string> = {
@@ -45,10 +61,13 @@ function timeAgo(ts: number): string {
  * 点击左侧列表或 3D 光点后，相机飞向机器人位置，同时显示此小卡片
  */
 export function RobotDetailDialog({ robot, open, onClose }: { robot: Robot | null; open: boolean; onClose: () => void }) {
+  const scenario = useSceneStore((s) => s.scenario);
   if (!robot || !open) return null;
 
   const statusColor = STATUS_COLORS[robot.status];
   const batteryColor = robot.battery < 20 ? '#FF3333' : robot.battery < 40 ? '#FFA500' : '#00FF66';
+  const sc = ROBOT_SENSOR_CONFIG[scenario] || ROBOT_SENSOR_CONFIG.coal;
+  const primaryOver = robot.sensors.ch4 > sc.primary.threshold;
 
   return (
     <div
@@ -94,7 +113,7 @@ export function RobotDetailDialog({ robot, open, onClose }: { robot: Robot | nul
             </div>
             <div className="flex items-center gap-0.5">
               <Activity className="w-2.5 h-2.5 text-[#A0A0B0]/50" />
-              <span className="text-[9px] font-mono text-[#A0A0B0]/70">{robot.depth}m</span>
+              <span className="text-[9px] font-mono text-[#A0A0B0]/70">{sc.depthLabel} {robot.depth}m</span>
             </div>
           </div>
 
@@ -113,11 +132,11 @@ export function RobotDetailDialog({ robot, open, onClose }: { robot: Robot | nul
               {robot.meshConnected ? <Wifi className="w-2.5 h-2.5 text-[#00FF66]/60" /> : <WifiOff className="w-2.5 h-2.5 text-[#FF3333]/60" />}
               <span className="text-[8px] text-[#A0A0B0]/60">{MESH_LABELS[robot.meshRole]}</span>
             </div>
-            <span className="text-[8px] font-mono ml-auto" style={{ color: robot.sensors.ch4 > 1.5 ? '#FF3333' : '#FFA500' }}>
-              CH4 {robot.sensors.ch4}%
+            <span className="text-[8px] font-mono ml-auto" style={{ color: primaryOver ? '#FF3333' : '#FFA500' }}>
+              {sc.primary.label} {robot.sensors.ch4}{sc.primary.unit}
             </span>
             <span className="text-[8px] font-mono text-[#FF6B35]">{robot.sensors.temperature}°</span>
-            <span className="text-[8px] font-mono text-[#4DA6FF]">{robot.sensors.humidity}%</span>
+            <span className="text-[8px] font-mono text-[#4DA6FF]">{sc.aux.label} {robot.sensors.humidity}{sc.aux.unit}</span>
           </div>
         </div>
       </div>

@@ -11,6 +11,7 @@ import { useSceneStore } from '../../store/useSceneStore';
  */
 export function RockMass() {
   const visible = useSceneStore((s) => s.layers.rockMass);
+  const dataSource = useSceneStore((s) => s.dataSource);
 
   const { outerShell, innerShell, strata1, strata2, strata3 } = useMemo(() => {
     // 使用 simplex-noise 替代手搓 sin/cos
@@ -28,12 +29,12 @@ export function RockMass() {
     return { outerShell: outerGeo, innerShell: innerGeo, strata1: s1, strata2: s2, strata3: s3 };
   }, []);
 
-  if (!visible) return null;
+  if (!visible || dataSource === 'nuclear' || dataSource === 'refinery') return null;
 
   return (
     <group>
-      {/* 外层岩壳 — DoubleSide 确保外部可见 */}
-      <mesh geometry={outerShell}>
+      {/* 外层岩壳 — 半透明不写深度，避免遮挡裂缝面 */}
+      <mesh geometry={outerShell} renderOrder={0}>
         <meshStandardMaterial
           color="#6B5635"
           roughness={0.9}
@@ -46,7 +47,7 @@ export function RockMass() {
       </mesh>
 
       {/* 内层岩壳 */}
-      <mesh geometry={innerShell}>
+      <mesh geometry={innerShell} renderOrder={0}>
         <meshStandardMaterial
           color="#7D6645"
           roughness={0.85}

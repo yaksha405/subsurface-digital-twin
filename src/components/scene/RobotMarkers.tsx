@@ -78,7 +78,8 @@ function RobotMarker({ robot, isFocused, onClick }: { robot: Robot; isFocused: b
 }
 
 export function RobotMarkers() {
-  const { data: robots, loading } = useAllRobots();
+  const dataSource = useSceneStore((s) => s.dataSource);
+  const { data: robots, loading } = useAllRobots(dataSource);
   const flyTo = useSceneStore((s) => s.flyTo);
   const openRobotDetail = useSceneStore((s) => s.openRobotDetail);
   const focusedRobotId = useSceneStore((s) => s.focusedRobotId);

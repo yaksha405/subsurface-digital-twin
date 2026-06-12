@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useMemo } from 'react';
 import { useSceneStore } from '../../store/useSceneStore';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
@@ -15,8 +15,18 @@ export function ChatPanel() {
   const messages = useSceneStore((s) => s.messages);
   const collapsed = useSceneStore((s) => s.chatCollapsed);
   const toggleCollapsed = useSceneStore((s) => s.toggleChatCollapsed);
+  const scenario = useSceneStore((s) => s.scenario);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [streamingText, setStreamingText] = useState<string | null>(null);
+
+  // 动态AI助手名称 — 随场景切换
+  const aiTitle = useMemo(() => {
+    if (scenario === 'pipeline') return '管线巡检AI助手';
+    if (scenario === 'nuclear') return '核反应堆检修AI助手';
+    if (scenario === 'gold') return '金矿裂缝分析AI助手';
+    if (scenario === 'oil') return '油气裂缝分析AI助手';
+    return '地质裂缝分析AI助手';
+  }, [scenario]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -98,7 +108,7 @@ export function ChatPanel() {
           <Bot className="w-3 h-3 text-[#FFE600]" />
         </div>
         <div className="flex-1">
-          <div className="text-xs font-semibold text-[#E0E0E8]">地质裂缝分析AI助手</div>
+          <div className="text-xs font-semibold text-[#E0E0E8]">{aiTitle}</div>
           <div className="flex items-center gap-1 text-[8px] text-[#A0A0B0]">
             <span className="w-1 h-1.5 rounded-full bg-[#FFE600] animate-pulse" />
             {loadSettings().apiKey ? 'DeepSeek Live' : 'Mock 模式 · 请在设置中配置API Key'}
@@ -199,13 +209,15 @@ function executeActions(action: SceneAction) {
 
     case 'markPoints': {
       if (action.points && action.points.length > 0) {
-        const markers = action.points.map((p, i) => ({
+        const markers = action.points.map((p: any, i: number) => ({
           id: `ai-marker-${Date.now()}-${i}`,
           // 吸附到最近裂缝点 — 确保标记在裂缝表面上
           position: snapToFracture(p.position),
           label: p.label,
           level: p.level || 'info',
           createdAt: Date.now(),
+          detail: p.detail,
+          source: p.source,
         }));
         store.addAIMarkers(markers);
       }

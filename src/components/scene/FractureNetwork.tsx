@@ -75,6 +75,9 @@ function getSensorMetric(
 ): { value: number; min: number; max: number; threshold?: number } {
   if (scenario === 'coal') return { value: sensors.ch4_pct, min: 0, max: 5, threshold: 1.5 };
   if (scenario === 'gold') return { value: sensors.microseismic_count, min: 0, max: 30, threshold: 15 };
+  if (scenario === 'pipeline') return { value: sensors.ch4_pct, min: 0, max: 40, threshold: 20 };
+  if (scenario === 'nuclear') return { value: sensors.ch4_pct, min: 0, max: 100, threshold: 25 };
+  if (scenario === 'refinery') return { value: sensors.rock_strength_mpa, min: 0, max: 10, threshold: 3 };
   return { value: sensors.pore_pressure_mpa, min: 5, max: 35, threshold: 30 };
 }
 
@@ -89,31 +92,44 @@ export function FractureNetwork() {
 
   if (!visible || fractures.length === 0) return null;
 
+  const isPipeMode = scenario === 'pipeline' || scenario === 'nuclear' || scenario === 'refinery';
+
   return (
     <group>
-      {fractures.map((fracture) => (
-        <FractureSurface
-          key={fracture.id}
-          fracture={fracture}
-          isSelected={selectedFracture?.id === fracture.id}
-          isHighlighted={
-            highlightedFractureIds === null
-              ? null  // 没有区域筛选 — 正常渲染
-              : highlightedFractureIds.includes(fracture.id)  // 在选中区域内 → 高亮
-          }
-          onSelect={selectFracture}
-          scenario={scenario}
-        />
-      ))}
-      {/* 主裂缝地表入口标记 */}
+      {fractures.map((fracture) =>
+        isPipeMode ? (
+          <PipeMesh
+            key={fracture.id}
+            fracture={fracture}
+            isSelected={selectedFracture?.id === fracture.id}
+            isHighlighted={
+              highlightedFractureIds === null ? null : highlightedFractureIds.includes(fracture.id)
+            }
+            onSelect={selectFracture}
+            scenario={scenario}
+          />
+        ) : (
+          <FractureSurface
+            key={fracture.id}
+            fracture={fracture}
+            isSelected={selectedFracture?.id === fracture.id}
+            isHighlighted={
+              highlightedFractureIds === null ? null : highlightedFractureIds.includes(fracture.id)
+            }
+            onSelect={selectFracture}
+            scenario={scenario}
+          />
+        )
+      )}
+      {/* 入口标记 */}
       {fractures.filter(f => f.type === 'main').map((fracture) => (
-        <FractureEntrance
-          key={`entrance-${fracture.id}`}
-          position={fracture.path[0]}
-          name={fracture.name}
-        />
+        isPipeMode ? (
+          <PipeEntrance key={`entrance-${fracture.id}`} position={fracture.path[0]} name={fracture.name} />
+        ) : (
+          <FractureEntrance key={`entrance-${fracture.id}`} position={fracture.path[0]} name={fracture.name} />
+        )
       ))}
-      {/* 裂缝测点标记 */}
+      {/* 测点标记 */}
       {fractures.map((fracture) =>
         fracture.nodes.map((node) => (
           <FractureNodeMarker
@@ -125,6 +141,132 @@ export function FractureNetwork() {
           />
         ))
       )}
+    </group>
+  );
+}
+
+// ==================== 管道渲染 ====================
+
+/** 计算管道颜色（基于传感器数据） */
+function getPipeColor(fracture: Fracture, scenario: string): string {
+  const sr = fracture.sensorReading;
+  if (scenario === 'pipeline') {
+    if (sr.ch4_pct > 20 || sr.h2s_ppm > 50) return '#FF2222';
+    if (sr.ch4_pct > 10 || sr.h2s_ppm > 20) return '#FF8844';
+    if (sr.permeability_md > 0.25) return '#FFAA00';
+    return '#4488CC'; // 正常 — 钢管蓝
+  }
+  if (scenario === 'nuclear') {
+    if (sr.ch4_pct > 25 || sr.h2s_ppm > 5) return '#FF2222';
+    if (sr.ch4_pct > 10 || sr.h2s_ppm > 2) return '#FF8844';
+    if (sr.permeability_md > 0.1) return '#FFAA00';
+    return '#4499AA'; // 正常 — 不锈钢青
+  }
+  if (scenario === 'refinery') {
+    if (sr.ch4_pct > 20 || sr.rock_strength_mpa > 5 || sr.acoustic_emission_mv > 2000) return '#FF2222';
+    if (sr.ch4_pct > 10 || sr.rock_strength_mpa > 3 || sr.acoustic_emission_mv > 1000) return '#FF8844';
+    if (sr.permeability_md > 0.3 || sr.humidity_pct < 70) return '#FFAA00';
+    return '#CC8844'; // 正常 — 高温合金琥珀色
+  }
+  return '#4488CC';
+}
+
+/** 3D 管道渲染 — TubeGeometry，管径基于 porosity（实际管径 m） */
+function PipeMesh({
+  fracture,
+  isSelected,
+  isHighlighted,
+  onSelect,
+  scenario,
+}: {
+  fracture: Fracture;
+  isSelected: boolean;
+  isHighlighted: boolean | null;
+  onSelect: (f: Fracture) => void;
+  scenario: string;
+}) {
+  const [hovered, setHovered] = useState(false);
+
+  const { tubeGeo, joints } = useMemo(() => {
+    const points = fracture.path.map((p) => new THREE.Vector3(...p));
+    if (points.length < 2) return { tubeGeo: null as THREE.TubeGeometry | null, joints: [] as { pos: THREE.Vector3; r: number }[] };
+
+    const curve = new THREE.CatmullRomCurve3(points);
+    // porosity 存储的是管径(m)，直接缩放为场景半径
+    const baseR = Math.max(0.2, fracture.porosity * 1.1);
+    const radius = fracture.type === 'main' ? baseR : baseR * 0.6;
+    const segments = Math.max(16, Math.min(60, points.length * 2));
+    const geo = new THREE.TubeGeometry(curve, segments, radius, 14, false);
+
+    // 球形接头（管端连接点）— 替代法兰环，使管道看起来像有连接节点而非封堵
+    const jointR = radius * 1.3;
+    const joints = [
+      { pos: points[0], r: jointR },
+      { pos: points[points.length - 1], r: jointR },
+    ];
+    return { tubeGeo: geo, joints };
+  }, [fracture]);
+
+  const handleClick = useCallback(
+    (e: any) => { e.stopPropagation(); onSelect(fracture); },
+    [fracture, onSelect]
+  );
+
+  if (!tubeGeo) return null;
+
+  const baseColor = getPipeColor(fracture, scenario);
+  const inRegion = isHighlighted === true;
+  const filtered = isHighlighted !== null;
+
+  const opacity = filtered ? (inRegion ? 0.95 : 0.15) : (isSelected ? 0.95 : hovered ? 0.85 : 0.75);
+  const emissive = isSelected ? '#FFE600' : hovered ? '#FFCC00' : (filtered && inRegion) ? '#FFE600' : '#000000';
+  const emissiveIntensity = isSelected ? 0.3 : hovered ? 0.15 : (filtered && inRegion) ? 0.25 : 0;
+  const flangeColor = isSelected || hovered ? '#FFE600' : '#888899';
+  const jointColor = isSelected || hovered ? '#FFE600' : '#555566';
+
+  return (
+    <group
+      onClick={handleClick}
+      onPointerOver={() => setHovered(true)}
+      onPointerOut={() => setHovered(false)}
+    >
+      {/* 管体 */}
+      <mesh geometry={tubeGeo}>
+        <meshStandardMaterial
+          color={baseColor}
+          transparent
+          opacity={opacity}
+          emissive={emissive}
+          emissiveIntensity={emissiveIntensity}
+          roughness={0.45}
+          metalness={0.65}
+          depthWrite={opacity > 0.5}
+        />
+      </mesh>
+      {/* 球形接头（管端连接节点） */}
+      {joints.map((j, i) => (
+        <mesh key={`joint-${i}`} position={j.pos}>
+          <sphereGeometry args={[j.r, 12, 10]} />
+          <meshStandardMaterial color={jointColor} roughness={0.5} metalness={0.7} transparent opacity={opacity} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+/** 管道入口标记 — 红色法兰+标签 */
+function PipeEntrance({ position, name }: { position: [number, number, number]; name: string }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <group position={position} onPointerOver={() => setHovered(true)} onPointerOut={() => setHovered(false)}>
+      <mesh rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[hovered ? 1.5 : 1.0, 0.15, 8, 20]} />
+        <meshBasicMaterial color="#FF6600" transparent opacity={hovered ? 0.9 : 0.5} />
+      </mesh>
+      <mesh>
+        <sphereGeometry args={[0.3, 8, 8]} />
+        <meshBasicMaterial color="#FF6600" />
+      </mesh>
     </group>
   );
 }
@@ -309,7 +451,7 @@ function FractureSurface({
       onPointerOver={() => setHovered(true)}
       onPointerOut={() => setHovered(false)}
     >
-      {/* 裂缝面 — 单一表面，消除重影 */}
+      {/* 裂缝面 */}
       <mesh geometry={surfaceGeo}>
         <meshStandardMaterial
           vertexColors
@@ -387,6 +529,18 @@ function FractureNodeMarker({
     if (scenario === 'oil') {
       if (node.sensors.pore_pressure_mpa > 30) return '#FF2222';
       if (node.sensors.pore_pressure_mpa > 20) return '#FF8844';
+    }
+    if (scenario === 'pipeline') {
+      if (node.sensors.ch4_pct > 20 || node.sensors.h2s_ppm > 50) return '#FF2222';
+      if (node.sensors.ch4_pct > 10 || node.sensors.h2s_ppm > 20) return '#FF8844';
+    }
+    if (scenario === 'nuclear') {
+      if (node.sensors.ch4_pct > 25 || node.sensors.water_pressure_mpa > 60) return '#FF2222';
+      if (node.sensors.ch4_pct > 10 || node.sensors.water_pressure_mpa > 40) return '#FF8844';
+    }
+    if (scenario === 'refinery') {
+      if (node.sensors.ch4_pct > 20 || node.sensors.rock_strength_mpa > 5 || node.sensors.acoustic_emission_mv > 2000) return '#FF2222';
+      if (node.sensors.ch4_pct > 10 || node.sensors.rock_strength_mpa > 3 || node.sensors.acoustic_emission_mv > 1000) return '#FF8844';
     }
     return '#44FF88';
   }, [node.sensors, scenario]);

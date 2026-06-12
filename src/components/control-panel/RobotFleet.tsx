@@ -12,6 +12,7 @@ const MODEL_LABELS: Record<RobotModel, string> = {
   wheeled: '轮式',
   climbing: '攀爬式',
   aerial: '飞行',
+  spider: '蛛型',
 };
 
 const STATUS_LABELS: Record<RobotStatus, string> = {
@@ -49,6 +50,7 @@ const STATUS_OPTIONS: { value: string; label: string }[] = [
 const MODEL_OPTIONS: { value: string; label: string }[] = [
   { value: 'all', label: '全部型号' },
   { value: 'snake', label: '蛇形' },
+  { value: 'spider', label: '蛛型' },
   { value: 'tracked', label: '履带式' },
   { value: 'wheeled', label: '轮式' },
   { value: 'climbing', label: '攀爬式' },
@@ -76,7 +78,7 @@ function timeAgo(ts: number): string {
   return `${Math.floor(s / 3600)}h前`;
 }
 
-function RobotCard({ robot, isFocused, onClick }: { robot: Robot; isFocused: boolean; onClick: () => void }) {
+function RobotCard({ robot, isFocused, onClick, depthLabel }: { robot: Robot; isFocused: boolean; onClick: () => void; depthLabel: string }) {
   const color = STATUS_COLORS[robot.status];
 
   return (
@@ -119,7 +121,7 @@ function RobotCard({ robot, isFocused, onClick }: { robot: Robot; isFocused: boo
           <Signal className="w-2.5 h-2.5 text-[#A0A0B0]/50" />
           <span className="text-[8px] font-mono text-[#A0A0B0]/70">{robot.signalStrength}dBm</span>
         </div>
-        <span className="text-[8px] font-mono text-[#A0A0B0]/50 ml-auto">Z={robot.depth}m</span>
+        <span className="text-[8px] font-mono text-[#A0A0B0]/50 ml-auto">{depthLabel}={robot.depth}m</span>
         <span className="text-[8px] text-[#A0A0B0]/40">{timeAgo(robot.lastUpdate)}</span>
       </div>
     </div>
@@ -129,8 +131,10 @@ function RobotCard({ robot, isFocused, onClick }: { robot: Robot; isFocused: boo
 export function RobotFleet() {
   const [filter, setFilter] = useState<RobotFilter>(defaultFilter);
   const [collapsed, setCollapsed] = useState(false);
-  const { data: stats } = useRobotStats();
-  const { data: robots, loading, total } = useFilteredRobots(filter);
+  const dataSource = useSceneStore((s) => s.dataSource);
+  const scenario = useSceneStore((s) => s.scenario);
+  const { data: stats } = useRobotStats(dataSource);
+  const { data: robots, loading, total } = useFilteredRobots(filter, dataSource);
   const flyTo = useSceneStore((s) => s.flyTo);
   const openRobotDetail = useSceneStore((s) => s.openRobotDetail);
   const focusedRobotId = useSceneStore((s) => s.focusedRobotId);
@@ -140,6 +144,8 @@ export function RobotFleet() {
     flyTo({ position: robot.position, region: `robot-${robot.id}`, zoom: 'close' });
     openRobotDetail(robot);
   };
+
+  const depthLabel = scenario === 'nuclear' ? '距RPV' : (scenario === 'pipeline' || scenario === 'refinery') ? '行程' : 'Z';
 
   return (
     <>
@@ -208,11 +214,11 @@ export function RobotFleet() {
           {/* Robot list */}
           <div className="max-h-[300px] overflow-y-auto space-y-1 pr-0.5 custom-scroll">
             {robots.map((robot) => (
-              <RobotCard key={robot.id} robot={robot} isFocused={focusedRobotId === robot.id} onClick={() => handleRobotClick(robot)} />
+              <RobotCard key={robot.id} robot={robot} isFocused={focusedRobotId === robot.id} onClick={() => handleRobotClick(robot)} depthLabel={depthLabel} />
             ))}
             {!loading && robots.length === 0 && (
               <div className="text-[10px] text-[#A0A0B0]/40 text-center py-4">
-                {filter.model !== 'all' && filter.model !== 'snake'
+                {filter.model !== 'all' && filter.model !== 'snake' && filter.model !== 'spider'
                   ? `${MODEL_LABELS[filter.model as RobotModel]} 机器人在当前裂缝场景未部署`
                   : '无匹配机器人'}
               </div>

@@ -48,7 +48,9 @@ export function generateMockAIResponse(
     lowerInput.includes('危险点') ||
     lowerInput.includes('最危险的地方') ||
     lowerInput.includes('哪里危险') ||
-    lowerInput.includes('异常')
+    lowerInput.includes('异常') ||
+    lowerInput.includes('辐射热点') ||
+    lowerInput.includes('危险管段')
   ) {
     return findDangerousPoints(input, sceneContext);
   }
@@ -362,7 +364,162 @@ export function generateMockAIResponse(
     };
   }
 
+  // ========== 管线场景特定分析 ==========
+  if (scenario === 'pipeline') {
+    // 管网概览
+    if (lowerInput.includes('管网') && (lowerInput.includes('分布') || lowerInput.includes('概览') || lowerInput.includes('情况'))) {
+      const mainPipes = fractures.filter(f => f.type === 'main');
+      const branchPipes = fractures.filter(f => f.type === 'branch');
+      const leakRisk = fractures.filter(f => f.sensorReading.ch4_pct > 20);
+      return {
+        message: `## 管网分布概览\n\n当前监测区域共 **${fractures.length}** 段管道：\n\n| 类型 | 数量 | 平均长度 |\n|------|------|---------|\n| 主干线 | ${mainPipes.length} | ${Math.round(mainPipes.reduce((s,f)=>s+f.length,0)/Math.max(mainPipes.length,1))}m |\n| 支线 | ${branchPipes.length} | ${Math.round(branchPipes.reduce((s,f)=>s+f.length,0)/Math.max(branchPipes.length,1))}m |\n\n⚠️ **${leakRisk.length}** 段管道泄漏浓度超20%LEL，建议优先巡检。`,
+        actions: [{ type: 'fitAll' }, { type: 'clearMarkers' }],
+      };
+    }
+    // 泄漏检测
+    if (lowerInput.includes('泄漏') || lowerInput.includes('漏气') || lowerInput.includes('天然气')) {
+      const leakSorted = fractures.map(f => ({ f, leak: f.sensorReading.ch4_pct, h2s: f.sensorReading.h2s_ppm }))
+        .filter(x => x.leak > 0).sort((a,b) => b.leak - a.leak);
+      const top = leakSorted.slice(0, 5);
+      const danger = top.filter(x => x.leak > 20);
+      const rows = top.map(x => `| ${x.f.id} | ${x.leak.toFixed(1)}%LEL | ${x.h2s.toFixed(0)}ppm | ${x.leak > 20 ? '🔴 危险' : x.leak > 10 ? '⚠️ 关注' : '🟢 正常'} |`).join('\n');
+      const actions: SceneAction[] = [{ type: 'clearMarkers' }];
+      if (danger.length > 0) {
+        actions.push({ type: 'markPoints', points: danger.map(x => ({ position: fractureCenter(x.f), label: `${x.f.id} 泄漏=${x.leak.toFixed(1)}%LEL`, level: 'danger' as const })) });
+        actions.push({ type: 'flyTo', position: fractureCenter(danger[0].f), region: `泄漏: ${danger[0].f.id}` });
+      }
+      return {
+        message: `## 天然气泄漏检测\n\n| 管段 | 泄漏浓度 | H₂S | 状态 |\n|------|---------|-----|------|\n${rows}\n\n安全阈值: 20%LEL (报警) / NACE MR0175 H₂S: 50ppm\n\n${danger.length > 0 ? `🔴 **${danger.length}** 段管道泄漏超标！` : '✅ 当前泄漏浓度在安全范围内。'}`,
+        actions,
+      };
+    }
+    // 壁厚/腐蚀
+    if (lowerInput.includes('壁厚') || lowerInput.includes('腐蚀') || lowerInput.includes('厚度')) {
+      const corrSorted = fractures.map(f => ({ f, corr: f.sensorReading.permeability_md, wtLoss: f.sensorReading.rock_strength_mpa }))
+        .sort((a,b) => b.corr - a.corr);
+      const top = corrSorted.slice(0, 6);
+      const rows = top.map(x => `| ${x.f.id} | ${x.corr.toFixed(3)} mm/yr | ${x.wtLoss.toFixed(1)}% | ${x.corr > 0.25 ? '🔴 高' : x.corr > 0.1 ? '⚠️ 中' : '🟢 低'} |`).join('\n');
+      const actions: SceneAction[] = [{ type: 'clearMarkers' }];
+      if (top.length > 0) actions.push({ type: 'flyTo', position: fractureCenter(top[0].f), region: `腐蚀最严重: ${top[0].f.id}` });
+      return {
+        message: `## 管道壁厚腐蚀评估\n\n基于超声测厚数据，阴极保护电位分析：\n\n| 管段 | 腐蚀速率 | 壁厚损失 | 风险 |\n|------|---------|---------|------|\n${rows}\n\n> ASME B31.8: 屈服利用率>72%需降压运行\n> 腐蚀速率>0.3mm/yr需更换管段`,
+        actions,
+      };
+    }
+    // H₂S
+    if (lowerInput.includes('硫化氢') || lowerInput.includes('h2s') || lowerInput.includes('h₂s')) {
+      const h2sSorted = fractures.map(f => ({ f, h2s: f.sensorReading.h2s_ppm }))
+        .filter(x => x.h2s > 0).sort((a,b) => b.h2s - a.h2s);
+      const top = h2sSorted.slice(0, 5);
+      const rows = top.map(x => `| ${x.f.id} | ${x.h2s.toFixed(0)} ppm | ${x.h2s > 50 ? '🔴 超NACE阈值' : x.h2s > 20 ? '⚠️ 关注' : '🟢 正常'} |`).join('\n');
+      return {
+        message: `## H₂S 硫化氢监测\n\n| 管段 | H₂S浓度 | 状态 |\n|------|---------|------|\n${rows}\n\n> NACE MR0175: 酸性服务阈值50ppm，超阈值需更换为抗硫管材`,
+        actions: [{ type: 'clearMarkers' }],
+      };
+    }
+    // 屈服强度
+    if (lowerInput.includes('屈服') || lowerInput.includes('强度校核') || lowerInput.includes('应力')) {
+      const yieldSorted = fractures.map(f => ({ f, util: f.sensorReading.stress_sigma1, yield: f.sensorReading.stress_sigma3, op: f.sensorReading.stress_mpa }))
+        .sort((a,b) => b.util - a.util);
+      const top = yieldSorted.slice(0, 5);
+      const rows = top.map(x => `| ${x.f.id} | X${Math.round(x.yield/6.9)} | ${x.op.toFixed(1)} | ${x.util.toFixed(1)}% | ${x.util > 72 ? '🔴 超标' : x.util > 50 ? '⚠️ 偏高' : '🟢 安全'} |`).join('\n');
+      return {
+        message: `## 管道屈服强度校核\n\n基于运行压力×管径/(2×壁厚)计算环向应力：\n\n| 管段 | 钢级 | 运行压力 | 屈服利用率 | 状态 |\n|------|------|---------|----------|------|\n${rows}\n\n> ASME B31.8: 屈服利用率报警阈值72%`,
+        actions: [{ type: 'clearMarkers' }],
+      };
+    }
+  }
+
+  // ========== 核反应堆场景特定分析 ==========
+  if (scenario === 'nuclear') {
+    // 管道网络概览
+    if (lowerInput.includes('管道') && (lowerInput.includes('概览') || lowerInput.includes('分布') || lowerInput.includes('网络') || lowerInput.includes('情况'))) {
+      const primary = fractures.filter(f => f.sensorReading.stress_mpa >= 15);
+      const secondary = fractures.filter(f => f.sensorReading.stress_mpa < 15 && f.sensorReading.stress_mpa > 3);
+      const aux = fractures.filter(f => f.sensorReading.stress_mpa <= 3);
+      const hotspots = fractures.filter(f => f.sensorReading.ch4_pct > 25);
+      return {
+        message: `## 核反应堆管道网络概览\n\nPWR 四环路压水堆管道系统，共 **${fractures.length}** 段：\n\n| 等级 | 数量 | 说明 |\n|------|------|------|\n| Class 1 一回路 | ${primary.length} | 15.5MPa, 293-327°C, SS316LN |\n| Class 2 二回路 | ${secondary.length} | 5.5-7.8MPa, 180-290°C, A106 Gr.C |\n| Class 3 辅助 | ${aux.length} | ECCS/CVCS/CCWS |\n\n${hotspots.length > 0 ? `⚠️ **${hotspots.length}** 段管道剂量率超25 mSv/h控制目标。` : '✅ 辐射剂量率在控制范围内。'}`,
+        actions: [{ type: 'fitAll' }, { type: 'clearMarkers' }],
+      };
+    }
+    // 剂量率
+    if (lowerInput.includes('剂量') || lowerInput.includes('辐射') || lowerInput.includes('辐射热点') || lowerInput.includes('放射')) {
+      const doseSorted = fractures.map(f => ({ f, dose: f.sensorReading.ch4_pct }))
+        .filter(x => x.dose > 0).sort((a,b) => b.dose - a.dose);
+      const top = doseSorted.slice(0, 5);
+      const danger = top.filter(x => x.dose > 25);
+      const rows = top.map(x => `| ${x.f.id} (${x.f.name}) | ${x.dose.toFixed(1)} mSv/h | ${x.dose > 25 ? '🔴 超控制目标' : x.dose > 10 ? '⚠️ 关注' : '🟢 正常'} |`).join('\n');
+      const actions: SceneAction[] = [{ type: 'clearMarkers' }];
+      if (danger.length > 0) {
+        actions.push({ type: 'markPoints', points: danger.map(x => ({ position: fractureCenter(x.f), label: `${x.f.id} 剂量率=${x.dose.toFixed(1)}mSv/h`, level: 'danger' as const })) });
+        actions.push({ type: 'flyTo', position: fractureCenter(danger[0].f), region: `辐射热点: ${danger[0].f.id}` });
+      }
+      return {
+        message: `## 辐射剂量率分析\n\n基于γ剂量仪巡测数据：\n\n| 管道 | 剂量率 | 状态 |\n|------|--------|------|\n${rows}\n\n> 控制区管理目标: 25 mSv/h\n> 职业照射限值: 20 mSv/yr (GB 18871)\n\n${danger.length > 0 ? `🔴 **${danger.length}** 段管道辐射超标，建议限制人员接近！` : '✅ 当前剂量率在管理目标范围内。'}`,
+        actions,
+      };
+    }
+    // 疲劳
+    if (lowerInput.includes('疲劳') || lowerInput.includes('fatigue')) {
+      const fatSorted = fractures.map(f => ({ f, fat: f.sensorReading.water_pressure_mpa }))
+        .sort((a,b) => b.fat - a.fat);
+      const top = fatSorted.slice(0, 5);
+      const rows = top.map(x => `| ${x.f.id} (${x.f.name}) | ${(x.fat).toFixed(1)}% | ${x.fat > 60 ? '🔴 报警' : x.fat > 40 ? '⚠️ 关注' : '🟢 正常'} |`).join('\n');
+      return {
+        message: `## 管道疲劳累积损伤评估\n\n基于应变片在线监测 + 瞬态记录仪数据：\n\n| 管道 | 疲劳使用因子 | 状态 |\n|------|------------|------|\n${rows}\n\n> ASME Section III: 疲劳使用因子要求<1.0\n> 报警阈值: 0.6（需加强监测）\n> 达1.0需缺陷评定或更换`,
+        actions: [{ type: 'clearMarkers' }],
+      };
+    }
+    // FAC
+    if (lowerInput.includes('fac') || lowerInput.includes('流动加速腐蚀') || lowerInput.includes('腐蚀')) {
+      const facSorted = fractures.map(f => ({ f, fac: f.sensorReading.permeability_md }))
+        .filter(x => x.fac > 0).sort((a,b) => b.fac - a.fac);
+      const top = facSorted.slice(0, 5);
+      const rows = top.map(x => `| ${x.f.id} | ${x.fac.toFixed(3)} mm/yr | ${(x.fac * 10).toFixed(1)} mm | ${x.fac > 0.1 ? '🔴 超EPRI阈值' : x.fac > 0.05 ? '⚠️ 关注' : '🟢 正常'} |`).join('\n');
+      return {
+        message: `## FAC 流动加速腐蚀监测\n\n二回路碳钢管道重点风险（EPRI CHECKWORKS评估）：\n\n| 管道 | FAC速率 | 预测壁厚减薄 | 状态 |\n|------|--------|-----------|------|\n${rows}\n\n> EPRI关注阈值: 0.1 mm/yr\n> 年检管道: FAC速率>0.05mm/yr\n> 建议管材升级: SS316L 替换 A106 Gr.C`,
+        actions: [{ type: 'clearMarkers' }],
+      };
+    }
+    // 冷却剂活度
+    if (lowerInput.includes('活度') || lowerInput.includes('冷却剂') || lowerInput.includes('放射性') || lowerInput.includes('核素')) {
+      const actSorted = fractures.filter(f => f.sensorReading.h2s_ppm > 0)
+        .map(f => ({ f, act: f.sensorReading.h2s_ppm }))
+        .sort((a,b) => b.act - a.act);
+      const top = actSorted.slice(0, 5);
+      const rows = top.map(x => `| ${x.f.id} | ${x.act.toFixed(2)} Bq/mL | ${x.act > 5 ? '🔴 包壳破损疑似' : x.act > 2 ? '⚠️ 关注' : '🟢 正常'} |`).join('\n');
+      return {
+        message: `## 冷却剂放射性活度分析\n\n基于一回路取样分析（γ谱仪 Cs-137/Cs-134）：\n\n| 管道 | 冷却剂活度 | 状态 |\n|------|----------|------|\n${rows}\n\n> 包壳破损判据: 5 Bq/mL (Cs-137等效)\n> 正常运行: <1 Bq/mL\n> 燃料完整性监测: 活度趋势分析`,
+        actions: [{ type: 'clearMarkers' }],
+      };
+    }
+    // 振动
+    if (lowerInput.includes('振动') || lowerInput.includes('vibration') || lowerInput.includes('振幅')) {
+      const vibSorted = fractures.map(f => ({ f, vib: f.sensorReading.microseismic_count }))
+        .sort((a,b) => b.vib - a.vib);
+      const top = vibSorted.slice(0, 5);
+      const rows = top.map(x => `| ${x.f.id} | ${x.vib.toFixed(1)} mm/s | ${x.vib > 7.1 ? '🔴 C级报警' : x.vib > 4.5 ? '⚠️ B级关注' : '🟢 A级正常'} |`).join('\n');
+      return {
+        message: `## 管道振动状态评估\n\n基于三轴加速度计测量（ISO 10816评估标准）：\n\n| 管道 | 振动速度 | 等级 |\n|------|---------|------|\n${rows}\n\n> ISO 10816:\n> A级 <4.5mm/s — 优良\n> B级 4.5-7.1mm/s — 合格\n> C级 >7.1mm/s — 报警\n> D级 >11.2mm/s — 危险`,
+        actions: [{ type: 'clearMarkers' }],
+      };
+    }
+  }
+
   // ========== 兜底 ==========
+  // 管线场景兜底
+  if (scenario === 'pipeline') {
+    return {
+      message: `我已收到您的指令："${input}"\n\n当前管网共 **${fractures.length}** 段管道，可用指令：\n- 管网分布概览\n- 泄漏检测\n- 壁厚评估\n- 找出危险管段\n- 腐蚀速率分析\n- H₂S监测\n\n请问还需要分析什么？`,
+    };
+  }
+  // 核反应堆场景兜底
+  if (scenario === 'nuclear') {
+    return {
+      message: `我已收到您的指令："${input}"\n\n当前核反应堆管道共 **${fractures.length}** 段，可用指令：\n- 管道网络概览\n- 剂量率巡测\n- 疲劳累积评估\n- 找出辐射热点\n- FAC腐蚀监测\n- 冷却剂活度\n- 振动状态评估\n\n请问还需要分析什么？`,
+    };
+  }
   return {
     message: `我已收到您的指令："${input}"\n\n当前场景共 **${fractures.length}** 条裂缝，可通过以下指令分析：\n- 裂缝分布概览\n- 瓦斯浓度分析\n- 应力场分析\n- 渗透率评估\n- 温度场分析\n- 突水预警\n- 找出最危险的点\n- F-xxx 风险评估（如 F-003风险评估）\n\n请问还需要分析什么？`,
   };
@@ -437,21 +594,38 @@ function findDangerousPoints(
       const stress = n.sensors.stress_mpa;
       const micro = n.sensors.microseismic_count;
       const water = n.sensors.water_pressure_mpa;
+      const h2s = n.sensors.h2s_ppm;
+      const perm = n.sensors.permeability_md;
 
       let score = 0;
+      let factors: string[] = [];
+
       if (scenario === 'coal') {
         score = ch4 * 25 + (ch4 > gasThreshold ? 30 : 0) + (temp > 38 ? 10 : 0) + (micro > 15 ? 20 : 0);
       } else if (scenario === 'gold') {
         score = stress * 3 + (micro > 15 ? 30 : 0) + (temp > 40 ? 10 : 0);
+      } else if (scenario === 'pipeline') {
+        // 管线场景：泄漏 + H₂S + 腐蚀 + 屈服利用率
+        score = ch4 * 2 + h2s * 0.1 + perm * 100 + (n.sensors.stress_sigma1 > 72 ? 25 : 0) + (n.sensors.rock_strength_mpa > 40 ? 20 : 0);
+      } else if (scenario === 'nuclear') {
+        // 核反应堆：剂量率 + 疲劳 + FAC + 冷却剂活度 + 振动
+        score = ch4 * 1.5 + (water > 60 ? 25 : 0) + (h2s > 5 ? 30 : 0) + (perm > 0.1 ? 15 : 0) + (micro > 7 ? 15 : 0);
+      } else if (scenario === 'refinery') {
+        // 炼油化工：壁厚减薄率 + 蠕变 + 声发射(裂纹) + 结垢 + 可燃气体泄漏
+        const wallLoss = n.sensors.rock_strength_mpa;
+        const creep = n.sensors.water_saturation_pct * 100;
+        const ae = n.sensors.acoustic_emission_mv;
+        const scale = n.sensors.stress_sigma2;
+        score = wallLoss * 8 + (creep > 8000 ? 25 : 0) + (ae > 2000 ? 30 : 0) + (scale > 3 ? 15 : 0) + ch4 * 1.5;
       } else {
-        score = n.sensors.permeability_md * 5 + (water > 5 ? 20 : 0);
+        score = perm * 5 + (water > 5 ? 20 : 0);
       }
 
       return {
         position: n.position,
         fractureId: f.id,
         fractureName: f.name,
-        ch4, temp, stress, micro, water,
+        ch4, temp, stress, micro, water, h2s, perm,
         score,
       };
     })
@@ -466,12 +640,34 @@ function findDangerousPoints(
     };
   }
 
+  // 场景特定因子描述
   const points = top3.map((n, i) => {
     const factors: string[] = [];
-    if (n.ch4 > gasThreshold) factors.push(`CH₄=${n.ch4.toFixed(1)}%`);
-    if (n.temp > 38) factors.push(`温度=${n.temp.toFixed(0)}°C`);
-    if (n.micro > 15) factors.push(`微震=${n.micro}次/h`);
-    if (n.water > 5) factors.push(`水压=${n.water.toFixed(1)}MPa`);
+    if (scenario === 'pipeline') {
+      if (n.ch4 > 20) factors.push(`泄漏=${n.ch4.toFixed(1)}%LEL`);
+      if (n.h2s > 50) factors.push(`H₂S=${n.h2s.toFixed(0)}ppm`);
+      if (n.perm > 0.25) factors.push(`腐蚀=${n.perm.toFixed(2)}mm/yr`);
+    } else if (scenario === 'nuclear') {
+      if (n.ch4 > 25) factors.push(`剂量率=${n.ch4.toFixed(1)}mSv/h`);
+      if (n.water > 60) factors.push(`疲劳=${(n.water).toFixed(0)}%`);
+      if (n.h2s > 5) factors.push(`活度=${n.h2s.toFixed(1)}Bq/mL`);
+      if (n.perm > 0.1) factors.push(`FAC=${n.perm.toFixed(2)}mm/yr`);
+      if (n.micro > 7) factors.push(`振动=${n.micro.toFixed(1)}mm/s`);
+    } else if (scenario === 'refinery') {
+      const wallLoss = fractures.find(f=>f.id===n.fractureId)?.nodes.find(nn=>nn.position===n.position)?.sensors.rock_strength_mpa ?? 0;
+      const ae = fractures.find(f=>f.id===n.fractureId)?.nodes.find(nn=>nn.position===n.position)?.sensors.acoustic_emission_mv ?? 0;
+      const scale = fractures.find(f=>f.id===n.fractureId)?.nodes.find(nn=>nn.position===n.position)?.sensors.stress_sigma2 ?? 0;
+      if (n.ch4 > 10) factors.push(`泄漏=${n.ch4.toFixed(1)}%LEL`);
+      if (wallLoss > 3) factors.push(`壁厚减薄=${wallLoss.toFixed(1)}%`);
+      if (ae > 2000) factors.push(`声发射=${ae.toFixed(0)}mV`);
+      if (scale > 3) factors.push(`结垢=${scale.toFixed(1)}mm`);
+      if (n.h2s > 50) factors.push(`H₂S=${n.h2s.toFixed(0)}ppm`);
+    } else {
+      if (n.ch4 > gasThreshold) factors.push(`CH₄=${n.ch4.toFixed(1)}%`);
+      if (n.temp > 38) factors.push(`温度=${n.temp.toFixed(0)}°C`);
+      if (n.micro > 15) factors.push(`微震=${n.micro}次/h`);
+      if (n.water > 5) factors.push(`水压=${n.water.toFixed(1)}MPa`);
+    }
 
     return {
       position: n.position as [number, number, number],
@@ -480,19 +676,31 @@ function findDangerousPoints(
     };
   });
 
+  // 场景特定表格
   const tableRows = top3
     .map((n, i) => {
       const level = i === 0 ? '🔴 危险' : '⚠️ 警告';
-      return `| ${i + 1} | ${n.fractureId} (${n.fractureName}) | [${n.position[0].toFixed(1)}, ${n.position[1].toFixed(1)}, ${n.position[2].toFixed(1)}] | CH₄=${n.ch4}%, 温度=${n.temp.toFixed(0)}°C, 微震=${n.micro}/h | ${level} |`;
+      if (scenario === 'pipeline') {
+        return `| ${i + 1} | ${n.fractureId} (${n.fractureName}) | 泄漏=${n.ch4.toFixed(1)}%LEL, H₂S=${n.h2s.toFixed(0)}ppm, 腐蚀=${n.perm.toFixed(2)}mm/yr | ${level} |`;
+      }
+      if (scenario === 'nuclear') {
+        return `| ${i + 1} | ${n.fractureId} (${n.fractureName}) | 剂量率=${n.ch4.toFixed(1)}mSv/h, 疲劳=${n.water.toFixed(0)}%, 活度=${n.h2s.toFixed(1)}Bq/mL | ${level} |`;
+      }
+      if (scenario === 'refinery') {
+        return `| ${i + 1} | ${n.fractureId} (${n.fractureName}) | 泄漏=${n.ch4.toFixed(1)}%LEL, H₂S=${n.h2s.toFixed(0)}ppm, 温度=${n.temp.toFixed(0)}°C | ${level} |`;
+      }
+      return `| ${i + 1} | ${n.fractureId} (${n.fractureName}) | CH₄=${n.ch4}%, 温度=${n.temp.toFixed(0)}°C, 微震=${n.micro}/h | ${level} |`;
     })
     .join('\n');
 
+  const title = scenario === 'pipeline' ? '危险管段分析' : scenario === 'nuclear' ? '辐射热点分析' : scenario === 'refinery' ? '设备内检异常分析' : '最危险区域分析';
+
   return {
-    message: `## 最危险区域分析\n\n根据实时传感器数据综合评分，标记了 ${top3.length} 个高风险点位：\n\n| 编号 | 裂缝 | 坐标 [X,Y,Z] | 关键指标 | 等级 |\n|------|------|------------|---------|------|\n${tableRows}\n\n已自动飞行到最危险区域（${top3[0].fractureId}），脉冲标记已标注在3D场景中。`,
+    message: `## ${title}\n\n根据实时传感器数据综合评分，标记了 ${top3.length} 个高风险点位：\n\n| 编号 | 管道/裂缝 | 关键指标 | 等级 |\n|------|---------|---------|------|\n${tableRows}\n\n已自动飞行到最危险区域（${top3[0].fractureId}），脉冲标记已标注在3D场景中。`,
     actions: [
       { type: 'clearMarkers' },
       { type: 'markPoints', points },
-      { type: 'flyTo', position: top3[0].position as [number, number, number], region: `最危险: ${top3[0].fractureId}` },
+      { type: 'flyTo', position: top3[0].position as [number, number, number], region: `${title}: ${top3[0].fractureId}` },
     ],
   };
 }
@@ -506,3 +714,46 @@ export const quickCommands = [
   { label: '突水预警', command: '突水风险预警' },
   { label: '温度场分析', command: '分析温度场分布' },
 ];
+
+// ==================== 场景特定快捷指令 ====================
+
+import type { QuickCommand } from '../types/api';
+
+const QUICK_COMMANDS: Record<string, QuickCommand[]> = {
+  // 裂缝场景（煤矿/金矿/油气）
+  fracture: [
+    { label: '裂缝分布概览', command: '裂缝网络分布情况' },
+    { label: '瓦斯浓度分析', command: '分析当前瓦斯浓度' },
+    { label: '应力场分析', command: '分析地应力场分布' },
+    { label: '找出最危险的点', command: '找出最危险的点并标记' },
+    { label: '渗透率评估', command: '渗透率评估分析' },
+    { label: '突水预警', command: '突水风险预警' },
+    { label: '温度场分析', command: '分析温度场分布' },
+  ],
+  // 管线场景
+  pipeline: [
+    { label: '管网分布概览', command: '管网分布情况概览' },
+    { label: '泄漏检测', command: '检测天然气泄漏点' },
+    { label: '壁厚评估', command: '管道壁厚腐蚀评估' },
+    { label: '找出危险管段', command: '找出最危险的管段并标记' },
+    { label: '腐蚀速率分析', command: '分析管道腐蚀速率' },
+    { label: 'H₂S监测', command: '硫化氢浓度监测分析' },
+    { label: '屈服强度校核', command: '管道屈服强度校核' },
+  ],
+  // 核反应堆场景
+  nuclear: [
+    { label: '管道网络概览', command: '核反应堆管道网络概览' },
+    { label: '剂量率巡测', command: '分析辐射剂量率分布' },
+    { label: '疲劳累积评估', command: '管道疲劳累积损伤评估' },
+    { label: '找出辐射热点', command: '找出辐射热点并标记' },
+    { label: 'FAC腐蚀监测', command: 'FAC流动加速腐蚀监测' },
+    { label: '冷却剂活度', command: '冷却剂放射性活度分析' },
+    { label: '振动状态评估', command: '管道振动状态评估' },
+  ],
+};
+
+export function getQuickCommands(scenario: string): QuickCommand[] {
+  if (scenario === 'pipeline') return QUICK_COMMANDS.pipeline;
+  if (scenario === 'nuclear') return QUICK_COMMANDS.nuclear;
+  return QUICK_COMMANDS.fracture;
+}

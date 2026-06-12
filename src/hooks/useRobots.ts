@@ -1,11 +1,17 @@
 import { useState, useEffect, useMemo } from 'react';
 import { fetchRobots, fetchRobotStats } from '../api/robotApi';
-import type { Robot } from '../types';
+import type { Robot, DataSourceType } from '../types';
 import type { RobotFleetStats } from '../types/api';
 
-// 模块级缓存（避免重复请求）
-let cachedAllRobots: Robot[] | null = null;
-let cachedStats: RobotFleetStats | null = null;
+// 模块级缓存（按数据源分别缓存）
+const robotCache: Record<string, Robot[] | null> = { fracture: null, pipeline: null, nuclear: null, refinery: null };
+const statsCache: Record<string, RobotFleetStats | null> = { fracture: null, pipeline: null, nuclear: null, refinery: null };
+
+/** 清除指定数据源的缓存（切换数据源时调用） */
+export function clearRobotCache(dataSource: DataSourceType) {
+  robotCache[dataSource] = null;
+  statsCache[dataSource] = null;
+}
 
 export interface RobotFilter {
   status: string;
@@ -22,20 +28,21 @@ export const defaultFilter: RobotFilter = {
 };
 
 /**
- * 获取全部机器人列表（带模块缓存）
+ * 获取全部机器人列表（带模块缓存，按数据源区分）
  */
-export function useAllRobots() {
-  const [data, setData] = useState<Robot[] | null>(cachedAllRobots);
-  const [loading, setLoading] = useState(!cachedAllRobots);
+export function useAllRobots(dataSource: DataSourceType = 'fracture') {
+  const key = dataSource;
+  const [data, setData] = useState<Robot[] | null>(robotCache[key]);
+  const [loading, setLoading] = useState(!robotCache[key]);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    if (cachedAllRobots) return;
+    if (robotCache[key]) { setData(robotCache[key]); return; }
     const ctrl = new AbortController();
     setLoading(true);
-    fetchRobots(undefined, ctrl.signal)
+    fetchRobots(undefined, ctrl.signal, dataSource)
       .then((robots) => {
-        cachedAllRobots = robots;
+        robotCache[key] = robots;
         setData(robots);
       })
       .catch((e) => {
@@ -43,41 +50,41 @@ export function useAllRobots() {
       })
       .finally(() => setLoading(false));
     return () => ctrl.abort();
-  }, []);
+  }, [key]);
 
   return { data, loading, error };
 }
 
 /**
- * 获取集群统计（带模块缓存）
+ * 获取集群统计（带模块缓存，按数据源区分）
  */
-export function useRobotStats() {
-  const [data, setData] = useState<RobotFleetStats | null>(cachedStats);
-  const [loading, setLoading] = useState(!cachedStats);
+export function useRobotStats(dataSource: DataSourceType = 'fracture') {
+  const key = dataSource;
+  const [data, setData] = useState<RobotFleetStats | null>(statsCache[key]);
+  const [loading, setLoading] = useState(!statsCache[key]);
 
   useEffect(() => {
-    if (cachedStats) return;
+    if (statsCache[key]) { setData(statsCache[key]); return; }
     const ctrl = new AbortController();
     setLoading(true);
-    fetchRobotStats(ctrl.signal)
+    fetchRobotStats(ctrl.signal, dataSource)
       .then((stats) => {
-        cachedStats = stats;
+        statsCache[key] = stats;
         setData(stats);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
     return () => ctrl.abort();
-  }, []);
+  }, [key]);
 
   return { data, loading };
 }
 
 /**
  * 带过滤的机器人列表 Hook
- * 客户端过滤（数据量 200 台，无需每次都打后端）
  */
-export function useFilteredRobots(filter: RobotFilter) {
-  const { data: allRobots, loading } = useAllRobots();
+export function useFilteredRobots(filter: RobotFilter, dataSource: DataSourceType = 'fracture') {
+  const { data: allRobots, loading } = useAllRobots(dataSource);
 
   const filtered = useMemo(() => {
     if (!allRobots) return [];

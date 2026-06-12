@@ -1,12 +1,11 @@
 /**
- * useQuickCommands — 快捷指令 Hook
+ * useQuickCommands — 快捷指令 Hook（按场景动态切换）
  */
 
-import { useEffect, useState } from 'react';
-import { fetchQuickCommands } from '../api/aiApi';
+import { useMemo } from 'react';
+import { getQuickCommands } from '../lib/mockAI';
 import type { QuickCommand } from '../types/api';
-
-let cached: QuickCommand[] | null = null;
+import { useSceneStore } from '../store/useSceneStore';
 
 export interface UseQuickCommandsResult {
   data: QuickCommand[];
@@ -14,21 +13,9 @@ export interface UseQuickCommandsResult {
 }
 
 export function useQuickCommands(): UseQuickCommandsResult {
-  const [data, setData] = useState<QuickCommand[]>(cached || []);
-  const [loading, setLoading] = useState(!cached);
+  const scenario = useSceneStore((s) => s.scenario);
 
-  useEffect(() => {
-    if (cached) return;
+  const data = useMemo(() => getQuickCommands(scenario), [scenario]);
 
-    // fetchQuickCommands is a plain array (re-exported from mockAI)
-    const d = Array.isArray(fetchQuickCommands)
-      ? (fetchQuickCommands as QuickCommand[])
-      : [];
-
-    cached = d;
-    setData(d);
-    setLoading(false);
-  }, []);
-
-  return { data, loading };
+  return { data, loading: false };
 }

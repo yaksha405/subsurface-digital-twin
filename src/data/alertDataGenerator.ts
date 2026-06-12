@@ -1,9 +1,9 @@
 /**
  * 实时告警事件 mock 数据生成器
- * 生成告警事件：瓦斯超标/机器人离线/Mesh断网/温度异常/电量低等
+ * 按数据源生成场景特定的告警：瓦斯/剂量率/泄漏/减薄、温度异常、设备离线等
  */
 
-import type { Robot } from '../types';
+import type { Robot, DataSourceType } from '../types';
 
 export type AlertLevel = 'danger' | 'warning' | 'info';
 export type AlertType =
@@ -28,78 +28,64 @@ export interface AlertEvent {
   acknowledged: boolean;
 }
 
-const ALERT_TEMPLATES: { type: AlertType; level: AlertLevel; titleFn: (r: Robot) => { title: string; desc: string } }[] = [
-  {
-    type: 'gas_overload',
-    level: 'danger',
-    titleFn: (r) => ({
-      title: `CH4 浓度超标 — ${r.id}`,
-      desc: `${r.id} 检测到 CH4 浓度 ${r.sensors.ch4}%，超过安全阈值 1.5%，位置 Z=${r.depth}m`,
-    }),
+/** 场景特定告警配置 */
+interface ScenarioAlertCfg {
+  primaryLabel: string;     // 主监测指标名称
+  primaryUnit: string;      // 单位
+  primaryThreshold: number;  // 告警阈值
+  primaryTitle: string;      // 告警标题
+  tempLabel: string;         // 温度指标名称
+  tempThreshold: number;     // 温度告警阈值(°C)
+  depthLabel: string;        // 距离/深度标签
+  robotCount: number;        // 系统告警中的机器人数量
+}
+
+const SCENARIO_CFG: Record<DataSourceType, ScenarioAlertCfg> = {
+  fracture: {
+    primaryLabel: 'CH₄', primaryUnit: '%', primaryThreshold: 1.5,
+    primaryTitle: 'CH₄ 浓度超标', tempLabel: '环境温度', tempThreshold: 40,
+    depthLabel: 'Z', robotCount: 200,
   },
-  {
-    type: 'robot_offline',
-    level: 'warning',
-    titleFn: (r) => ({
-      title: `机器人离线 — ${r.id}`,
-      desc: `${r.id} 已失联，最后位置 [${r.position.join(', ')}]，最后回传 Z=${r.depth}m`,
-    }),
+  pipeline: {
+    primaryLabel: '泄漏', primaryUnit: '%LEL', primaryThreshold: 20,
+    primaryTitle: '天然气泄漏超标', tempLabel: '管道温度', tempThreshold: 50,
+    depthLabel: '行程', robotCount: 150,
   },
-  {
-    type: 'mesh_disconnect',
-    level: 'warning',
-    titleFn: (r) => ({
-      title: `Mesh 组网中断 — ${r.id}`,
-      desc: `${r.id} 从 Mesh 网络掉线，角色 ${r.meshRole}，影响区域 Z=${r.depth}m 通信链路`,
-    }),
+  nuclear: {
+    primaryLabel: '剂量', primaryUnit: 'mSv/h', primaryThreshold: 25,
+    primaryTitle: '剂量率超标', tempLabel: '冷却剂温度', tempThreshold: 325,
+    depthLabel: '距RPV', robotCount: 180,
   },
-  {
-    type: 'temp_anomaly',
-    level: 'danger',
-    titleFn: (r) => ({
-      title: `温度异常 — ${r.id}`,
-      desc: `${r.id} 环境温度 ${r.sensors.temperature}°C，超出正常范围，位置 Z=${r.depth}m`,
-    }),
+  refinery: {
+    primaryLabel: '减薄', primaryUnit: '%', primaryThreshold: 3,
+    primaryTitle: '壁厚减薄超标', tempLabel: '操作温度', tempThreshold: 500,
+    depthLabel: '行程', robotCount: 160,
   },
-  {
-    type: 'battery_low',
-    level: 'warning',
-    titleFn: (r) => ({
-      title: `电量告警 — ${r.id}`,
-      desc: `${r.id} 电量仅剩 ${r.battery}%，建议尽快返回充电桩，当前任务: ${r.task}`,
-    }),
-  },
-  {
-    type: 'robot_error',
-    level: 'danger',
-    titleFn: (r) => ({
-      title: `设备故障 — ${r.id}`,
-      desc: `${r.id} 报告硬件异常，型号 ${r.model}，需要人工介入检查`,
-    }),
-  },
-];
+};
 
 const SYSTEM_ALERTS: { type: AlertType; level: AlertLevel; title: string; desc: string }[] = [
   {
     type: 'system',
     level: 'info',
     title: '系统启动完成',
-    desc: 'HIVE 数字孪生主控舱初始化完毕，200台机器人已注册，Mesh 网络拓扑建立成功',
+    desc: 'HIVE 数字孪生主控舱初始化完毕，Mesh 网络拓扑建立成功',
   },
   {
     type: 'task_complete',
     level: 'info',
     title: '区域扫描完成',
-    desc: 'SECTOR-A1 三维扫描任务完成，重建 12,000 个体素节点，点云置信度 60%',
+    desc: '三维扫描任务完成，重建 12,000 个体素节点，点云置信度 60%',
   },
 ];
 
-let cachedAlerts: AlertEvent[] | null = null;
+// 按数据源分别缓存
+const cache: Partial<Record<DataSourceType, AlertEvent[]>> = {};
 
-export function generateMockAlerts(robots?: Robot[]): AlertEvent[] {
-  if (cachedAlerts) return cachedAlerts;
+export function generateMockAlerts(robots?: Robot[], dataSource: DataSourceType = 'fracture'): AlertEvent[] {
+  if (cache[dataSource]) return cache[dataSource]!;
   if (!robots) return [];
 
+  const cfg = SCENARIO_CFG[dataSource];
   const alerts: AlertEvent[] = [];
   let counter = 0;
 
@@ -110,7 +96,7 @@ export function generateMockAlerts(robots?: Robot[]): AlertEvent[] {
       level: sys.level,
       type: sys.type,
       title: sys.title,
-      description: sys.desc,
+      description: sys.desc.replace('Mesh', `${cfg.robotCount} 台机器人已注册，Mesh`),
       timestamp: Date.now() - Math.floor(Math.random() * 3600000 * 2),
       acknowledged: false,
     });
@@ -118,34 +104,50 @@ export function generateMockAlerts(robots?: Robot[]): AlertEvent[] {
 
   // Robot-based alerts
   for (const r of robots) {
-    let templateIdx: number | null = null;
+    let triggered = false;
+    let level: AlertLevel = 'warning';
+    let title = '';
+    let desc = '';
+    let type: AlertType = 'system';
 
-    if (r.status === 'error') templateIdx = 5;       // robot_error
-    else if (r.status === 'offline') templateIdx = 1; // robot_offline
-    else if (r.status === 'low_battery') templateIdx = 4; // battery_low
-    else if (!r.meshConnected && r.status !== 'maintenance') templateIdx = 2; // mesh_disconnect
-    else if (r.sensors.ch4 > 1.5) templateIdx = 0;   // gas_overload
-    else if (r.sensors.temperature > 40) templateIdx = 3; // temp_anomaly
+    if (r.status === 'error') {
+      triggered = true; level = 'danger'; type = 'robot_error';
+      title = `设备故障 — ${r.id}`;
+      desc = `${r.id} 报告硬件异常，型号 ${r.model}，需要人工介入检查`;
+    } else if (r.status === 'offline') {
+      triggered = true; level = 'warning'; type = 'robot_offline';
+      title = `机器人离线 — ${r.id}`;
+      desc = `${r.id} 已失联，最后位置 [${r.position.map(v => v.toFixed(1)).join(', ')}]，${cfg.depthLabel}=${r.depth}m`;
+    } else if (r.status === 'low_battery') {
+      triggered = true; level = 'warning'; type = 'battery_low';
+      title = `电量告警 — ${r.id}`;
+      desc = `${r.id} 电量仅剩 ${r.battery}%，建议尽快返回充电桩，当前任务: ${r.task}`;
+    } else if (!r.meshConnected && r.status !== 'maintenance') {
+      triggered = true; level = 'warning'; type = 'mesh_disconnect';
+      title = `Mesh 组网中断 — ${r.id}`;
+      desc = `${r.id} 从 Mesh 网络掉线，角色 ${r.meshRole}，影响区域 ${cfg.depthLabel}=${r.depth}m 通信链路`;
+    } else if (r.sensors.ch4 > cfg.primaryThreshold) {
+      triggered = true; level = 'danger'; type = 'gas_overload';
+      title = `${cfg.primaryTitle} — ${r.id}`;
+      desc = `${r.id} 检测到 ${cfg.primaryLabel} ${r.sensors.ch4}${cfg.primaryUnit}，超过安全阈值 ${cfg.primaryThreshold}${cfg.primaryUnit}，位置 ${cfg.depthLabel}=${r.depth}m`;
+    } else if (r.sensors.temperature > cfg.tempThreshold) {
+      triggered = true; level = 'danger'; type = 'temp_anomaly';
+      title = `${cfg.tempLabel}异常 — ${r.id}`;
+      desc = `${r.id} ${cfg.tempLabel} ${r.sensors.temperature}°C，超出正常范围，位置 ${cfg.depthLabel}=${r.depth}m`;
+    }
 
-    if (templateIdx !== null && Math.random() > 0.3) {
-      const tpl = ALERT_TEMPLATES[templateIdx];
-      const { title, desc } = tpl.titleFn(r);
+    if (triggered && Math.random() > 0.3) {
       alerts.push({
         id: `alert-${String(++counter).padStart(4, '0')}`,
-        level: tpl.level,
-        type: tpl.type,
-        title,
-        description: desc,
-        robotId: r.id,
-        position: r.position,
+        level, type, title, description: desc,
+        robotId: r.id, position: r.position,
         timestamp: Date.now() - Math.floor(Math.random() * 1800000),
         acknowledged: Math.random() > 0.6,
       });
     }
   }
 
-  // Sort by timestamp descending (newest first)
   alerts.sort((a, b) => b.timestamp - a.timestamp);
-  cachedAlerts = alerts;
+  cache[dataSource] = alerts;
   return alerts;
 }

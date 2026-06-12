@@ -48,7 +48,8 @@ function AlertItem({ alert, onClick }: { alert: AlertEvent; onClick: () => void 
 export function AlertFeed() {
   const [collapsed, setCollapsed] = useState(false);
   const [filter, setFilter] = useState<'all' | 'danger' | 'warning' | 'unack'>('all');
-  const { data: alerts, loading } = useAlerts();
+  const dataSource = useSceneStore((s) => s.dataSource);
+  const { data: alerts, loading } = useAlerts(dataSource);
   const flyTo = useSceneStore((s) => s.flyTo);
   const highlightWithTimer = useSceneStore((s) => s.highlightWithTimer);
 

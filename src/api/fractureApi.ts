@@ -15,6 +15,18 @@ import { httpClient } from './httpClient';
 
 // Mock 实现：延迟导入，仅 mock 模式加载
 async function getMockFractures(scenario: ScenarioType): Promise<Fracture[]> {
+  if (scenario === 'pipeline') {
+    const { generatePipelineNetwork } = await import('../data/pipelineDataGenerator');
+    return generatePipelineNetwork();
+  }
+  if (scenario === 'nuclear') {
+    const { generateNuclearNetwork } = await import('../data/nuclearDataGenerator');
+    return generateNuclearNetwork();
+  }
+  if (scenario === 'refinery') {
+    const { generateRefineryNetwork } = await import('../data/refineryDataGenerator');
+    return generateRefineryNetwork();
+  }
   const { generateFractureNetwork } = await import('../data/fractureDataGenerator');
   return generateFractureNetwork(scenario);
 }

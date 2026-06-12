@@ -5,7 +5,10 @@
 - **Stack**: Vite 5 + React 18 + TS + Tailwind 3.4.17 + Three.js + R3F v8.17.10 + Drei v9 + Zustand v5
 - **Open Source Integrations**: Shadcn UI (Radix UI) | Deck.gl | Three.js R3F | **Potree 1.8** | simplex-noise
 - **v2 定位**: 地下裂缝探测机器人集群数字孪生平台，非隧道场景，而是地质体中的裂缝网络
-- **用户**: 煤矿/金矿/油气行业工程师，可切换场景
+- **用户**: 煤矿/金矿/油气行业工程师 + 管线巡检 + 核反应堆管道检修，三种数据源可切换
+- **数据源切换架构**: `DataSourceType = 'fracture' | 'pipeline' | 'nuclear'` 顶层切换，机器人和管道数据按 dataSource 分别缓存。机器人系统参数从 boolean 改为 DataSourceType 字符串贯穿全部层级
+- **三套数据生成器**: fractureDataGenerator(裂缝) / pipelineDataGenerator(油气管道) / nuclearDataGenerator(核反应堆 PWR 管道)
+- **核反应堆模式无岩层**: RockMass 在 `dataSource==='nuclear'` 时返回 null，由 ReactorContainment 替代（安全壳穹顶+RPV+4个SG+4个RCP+PRZ）
 - **Data Architecture**: `.env` → `src/api/` → `src/hooks/` → `src/components/`. Mock/live 双模式
 - **AI接入**: Settings面板配置 LLM Provider/BaseURL/APIKey/Model，默认 DeepSeek，无 Key 时 mock 降级
 - **Key**: npm install needs `--legacy-peer-deps`; ai@6 removed (zod/v4 conflict)
@@ -21,6 +24,7 @@
 ## User Preferences
 - **极其重视交互体验**: 反复强调不要手搓，要参考成熟产品（Potree/CloudCompare/Cesium）的设计
 - **数据必须物理真实**: Mock 数据必须符合论文/行业标准，让人看不出来是假的
+- **全场景一致性**: 所有数据（机器人传感器/告警/趋势/详情面板）必须按 6 种场景（coal/gold/oil/pipeline/nuclear/refinery）分别适配，不能全场景硬编码煤矿的 CH₄/温度/湿度
 - **工具栏防误操作**: 用户抱怨之前版本经常误操作，要求成熟的交互设计
 - **不要做不需要的功能**: 比如视频融合，因为没有摄像头；但标注/测量/实验面板要专业
 

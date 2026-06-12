@@ -1,11 +1,11 @@
 /**
  * 传感器时序趋势 mock 数据生成器
  * 从裂缝节点传感器聚合多个区域的趋势数据
- * 每个区域包含 CH4 / 温度 / 压力时序，体现不同位置的差异
+ * 每个区域包含 主指标 / 温度 / 辅助指标时序，体现不同位置的差异
  * 区域坐标从实际裂缝数据动态计算
  */
 
-import type { Fracture } from '../types';
+import type { Fracture, ScenarioType } from '../types';
 
 export interface RegionTrend {
   regionId: string;
@@ -35,14 +35,59 @@ export interface SensorTrend {
   source: string;
 }
 
-// 区域配置 — 基于裂缝分布动态划分
-// 使用象限法：按 X/Z 坐标分为四个象限
-const REGION_DEFS = [
-  { id: 'north', name: '北部裂缝带', baseCh4: 1.8, baseTemp: 35, basePressure: 108, nodeRatio: 0.3 },
-  { id: 'central', name: '中央交叉区', baseCh4: 2.6, baseTemp: 40, basePressure: 112, nodeRatio: 0.25 },
-  { id: 'south', name: '南部深部区', baseCh4: 0.6, baseTemp: 28, basePressure: 103, nodeRatio: 0.25 },
-  { id: 'east', name: '东部分支带', baseCh4: 1.2, baseTemp: 32, basePressure: 106, nodeRatio: 0.2 },
-];
+/** 场景特定的趋势配置 — 三条曲线的含义随场景变化 */
+interface TrendScenarioConfig {
+  /** 区域命名前缀 */
+  regionPrefix: string;
+  /** 主指标(ch4字段) */
+  primaryLabel: string; primaryUnit: string; primaryBase: number[]; primaryThreshold: number;
+  /** 温度 */
+  tempLabel: string; tempBase: number[];
+  /** 辅助指标(pressure字段) */
+  auxLabel: string; auxUnit: string; auxBase: number[];
+}
+
+const TREND_CONFIG: Record<string, TrendScenarioConfig> = {
+  coal: {
+    regionPrefix: '裂缝带',
+    primaryLabel: 'CH₄ 浓度', primaryUnit: '%', primaryBase: [1.8, 2.6, 0.6, 1.2], primaryThreshold: 1.5,
+    tempLabel: '环境温度', tempBase: [35, 40, 28, 32],
+    auxLabel: '大气压力', auxUnit: 'kPa', auxBase: [108, 112, 103, 106],
+  },
+  gold: {
+    regionPrefix: '采区',
+    primaryLabel: '微震频率', primaryUnit: '次/h', primaryBase: [8, 16, 4, 10], primaryThreshold: 15,
+    tempLabel: '岩温', tempBase: [32, 38, 26, 30],
+    auxLabel: '应力', auxUnit: 'MPa', auxBase: [12, 18, 8, 14],
+  },
+  oil: {
+    regionPrefix: '储层',
+    primaryLabel: '孔隙压力', primaryUnit: 'MPa', primaryBase: [18, 28, 12, 22], primaryThreshold: 30,
+    tempLabel: '地层温度', tempBase: [65, 80, 50, 70],
+    auxLabel: '渗透率', auxUnit: 'mD', auxBase: [1.2, 2.8, 0.5, 1.8],
+  },
+  pipeline: {
+    regionPrefix: '站场',
+    primaryLabel: '天然气泄漏', primaryUnit: '%LEL', primaryBase: [3, 18, 1, 8], primaryThreshold: 20,
+    tempLabel: '管道温度', tempBase: [15, 35, 8, 22],
+    auxLabel: '运行压力', auxUnit: 'MPa', auxBase: [6.5, 8.2, 4.0, 7.0],
+  },
+  nuclear: {
+    regionPrefix: '环路',
+    primaryLabel: '剂量率', primaryUnit: 'mSv/h', primaryBase: [0.8, 12, 0.2, 3.5], primaryThreshold: 25,
+    tempLabel: '冷却剂温度', tempBase: [293, 327, 280, 305],
+    auxLabel: '运行压力', auxUnit: 'MPa', auxBase: [15.5, 15.5, 12, 15.5],
+  },
+  refinery: {
+    regionPrefix: '设备区',
+    primaryLabel: '壁厚减薄', primaryUnit: '%', primaryBase: [1.2, 4.5, 0.5, 2.8], primaryThreshold: 3,
+    tempLabel: '操作温度', tempBase: [180, 650, 80, 350],
+    auxLabel: '腐蚀速率', auxUnit: 'mm/yr', auxBase: [0.08, 0.45, 0.03, 0.22],
+  },
+};
+
+const REGION_DIRS = ['north', 'central', 'south', 'east'];
+const REGION_NAMES = ['北部', '中央', '南部', '东部'];
 
 /** 计算裂缝群的中心点和包围球半径 */
 function computeFractureCluster(
@@ -72,11 +117,16 @@ function computeFractureCluster(
 }
 
 /** 按象限将裂缝分为4个区域，每个区域计算实际中心 + 记录裂缝ID */
-function divideFracturesIntoRegions(fractures: Fracture[]) {
+function divideFracturesIntoRegions(fractures: Fracture[], cfg: TrendScenarioConfig) {
   if (fractures.length === 0) {
     // 无数据时用默认坐标
-    return REGION_DEFS.map((def, i) => ({
-      ...def,
+    return REGION_DIRS.map((id, i) => ({
+      id,
+      name: `${REGION_NAMES[i]}${cfg.regionPrefix}`,
+      baseCh4: cfg.primaryBase[i],
+      baseTemp: cfg.tempBase[i],
+      basePressure: cfg.auxBase[i],
+      nodeRatio: [0.3, 0.25, 0.25, 0.2][i],
       center: [[-25, 0, -25], [0, 0, 0], [25, -10, 25], [35, 0, -10]][i] as [number, number, number],
       radius: 15,
       fractureIds: [] as string[],
@@ -88,7 +138,7 @@ function divideFracturesIntoRegions(fractures: Fracture[]) {
   const cx = allPoints.reduce((s, p) => s + p[0], 0) / allPoints.length;
   const cz = allPoints.reduce((s, p) => s + p[2], 0) / allPoints.length;
 
-  // 按象限分组：北(z<cz, x<cx), 中央(x近cx, z近cz), 南(z>cz, x>cx), 东(x>cx)
+  // 按象限分组
   const groups: { fractures: Fracture[]; ids: string[] }[] = [
     { fractures: [], ids: [] },
     { fractures: [], ids: [] },
@@ -104,26 +154,33 @@ function divideFracturesIntoRegions(fractures: Fracture[]) {
     const dist = Math.sqrt(dx*dx + dz*dz);
 
     if (dist < 15) {
-      groups[1].fractures.push(f); groups[1].ids.push(f.id); // 中央
+      groups[1].fractures.push(f); groups[1].ids.push(f.id);
     } else if (dz < -5) {
-      groups[0].fractures.push(f); groups[0].ids.push(f.id); // 北
+      groups[0].fractures.push(f); groups[0].ids.push(f.id);
     } else if (dx > 10) {
-      groups[3].fractures.push(f); groups[3].ids.push(f.id); // 东
+      groups[3].fractures.push(f); groups[3].ids.push(f.id);
     } else {
-      groups[2].fractures.push(f); groups[2].ids.push(f.id); // 南
+      groups[2].fractures.push(f); groups[2].ids.push(f.id);
     }
   }
 
-  return REGION_DEFS.map((def, i) => {
+  return REGION_DIRS.map((id, i) => {
     const cluster = computeFractureCluster(groups[i].fractures);
-    return { ...def, ...cluster, fractureIds: groups[i].ids };
+    return {
+      id,
+      name: `${REGION_NAMES[i]}${cfg.regionPrefix}`,
+      baseCh4: cfg.primaryBase[i],
+      baseTemp: cfg.tempBase[i],
+      basePressure: cfg.auxBase[i],
+      nodeRatio: [0.3, 0.25, 0.25, 0.2][i],
+      ...cluster,
+      fractureIds: groups[i].ids,
+    };
   });
 }
 
-let cachedTrend: SensorTrend | null = null;
-
-export function generateMockSensorTrend(totalNodes: number = 100, fractures?: Fracture[]): SensorTrend {
-  if (cachedTrend) return cachedTrend;
+export function generateMockSensorTrend(totalNodes: number = 100, fractures?: Fracture[], scenario: ScenarioType = 'coal'): SensorTrend {
+  const cfg = TREND_CONFIG[scenario] || TREND_CONFIG.coal;
 
   const now = Date.now();
   const timestamps: number[] = [];
@@ -134,38 +191,35 @@ export function generateMockSensorTrend(totalNodes: number = 100, fractures?: Fr
   }
 
   // 动态计算区域边界
-  const regionConfigs = divideFracturesIntoRegions(fractures || []);
+  const regionConfigs = divideFracturesIntoRegions(fractures || [], cfg);
 
   // 为每个区域生成趋势
-  const regions: RegionTrend[] = regionConfigs.map((cfg) => {
+  const regions: RegionTrend[] = regionConfigs.map((cfg_r: any) => {
     const rCh4: number[] = [];
     const rTemp: number[] = [];
     const rPressure: number[] = [];
 
     for (let i = 29; i >= 0; i--) {
       const phase = i * 0.3;
-      // CH4：基础值 + 正弦波动 + 历史尖峰
-      const spike = cfg.baseCh4 > 1.5 && i > 18 && i < 24 ? 1.5 : 0;
-      rCh4.push(Math.max(0.05, Math.round((cfg.baseCh4 + Math.sin(phase) * 0.4 + spike + (Math.random() - 0.5) * 0.2) * 100) / 100));
+      const spike = cfg_r.baseCh4 > cfg.primaryThreshold * 0.6 && i > 18 && i < 24 ? cfg_r.baseCh4 * 0.5 : 0;
+      rCh4.push(Math.max(0.01, Math.round((cfg_r.baseCh4 + Math.sin(phase) * cfg_r.baseCh4 * 0.15 + spike + (Math.random() - 0.5) * cfg_r.baseCh4 * 0.1) * 100) / 100));
 
-      // 温度：缓升 + 波动
-      rTemp.push(Math.round((cfg.baseTemp + (29 - i) * 0.2 + Math.sin(i * 0.5) * 1.5 + (Math.random() - 0.5) * 0.8) * 10) / 10);
+      rTemp.push(Math.round((cfg_r.baseTemp + (29 - i) * 0.2 + Math.sin(i * 0.5) * cfg_r.baseTemp * 0.03 + (Math.random() - 0.5) * 0.8) * 10) / 10);
 
-      // 压力：稳定 + 微波动
-      rPressure.push(Math.round((cfg.basePressure + Math.sin(i * 0.4) * 2 + (Math.random() - 0.5) * 0.8) * 10) / 10);
+      rPressure.push(Math.round((cfg_r.basePressure + Math.sin(i * 0.4) * cfg_r.basePressure * 0.02 + (Math.random() - 0.5) * 0.8) * 10) / 10);
     }
 
     return {
-      regionId: cfg.id,
-      regionName: cfg.name,
+      regionId: cfg_r.id,
+      regionName: cfg_r.name,
       timestamps,
       ch4: rCh4,
       temperature: rTemp,
       pressure: rPressure,
-      nodeCount: Math.round(totalNodes * cfg.nodeRatio),
-      center: cfg.center,
-      radius: cfg.radius,
-      fractureIds: cfg.fractureIds,
+      nodeCount: Math.round(totalNodes * cfg_r.nodeRatio),
+      center: cfg_r.center,
+      radius: cfg_r.radius,
+      fractureIds: cfg_r.fractureIds,
     };
   });
 
@@ -188,13 +242,12 @@ export function generateMockSensorTrend(totalNodes: number = 100, fractures?: Fr
     aggPressure.push(Math.round((weightedPressure / totalWeight) * 10) / 10);
   }
 
-  cachedTrend = {
+  return {
     timestamps,
     ch4: aggCh4,
     temperature: aggTemp,
     pressure: aggPressure,
     regions,
-    source: `${totalNodes} 个节点加权聚合 · 4 个区域`,
+    source: `${totalNodes} 个节点加权聚合 · 4 个${cfg.regionPrefix}`,
   };
-  return cachedTrend;
 }

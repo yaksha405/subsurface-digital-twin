@@ -10,14 +10,14 @@
  *   GET /robots/stats        → RobotFleetStats
  */
 
-import type { Robot } from '../types';
+import type { Robot, DataSourceType } from '../types';
 import type { RobotQuery, RobotFleetStats } from '../types/api';
 import { isMockMode } from './config';
 import { httpClient } from './httpClient';
 
-async function getMockRobots(query?: RobotQuery): Promise<Robot[]> {
+async function getMockRobots(query?: RobotQuery, dataSource: DataSourceType = 'fracture'): Promise<Robot[]> {
   const { generateMockRobots } = await import('../data/robotDataGenerator');
-  let robots = generateMockRobots();
+  let robots = generateMockRobots(dataSource);
 
   if (query?.q) {
     const q = query.q.toLowerCase();
@@ -35,18 +35,18 @@ async function getMockRobots(query?: RobotQuery): Promise<Robot[]> {
   return robots;
 }
 
-async function getMockRobotStats(): Promise<RobotFleetStats> {
+async function getMockRobotStats(dataSource: DataSourceType = 'fracture'): Promise<RobotFleetStats> {
   const { getMockRobotStats } = await import('../data/robotDataGenerator');
-  return getMockRobotStats();
+  return getMockRobotStats(dataSource);
 }
 
 /**
  * 获取机器人列表（支持过滤）
  * GET /robots?status=&model=&mesh_role=&q=
  */
-export async function fetchRobots(query?: RobotQuery, signal?: AbortSignal): Promise<Robot[]> {
+export async function fetchRobots(query?: RobotQuery, signal?: AbortSignal, dataSource: DataSourceType = 'fracture'): Promise<Robot[]> {
   if (isMockMode) {
-    return getMockRobots(query);
+    return getMockRobots(query, dataSource);
   }
 
   const params = new URLSearchParams();
@@ -75,9 +75,9 @@ export async function fetchRobotById(id: string, signal?: AbortSignal): Promise<
  * 获取机器人集群统计
  * GET /robots/stats
  */
-export async function fetchRobotStats(signal?: AbortSignal): Promise<RobotFleetStats> {
+export async function fetchRobotStats(signal?: AbortSignal, dataSource: DataSourceType = 'fracture'): Promise<RobotFleetStats> {
   if (isMockMode) {
-    return getMockRobotStats();
+    return getMockRobotStats(dataSource);
   }
   return httpClient.get<RobotFleetStats>('/robots/stats', { signal });
 }

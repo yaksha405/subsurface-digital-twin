@@ -16,12 +16,14 @@ import { POIMarkers } from './POIMarkers';
 import { AIMarkers3D } from './AIMarkers3D';
 import { SceneErrorBoundary } from './SceneErrorBoundary';
 import { RockMass } from './RockMass';
+import { ReactorContainment } from './ReactorContainment';
 import { FractureNetwork } from './FractureNetwork';
 import { PotreeViewer, PotreeCameraSync } from './PotreeViewer';
 import { DeckGlHeatmap } from './DeckGlHeatmap';
 
 export function Scene3DCanvas() {
   const layers = useSceneStore((s) => s.layers);
+  const dataSource = useSceneStore((s) => s.dataSource);
   const physicalTruthMode = useSceneStore((s) => s.physicalTruthMode);
   const setCaptureScreenshot = useSceneStore((s) => s.setCaptureScreenshot);
   const activeTool = useSceneStore((s) => s.activeTool);
@@ -73,6 +75,7 @@ export function Scene3DCanvas() {
 
           {/* 岩体 + 裂缝网络 — 核心场景 */}
           <RockMass />
+          <ReactorContainment />
           <FractureNetwork />
           {/* R3F 原生热力图（瓦斯/温度）— 跟随场景旋转/平移 */}
           <DeckGlHeatmap />
@@ -81,7 +84,8 @@ export function Scene3DCanvas() {
           {layers.pointCloud && <PotreeCameraSync />}
 
           {layers.robots && <RobotMarkers />}
-          {layers.poi && <POIMarkers />}
+          {/* POI 标记仅用于地下裂缝场景（煤矿/金矿/油气），管线/核反应堆/炼油厂场景不显示 */}
+          {layers.poi && dataSource === 'fracture' && <POIMarkers />}
           <AIMarkers3D />
           <HighlightRegion />
           <VolumeMeasure />

@@ -78,6 +78,8 @@ export interface AIMarker {
   label: string;
   level: 'danger' | 'warning' | 'info';
   createdAt: number;
+  detail?: string;
+  source?: string;
 }
 
 export interface LayerState {
@@ -109,7 +111,7 @@ export interface HighlightRegion {
 // ===================================================================
 
 /** 机器人型号 */
-export type RobotModel = 'tracked' | 'wheeled' | 'climbing' | 'snake' | 'aerial';
+export type RobotModel = 'tracked' | 'wheeled' | 'climbing' | 'snake' | 'aerial' | 'spider';
 
 /** 机器人状态 */
 export type RobotStatus = 'online' | 'offline' | 'low_battery' | 'error' | 'maintenance';
@@ -154,7 +156,10 @@ export interface Robot {
 // ===================================================================
 
 /** 行业场景类型 */
-export type ScenarioType = 'coal' | 'gold' | 'oil';
+export type ScenarioType = 'coal' | 'gold' | 'oil' | 'pipeline' | 'nuclear' | 'refinery';
+
+/** 数据源类型（顶层切换） */
+export type DataSourceType = 'fracture' | 'pipeline' | 'nuclear' | 'refinery';
 
 /** 传感器读数 */
 export interface SensorReading {

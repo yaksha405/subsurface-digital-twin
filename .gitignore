@@ -23,3 +23,12 @@ dist-ssr
 *.sln
 *.sw?
 .vercel
+
+# Test artifacts
+.playwright-cli/
+test-*.png
+test-*.mjs
+after-dropdown-click.yaml
+chat-test.yaml
+refinery-view.png
+refinery.png

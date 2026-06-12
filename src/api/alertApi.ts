@@ -10,24 +10,25 @@
  */
 
 import type { AlertEvent, AlertLevel } from '../data/alertDataGenerator';
+import type { DataSourceType } from '../types';
 import { isMockMode } from './config';
 import { httpClient } from './httpClient';
 
 // Mock 实现：延迟导入
-async function getMockAlerts(): Promise<AlertEvent[]> {
+async function getMockAlerts(dataSource: DataSourceType = 'fracture'): Promise<AlertEvent[]> {
   const { generateMockRobots } = await import('../data/robotDataGenerator');
   const { generateMockAlerts } = await import('../data/alertDataGenerator');
-  const robots = generateMockRobots();
-  return generateMockAlerts(robots);
+  const robots = generateMockRobots(dataSource);
+  return generateMockAlerts(robots, dataSource);
 }
 
 /**
  * 获取告警事件列表
  * GET /alerts
  */
-export async function fetchAlerts(signal?: AbortSignal): Promise<AlertEvent[]> {
+export async function fetchAlerts(signal?: AbortSignal, dataSource: DataSourceType = 'fracture'): Promise<AlertEvent[]> {
   if (isMockMode) {
-    return getMockAlerts();
+    return getMockAlerts(dataSource);
   }
   return httpClient.get<AlertEvent[]>('/alerts', { signal });
 }
@@ -38,10 +39,11 @@ export async function fetchAlerts(signal?: AbortSignal): Promise<AlertEvent[]> {
  */
 export async function fetchAlertsByLevel(
   level: AlertLevel,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  dataSource: DataSourceType = 'fracture',
 ): Promise<AlertEvent[]> {
   if (isMockMode) {
-    const all = await getMockAlerts();
+    const all = await getMockAlerts(dataSource);
     return all.filter((a) => a.level === level);
   }
   return httpClient.get<AlertEvent[]>(`/alerts?level=${level}`, { signal });

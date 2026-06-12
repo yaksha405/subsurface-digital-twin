@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { LayerState, CameraTarget, HighlightRegion, ChatMessage, SceneAction, Robot, ScenarioType, AnnotationTool, Annotation, Fracture, AIMarker } from '../types';
+import type { LayerState, CameraTarget, HighlightRegion, ChatMessage, SceneAction, Robot, ScenarioType, DataSourceType, AnnotationTool, Annotation, Fracture, AIMarker } from '../types';
 
 // 模块级高亮计时器 — 统一管理，避免多组件 setTimeout 竞态
 let _highlightTimer: ReturnType<typeof setTimeout> | null = null;
@@ -33,6 +33,7 @@ interface SceneStore {
   focusedRobotId: string | null;
 
   // === v2: 裂缝网络 ===
+  dataSource: DataSourceType;
   scenario: ScenarioType;
   fractures: Fracture[];
   selectedFracture: Fracture | null;
@@ -66,6 +67,7 @@ interface SceneStore {
   openRobotDetail: (robot: Robot) => void;
   closeRobotDetail: () => void;
   // v2 actions
+  setDataSource: (d: DataSourceType) => void;
   setScenario: (s: ScenarioType) => void;
   setFractures: (f: Fracture[]) => void;
   selectFracture: (f: Fracture | null) => void;
@@ -116,6 +118,7 @@ export const useSceneStore = create<SceneStore>((set, get) => ({
   focusedRobotId: null,
 
   // v2 state
+  dataSource: 'fracture',
   scenario: 'coal',
   fractures: [],
   selectedFracture: null,
@@ -189,6 +192,7 @@ export const useSceneStore = create<SceneStore>((set, get) => ({
   closeRobotDetail: () => set({ robotDetailOpen: false, selectedRobot: null, focusedRobotId: null }),
 
   // v2 actions
+  setDataSource: (d) => set({ dataSource: d }),
   setScenario: (s) => set({ scenario: s }),
   setFractures: (f) => set({ fractures: f }),
   selectFracture: (f) => set({ selectedFracture: f, selectedFractureNode: null }),

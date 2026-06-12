@@ -17,6 +17,7 @@ export function TopBar() {
   const confidenceFilter = useSceneStore((s) => s.confidenceFilter);
   const layers = useSceneStore((s) => s.layers);
   const scenario = useSceneStore((s) => s.scenario);
+  const dataSource = useSceneStore((s) => s.dataSource);
   const fractures = useSceneStore((s) => s.fractures);
   const annotations = useSceneStore((s) => s.annotations);
   const messages = useSceneStore((s) => s.messages);
@@ -24,7 +25,7 @@ export function TopBar() {
   // hooks 有模块级缓存，不会重复请求
   const { data: robots } = useAllRobots();
   const { data: robotStats } = useRobotStats();
-  const { data: alerts } = useAlerts();
+  const { data: alerts } = useAlerts(dataSource);
   const { data: stats } = useSceneStats();
   const { data: pois } = usePOIs();
 
@@ -47,7 +48,7 @@ export function TopBar() {
   };
 
   return (
-    <div className="h-12 glass-panel rounded-none flex items-center px-4 gap-4 border-l-0 border-r-0 border-t-0 border-b-primary-yellow/10">
+    <div className="h-12 glass-panel rounded-none flex items-center px-4 gap-4 border-l-0 border-r-0 border-t-0 border-b-primary-yellow/10 relative z-[200]">
       {/* Logo */}
       <div className="flex items-center gap-2">
         <div className="w-8 h-8 rounded bg-gradient-to-br from-primary-yellow to-primary-orange flex items-center justify-center">

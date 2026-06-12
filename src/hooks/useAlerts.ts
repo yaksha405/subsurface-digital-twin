@@ -1,28 +1,29 @@
 import { useState, useEffect } from 'react';
 import type { AlertEvent } from '../data/alertDataGenerator';
 import { fetchAlerts } from '../api/alertApi';
+import type { DataSourceType } from '../types';
 
-// Module-level cache
-let cachedAlerts: AlertEvent[] | null = null;
+// Module-level cache (per dataSource)
+const alertCache: Record<string, AlertEvent[] | null> = {};
 
-export function useAlerts() {
-  const [data, setData] = useState<AlertEvent[] | null>(cachedAlerts);
-  const [loading, setLoading] = useState(!cachedAlerts);
+export function useAlerts(dataSource: DataSourceType = 'fracture') {
+  const key = dataSource;
+  const [data, setData] = useState<AlertEvent[] | null>(alertCache[key]);
+  const [loading, setLoading] = useState(!alertCache[key]);
 
   useEffect(() => {
-    if (cachedAlerts) return;
+    if (alertCache[key]) { setData(alertCache[key]); return; }
     let cancelled = false;
     setLoading(true);
-    // 通过 API 层获取告警数据（mock 模式用生成器，live 模式请求后端）
     (async () => {
-      const alerts = await fetchAlerts();
+      const alerts = await fetchAlerts(undefined, dataSource);
       if (!cancelled) {
-        cachedAlerts = alerts;
+        alertCache[key] = alerts;
         setData(alerts);
       }
     })().finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, []);
+  }, [key]);
 
   return { data, loading };
 }
