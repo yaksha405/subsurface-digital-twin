@@ -145,11 +145,11 @@ export const SCENE_TOOLS = [
     type: 'function' as const,
     function: {
       name: 'switch_scenario',
-      description: '切换行业场景（煤矿/金矿/油气）。',
+      description: '切换行业场景（煤矿/金矿/油气/管线/核反应堆/炼油化工）。',
       parameters: {
         type: 'object',
         properties: {
-          scenario: { type: 'string', enum: ['coal', 'gold', 'oil'], description: '场景类型' },
+          scenario: { type: 'string', enum: ['coal', 'gold', 'oil', 'pipeline', 'nuclear', 'refinery'], description: '场景类型' },
         },
         required: ['scenario'],
       },

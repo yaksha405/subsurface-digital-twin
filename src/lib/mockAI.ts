@@ -507,6 +507,106 @@ export function generateMockAIResponse(
     }
   }
 
+  // ========== 炼油化工场景特定分析 ==========
+  if (scenario === 'refinery') {
+    // 设备网络概览
+    if (lowerInput.includes('设备') && (lowerInput.includes('概览') || lowerInput.includes('分布') || lowerInput.includes('网络') || lowerInput.includes('情况'))) {
+      const heaters = fractures.filter(f => f.name.includes('H-101') || f.name.includes('辐射') || f.name.includes('对流'));
+      const exchangers = fractures.filter(f => f.name.includes('E-'));
+      const columns = fractures.filter(f => f.name.includes('C-101') || f.name.includes('精馏') || f.name.includes('汽提'));
+      const pipes = fractures.filter(f => f.name.includes('管') && !f.name.includes('H-101') && !f.name.includes('C-101'));
+      const thinRisk = fractures.filter(f => f.sensorReading.rock_strength_mpa > 3);
+      const leakRisk = fractures.filter(f => f.sensorReading.ch4_pct > 20);
+      return {
+        message: `## 炼油化工设备内部通道网络概览\n\n蛇形机器人深入核心设备内部进行在线内检，共 **${fractures.length}** 段通道：\n\n| 设备 | 通道数 | 说明 |\n|------|--------|------|\n| 管壳式换热器 | ${exchangers.length} | TEMA壳程+管束 |\n| 加热炉 H-101 | ${heaters.length} | 辐射段+对流段炉管 |\n| 蒸馏塔 C-101 | ${columns.length} | 螺旋通道+降液管+抽出管 |\n| 工艺管道 | ${pipes.length} | 连接管/集合管 |\n\n⚠️ **${thinRisk.length}** 段壁厚减薄超3%，**${leakRisk.length}** 段可燃气体泄漏超20%LEL。`,
+        actions: [{ type: 'fitAll' }, { type: 'clearMarkers' }],
+      };
+    }
+    // 壁厚减薄分析
+    if (lowerInput.includes('壁厚') || lowerInput.includes('减薄')) {
+      const thinSorted = fractures.map(f => ({ f, thin: f.sensorReading.rock_strength_mpa, wt: f.sensorReading.fracture_aperture_um / 1000, mat: f.sensorReading.pore_pressure_mpa }))
+        .sort((a,b) => b.thin - a.thin);
+      const top = thinSorted.slice(0, 6);
+      const danger = top.filter(x => x.thin > 3);
+      const rows = top.map(x => `| ${x.f.id} (${x.f.name}) | ${x.thin.toFixed(1)}% | ${x.wt.toFixed(1)}mm | ${x.thin > 5 ? '🔴 严重' : x.thin > 3 ? '⚠️ 超标' : '🟢 正常'} |`).join('\n');
+      const actions: SceneAction[] = [{ type: 'clearMarkers' }];
+      if (danger.length > 0) {
+        actions.push({ type: 'markPoints', points: danger.map(x => ({ position: fractureCenter(x.f), label: `${x.f.id} 减薄=${x.thin.toFixed(1)}%`, level: 'danger' as const })) });
+        actions.push({ type: 'flyTo', position: fractureCenter(danger[0].f), region: `壁厚减薄最严重: ${danger[0].f.id}` });
+      }
+      return {
+        message: `## 壁厚减薄分析\n\n基于蛇形机器人超声测厚数据（API 510 在役检查）：\n\n| 通道 | 减薄率 | 剩余壁厚 | 状态 |\n|------|--------|---------|------|\n${rows}\n\n> API 510: 腐蚀裕量耗尽 >设计裕量50% 需更换\n> 报警阈值: 减薄率 >3%\n> 紧急停用: 减薄率 >5%`,
+        actions,
+      };
+    }
+    // 腐蚀速率
+    if (lowerInput.includes('腐蚀') || lowerInput.includes('速率')) {
+      const corrSorted = fractures.map(f => ({ f, corr: f.sensorReading.permeability_md, scale: f.sensorReading.stress_sigma2 }))
+        .sort((a,b) => b.corr - a.corr);
+      const top = corrSorted.slice(0, 6);
+      const rows = top.map(x => `| ${x.f.id} (${x.f.name}) | ${x.corr.toFixed(3)} mm/yr | ${x.scale.toFixed(2)}mm | ${x.corr > 0.3 ? '🔴 超标' : x.corr > 0.15 ? '⚠️ 关注' : '🟢 正常'} |`).join('\n');
+      const actions: SceneAction[] = [{ type: 'clearMarkers' }];
+      if (top.length > 0) actions.push({ type: 'flyTo', position: fractureCenter(top[0].f), region: `腐蚀最严重: ${top[0].f.id}` });
+      return {
+        message: `## 腐蚀速率评估\n\n基于超声测厚+电阻探针连续监测（API 579 适用性评估）：\n\n| 通道 | 腐蚀速率 | 结垢厚度 | 状态 |\n|------|---------|---------|------|\n${rows}\n\n> NACE SP0304: 腐蚀速率 >0.3mm/yr 需加密监测\n> API 579: 剩余强度比 <0.9 需评定`,
+        actions,
+      };
+    }
+    // 蠕变寿命
+    if (lowerInput.includes('蠕变') || lowerInput.includes('寿命') || lowerInput.includes('炉管')) {
+      const creepSorted = fractures
+        .filter(f => f.name.includes('H-101') || f.name.includes('辐射') || f.name.includes('对流'))
+        .map(f => ({ f, creep: f.sensorReading.water_saturation_pct * 100, temp: f.sensorReading.temperature_c }))
+        .sort((a,b) => b.creep - a.creep);
+      const top = creepSorted.slice(0, 5);
+      const rows = top.map(x => `| ${x.f.id} (${x.f.name}) | ${x.creep.toFixed(0)} µε | ${x.temp.toFixed(0)}°C | ${x.creep > 10000 ? '🔴 需更换' : x.creep > 5000 ? '⚠️ 第三阶段' : '🟢 正常'} |`).join('\n');
+      const actions: SceneAction[] = [{ type: 'clearMarkers' }];
+      const danger = top.filter(x => x.creep > 10000);
+      if (danger.length > 0) {
+        actions.push({ type: 'markPoints', points: danger.map(x => ({ position: fractureCenter(x.f), label: `${x.f.id} 蠕变=${x.creep.toFixed(0)}µε`, level: 'danger' as const })) });
+        actions.push({ type: 'flyTo', position: fractureCenter(danger[0].f), region: `蠕变最严重: ${danger[0].f.id}` });
+      }
+      return {
+        message: `## 加热炉炉管蠕变寿命分析\n\n基于高温应变片+温度分布数据（API 530 / Larson-Miller 参数）：\n\n| 炉管 | 蠕变应变 | 操作温度 | 状态 |\n|------|---------|---------|------|\n${rows}\n\n> API 530: 蠕变第三阶段 >10000µε 需更换\n> 材料: Incoloy 800H / P9 Cr9Mo\n> 设计寿命: 100000h`,
+        actions,
+      };
+    }
+    // 声发射检测（裂纹）
+    if (lowerInput.includes('声发射') || lowerInput.includes('裂纹') || lowerInput.includes('ae')) {
+      const aeSorted = fractures.map(f => ({ f, ae: f.sensorReading.acoustic_emission_mv, co: f.sensorReading.co_ppm }))
+        .sort((a,b) => b.ae - a.ae);
+      const top = aeSorted.slice(0, 5);
+      const danger = top.filter(x => x.ae > 2000);
+      const rows = top.map(x => `| ${x.f.id} (${x.f.name}) | ${x.ae} mV | ${x.co}ppm | ${x.ae > 2000 ? '🔴 活动裂纹' : x.ae > 1000 ? '⚠️ 需复检' : '🟢 正常'} |`).join('\n');
+      const actions: SceneAction[] = [{ type: 'clearMarkers' }];
+      if (danger.length > 0) {
+        actions.push({ type: 'markPoints', points: danger.map(x => ({ position: fractureCenter(x.f), label: `${x.f.id} 声发射=${x.ae}mV`, level: 'danger' as const })) });
+        actions.push({ type: 'flyTo', position: fractureCenter(danger[0].f), region: `声发射异常: ${danger[0].f.id}` });
+      }
+      return {
+        message: `## 声发射裂纹检测分析\n\n基于声发射传感器阵列监测数据：\n\n| 通道 | 声发射幅值 | CO浓度 | 状态 |\n|------|----------|--------|------|\n${rows}\n\n> 声发射 >2000mV: 有活动裂纹，需超声复检\n> ASME Section V Article 12: 声发射检测标准`,
+        actions,
+      };
+    }
+    // 泄漏检测
+    if (lowerInput.includes('泄漏') || lowerInput.includes('可燃') || lowerInput.includes('gas')) {
+      const leakSorted = fractures.map(f => ({ f, leak: f.sensorReading.ch4_pct, h2s: f.sensorReading.h2s_ppm }))
+        .filter(x => x.leak > 0).sort((a,b) => b.leak - a.leak);
+      const top = leakSorted.slice(0, 5);
+      const danger = top.filter(x => x.leak > 20);
+      const rows = top.map(x => `| ${x.f.id} (${x.f.name}) | ${x.leak.toFixed(1)}%LEL | ${x.h2s}ppm | ${x.leak > 20 ? '🔴 立即隔离' : x.leak > 10 ? '⚠️ 关注' : '🟢 正常'} |`).join('\n');
+      const actions: SceneAction[] = [{ type: 'clearMarkers' }];
+      if (danger.length > 0) {
+        actions.push({ type: 'markPoints', points: danger.map(x => ({ position: fractureCenter(x.f), label: `${x.f.id} 泄漏=${x.leak.toFixed(1)}%LEL`, level: 'danger' as const })) });
+        actions.push({ type: 'flyTo', position: fractureCenter(danger[0].f), region: `泄漏点: ${danger[0].f.id}` });
+      }
+      return {
+        message: `## 可燃气体泄漏检测\n\n基于催化燃烧传感器+H₂S电化学传感器：\n\n| 通道 | 泄漏浓度 | H₂S | 状态 |\n|------|---------|-----|------|\n${rows}\n\n> 可燃气体 >20%LEL 立即隔离\n> H₂S >50ppm 进入酸性服务区 (NACE MR0105)`,
+        actions,
+      };
+    }
+  }
+
   // ========== 兜底 ==========
   // 管线场景兜底
   if (scenario === 'pipeline') {
@@ -518,6 +618,12 @@ export function generateMockAIResponse(
   if (scenario === 'nuclear') {
     return {
       message: `我已收到您的指令："${input}"\n\n当前核反应堆管道共 **${fractures.length}** 段，可用指令：\n- 管道网络概览\n- 剂量率巡测\n- 疲劳累积评估\n- 找出辐射热点\n- FAC腐蚀监测\n- 冷却剂活度\n- 振动状态评估\n\n请问还需要分析什么？`,
+    };
+  }
+  // 炼油化工场景兜底
+  if (scenario === 'refinery') {
+    return {
+      message: `我已收到您的指令："${input}"\n\n当前炼油化工设备内部通道共 **${fractures.length}** 段，可用指令：\n- 设备网络概览\n- 壁厚减薄分析\n- 腐蚀速率评估\n- 找出最薄管壁\n- 蠕变寿命分析\n- 声发射检测\n- 泄漏检测\n\n请问还需要分析什么？`,
     };
   }
   return {
@@ -750,10 +856,21 @@ const QUICK_COMMANDS: Record<string, QuickCommand[]> = {
     { label: '冷却剂活度', command: '冷却剂放射性活度分析' },
     { label: '振动状态评估', command: '管道振动状态评估' },
   ],
+  // 炼油化工场景
+  refinery: [
+    { label: '设备网络概览', command: '炼油设备内部通道网络概览' },
+    { label: '壁厚减薄分析', command: '分析壁厚减薄情况' },
+    { label: '腐蚀速率评估', command: '评估设备腐蚀速率' },
+    { label: '找出最薄管壁', command: '找出壁厚最薄的管段并标记' },
+    { label: '蠕变寿命分析', command: '加热炉炉管蠕变寿命分析' },
+    { label: '声发射检测', command: '声发射裂纹检测分析' },
+    { label: '泄漏检测', command: '可燃气体泄漏检测分析' },
+  ],
 };
 
 export function getQuickCommands(scenario: string): QuickCommand[] {
   if (scenario === 'pipeline') return QUICK_COMMANDS.pipeline;
   if (scenario === 'nuclear') return QUICK_COMMANDS.nuclear;
+  if (scenario === 'refinery') return QUICK_COMMANDS.refinery;
   return QUICK_COMMANDS.fracture;
 }

@@ -14,7 +14,15 @@ const STATUS_COLORS: Record<RobotStatus, string> = {
   maintenance: '#4DA6FF',
 };
 
-function RobotMarker({ robot, isFocused, onClick }: { robot: Robot; isFocused: boolean; onClick: () => void }) {
+/** 按场景计算机器人标记大小 — 管道场景管径小，标记需同步缩小 */
+function getMarkerScale(dataSource: string): number {
+  if (dataSource === 'refinery') return 0.25;  // 换热器管径仅19-32mm，标记必须很小
+  if (dataSource === 'pipeline') return 0.5;   // 管径较大
+  if (dataSource === 'nuclear') return 0.45;   // 反应堆管道中等
+  return 1.0; // 地下裂缝场景保持原大小
+}
+
+function RobotMarker({ robot, isFocused, onClick, markerScale }: { robot: Robot; isFocused: boolean; onClick: () => void; markerScale: number }) {
   const [hovered, setHovered] = useState(false);
   const color = STATUS_COLORS[robot.status];
   const ringRef = useRef<THREE.Mesh>(null);
@@ -29,7 +37,7 @@ function RobotMarker({ robot, isFocused, onClick }: { robot: Robot; isFocused: b
     }
   });
 
-  const baseSize = isFocused ? 0.7 : (hovered ? 0.6 : 0.35);
+  const baseSize = (isFocused ? 0.7 : (hovered ? 0.6 : 0.35)) * markerScale;
 
   return (
     <group position={robot.position}>
@@ -37,11 +45,11 @@ function RobotMarker({ robot, isFocused, onClick }: { robot: Robot; isFocused: b
       {isFocused && (
         <>
           <mesh ref={ringRef}>
-            <ringGeometry args={[1.2, 1.8, 24]} />
+            <ringGeometry args={[1.2 * markerScale, 1.8 * markerScale, 24]} />
             <meshBasicMaterial color="#FFE600" transparent opacity={0.7} side={THREE.DoubleSide} />
           </mesh>
           <mesh>
-            <sphereGeometry args={[0.9, 16, 16]} />
+            <sphereGeometry args={[0.9 * markerScale, 16, 16]} />
             <meshBasicMaterial color="#FFE600" transparent opacity={0.12} />
           </mesh>
         </>
@@ -53,7 +61,7 @@ function RobotMarker({ robot, isFocused, onClick }: { robot: Robot; isFocused: b
         onPointerOver={(e) => { e.stopPropagation(); setHovered(true); document.body.style.cursor = 'pointer'; }}
         onPointerOut={() => { setHovered(false); document.body.style.cursor = 'auto'; }}
       >
-        <sphereGeometry args={[baseSize, 12, 12]} />
+        <sphereGeometry args={[Math.max(0.08, baseSize), 12, 12]} />
         <meshBasicMaterial color={color} transparent opacity={robot.status === 'offline' ? 0.25 : 0.9} />
       </mesh>
 
@@ -86,6 +94,7 @@ export function RobotMarkers() {
 
   if (loading || !robots) return null;
 
+  const markerScale = getMarkerScale(dataSource);
   const handleRobotClick = (robot: Robot) => {
     // 放大聚焦到该机器人 — 不用大球高亮，相机贴近视即可看清
     flyTo({ position: robot.position, region: `robot-${robot.id}`, zoom: 'close' });
@@ -100,6 +109,7 @@ export function RobotMarkers() {
           robot={robot}
           isFocused={focusedRobotId === robot.id}
           onClick={() => handleRobotClick(robot)}
+          markerScale={markerScale}
         />
       ))}
     </group>

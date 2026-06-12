@@ -23,6 +23,7 @@ export function ChatPanel() {
   const aiTitle = useMemo(() => {
     if (scenario === 'pipeline') return '管线巡检AI助手';
     if (scenario === 'nuclear') return '核反应堆检修AI助手';
+    if (scenario === 'refinery') return '炼油化工内检AI助手';
     if (scenario === 'gold') return '金矿裂缝分析AI助手';
     if (scenario === 'oil') return '油气裂缝分析AI助手';
     return '地质裂缝分析AI助手';

@@ -157,6 +157,16 @@ const SYSTEM_PROMPT_REFINERY = `你是炼油化工设备内部巡检机器人集
 - H₂S: >50ppm 进入酸性服务区 (NACE MR0105)
 - 声发射 >2000mV: 有活动裂纹, 需超声复检`;
 
+/** 按场景获取系统提示 */
+function getSystemPrompt(scenario: ScenarioType): string {
+  switch (scenario) {
+    case 'pipeline': return SYSTEM_PROMPT_PIPELINE;
+    case 'nuclear': return SYSTEM_PROMPT_NUCLEAR;
+    case 'refinery': return SYSTEM_PROMPT_REFINERY;
+    default: return SYSTEM_PROMPT_FRACTURE;
+  }
+}
+
 /**
  * 流式 AI 对话（支持 Function Calling → 3D 场景控制）
  */
@@ -186,6 +196,14 @@ export async function streamChat(
   const userInput = messages[messages.length - 1]?.content || '';
 
   try {
+    // 超时保护 — 30秒未响应自动降级到 mock，避免 UI 无限等待
+    const timeoutCtrl = new AbortController();
+    const timeoutId = setTimeout(() => timeoutCtrl.abort(), 30000);
+    // 如果调用方传入了 signal，链式取消
+    if (signal) {
+      signal.addEventListener('abort', () => timeoutCtrl.abort());
+    }
+
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -201,8 +219,10 @@ export async function streamChat(
         tools: SCENE_TOOLS,
         tool_choice: 'auto',
       }),
-      signal,
+      signal: timeoutCtrl.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errText = await response.text().catch(() => '');
