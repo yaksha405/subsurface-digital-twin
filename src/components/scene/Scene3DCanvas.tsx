@@ -76,6 +76,7 @@ export function Scene3DCanvas() {
           <CameraFlyToHandler />
           <CameraTracker />
           <OrbitControls
+            makeDefault
             enableDamping
             dampingFactor={0.08}
             rotateSpeed={0.6}
@@ -114,41 +115,63 @@ export function Scene3DCanvas() {
 }
 
 function CameraFlyToHandler() {
-  const { camera } = useThree();
-  const targetRef = useRef<THREE.Vector3 | null>(null);
+  const { camera, controls } = useThree();
   const animating = useRef(false);
   const startTime = useRef(0);
   const startPos = useRef(new THREE.Vector3());
+  const endPos = useRef(new THREE.Vector3());
+  const startTarget = useRef(new THREE.Vector3());
+  const endTarget = useRef(new THREE.Vector3());
   const cameraTarget = useSceneStore((s) => s.cameraTarget);
   const clearCameraTarget = useSceneStore((s) => s.clearCameraTarget);
 
   useEffect(() => {
-    if (cameraTarget) {
-      const target = cameraTarget.position;
-      targetRef.current = new THREE.Vector3(target[0] + 15, target[1] + 8, target[2] + 15);
-      startPos.current.copy(camera.position);
-      startTime.current = performance.now();
-      animating.current = true;
-      setTimeout(() => clearCameraTarget(), 2500);
+    if (!cameraTarget) return;
+    const target = cameraTarget.position;
+    // Camera end position: offset from target
+    endPos.current.set(target[0] + 15, target[1] + 8, target[2] + 15);
+    // OrbitControls target: look at the alert/robot position itself
+    endTarget.current.set(target[0], target[1], target[2]);
+
+    startPos.current.copy(camera.position);
+    // Save current controls target and disable user input during animation
+    if (controls && 'target' in controls) {
+      startTarget.current.copy((controls as any).target);
+      (controls as any).enabled = false;
     }
-  }, [cameraTarget, camera, clearCameraTarget]);
+
+    startTime.current = performance.now();
+    animating.current = true;
+
+    const timeout = setTimeout(() => {
+      animating.current = false;
+      if (controls && 'target' in controls) {
+        (controls as any).target.copy(endTarget.current);
+        (controls as any).enabled = true;
+        (controls as any).update();
+      }
+      clearCameraTarget();
+    }, 2100);
+
+    return () => clearTimeout(timeout);
+  }, [cameraTarget, camera, controls, clearCameraTarget]);
 
   useFrame(() => {
-    if (animating.current && targetRef.current) {
-      const elapsed = (performance.now() - startTime.current) / 1000;
-      const duration = 2.0;
-      const t = Math.min(elapsed / duration, 1);
-      const eased = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-      camera.position.lerpVectors(startPos.current, targetRef.current, eased);
-      const lookAt = new THREE.Vector3(
-        targetRef.current.x - 15,
-        targetRef.current.y - 8,
-        targetRef.current.z - 15
-      );
-      camera.lookAt(lookAt);
-      if (t >= 1) {
-        animating.current = false;
-      }
+    if (!animating.current) return;
+    const elapsed = (performance.now() - startTime.current) / 1000;
+    const duration = 2.0;
+    const t = Math.min(elapsed / duration, 1);
+    const eased = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+    // Animate camera position
+    camera.position.lerpVectors(startPos.current, endPos.current, eased);
+
+    // Animate controls target in sync so zoom/rotate/pan stay correct after animation
+    if (controls && 'target' in controls) {
+      (controls as any).target.lerpVectors(startTarget.current, endTarget.current, eased);
+      (controls as any).update();
+    } else {
+      camera.lookAt(endTarget.current);
     }
   });
 
