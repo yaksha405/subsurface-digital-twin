@@ -74,6 +74,8 @@ export function Scene3DCanvas() {
           {/* 岩体 + 裂缝网络 — 核心场景 */}
           <RockMass />
           <FractureNetwork />
+          {/* R3F 原生热力图（瓦斯/温度）— 跟随场景旋转/平移 */}
+          <DeckGlHeatmap />
 
           {/* Potree 相机同步（R3F → Potree，每帧更新） */}
           {layers.pointCloud && <PotreeCameraSync />}
@@ -111,9 +113,6 @@ export function Scene3DCanvas() {
 
       {/* HTML overlays outside Canvas */}
       <CameraInfo />
-
-      {/* deck.gl 热力图叠加层（瓦斯/温度，独立 WebGL context） */}
-      <DeckGlHeatmap />
 
       {/* Potree 工业级点云渲染（独立 WebGL context，八叉树 LOD） */}
       <PotreeViewer />
