@@ -187,7 +187,7 @@ async def health():
     """健康检查"""
     return {
         "status": "ok",
-        "service": "subsurface-digital-twin-backend",
+        "service": "HIVE-backend",
         "version": "2.0.0",
         "open3d_available": pc_processor.o3d is not None,
         "has_real_data": data_store.has_real_data,

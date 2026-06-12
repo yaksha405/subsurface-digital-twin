@@ -3,7 +3,7 @@
 ## Project: 异构群智数字孪生主控舱 (Digital Twin Control Cabin)
 - **Location**: `/Volumes/HD/robot/`
 - **Stack**: Vite 5 + React 18 + TS + Tailwind 3.4.17 + Three.js + R3F v8.17.10 + Drei v9 + Zustand v5
-- **Open Source Integrations**: Shadcn UI (Radix UI) | Deck.gl | Three.js/Potree-style | R3F
+- **Open Source Integrations**: Shadcn UI (Radix UI) | Deck.gl | Three.js R3F | **Potree 1.8** | simplex-noise
 - **v2 定位**: 地下裂缝探测机器人集群数字孪生平台，非隧道场景，而是地质体中的裂缝网络
 - **用户**: 煤矿/金矿/油气行业工程师，可切换场景
 - **Data Architecture**: `.env` → `src/api/` → `src/hooks/` → `src/components/`. Mock/live 双模式
@@ -13,8 +13,9 @@
 - **GitHub**: `yaksha405/subsurface-digital-twin` (**private**), GitHub Pages 因 private 不可外网访问
 - **Build**: `npm run build` 只跑 `vite build`（跳过 tsc），因为有多处 R3F/deck.gl 类型兼容性问题但运行时无影响。`npm run build:check` 保留完整类型检查
 - **数据管线**: 所有数据必须走 `src/api/` 层（sceneApi/fractureApi/robotApi/alertApi），组件不得直接 import `data/` 生成器
-- **后端**: `backend/` FastAPI 提供全部数据接口 + Open3D 点云处理（去噪/ICP/Poisson/RANSAC/SLAM）。真实数据处理后存入 DataStore，GET 接口优先返回真实数据
-- **PotreeViewer 已删除**: CDN 加载独立 Three.js 与 R3F 冲突，是坏代码。大规模点云用 Three.js Points + 自定义 Shader（PointCloudLayer）
+- **后端**: `backend/` FastAPI 提供全部数据接口 + Open3D 点云处理（去噪/ICP/Poisson/RANSAC/SLAM）+ PotreeConverter 八叉树转换。真实数据处理后存入 DataStore，GET 接口优先返回真实数据
+- **Potree 1.8 已正式集成**: 从源码构建，部署到 `public/potree/`。PotreeViewer.tsx 独立 WebGL context + PotreeCameraSync 每帧同步。示例数据 vol_total（火山扫描）。后端 POST /api/potree/convert 转换真实数据
+- **原则: 不手搓**: 有成熟开源方案就用开源方案，有冲突就删手搓的。已替换：点云渲染→Potree，噪声→simplex-noise
 
 ## User Preferences
 - **极其重视交互体验**: 反复强调不要手搓，要参考成熟产品（Potree/CloudCompare/Cesium）的设计
