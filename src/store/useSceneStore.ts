@@ -186,7 +186,7 @@ export const useSceneStore = create<SceneStore>((set, get) => ({
   setCameraInfo: (info) => set({ cameraInfo: info }),
 
   openRobotDetail: (robot) => set({ selectedRobot: robot, robotDetailOpen: true, focusedRobotId: robot.id }),
-  closeRobotDetail: () => set({ robotDetailOpen: false }),
+  closeRobotDetail: () => set({ robotDetailOpen: false, selectedRobot: null, focusedRobotId: null }),
 
   // v2 actions
   setScenario: (s) => set({ scenario: s }),

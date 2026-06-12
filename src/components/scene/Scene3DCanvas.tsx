@@ -39,10 +39,13 @@ export function Scene3DCanvas() {
           gl={{ preserveDrawingBuffer: true, antialias: true }}
           dpr={[1, 1.5]}
           onPointerMissed={() => {
-            // 点击空白处取消高亮
+            // 点击空白处取消高亮 + 关闭机器人详情
             const store = useSceneStore.getState();
             if (store.highlightRegion.active) {
               store.clearHighlight();
+            }
+            if (store.robotDetailOpen) {
+              store.closeRobotDetail();
             }
           }}
           onCreated={({ gl, scene, camera }) => {
