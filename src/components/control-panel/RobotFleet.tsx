@@ -3,7 +3,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { useRobotStats, useFilteredRobots, defaultFilter, type RobotFilter } from '../../hooks/useRobots';
 import { useSceneStore } from '../../store/useSceneStore';
-import type { RobotModel, RobotStatus, MeshRole } from '../../types';
+import type { Robot, RobotModel, RobotStatus, MeshRole } from '../../types';
 import { Search, Bot, Battery, Signal, Wifi, WifiOff } from 'lucide-react';
 
 const MODEL_LABELS: Record<RobotModel, string> = {

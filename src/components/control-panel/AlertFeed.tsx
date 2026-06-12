@@ -64,9 +64,10 @@ export function AlertFeed() {
 
   const handleAlertClick = (alert: AlertEvent) => {
     if (alert.position) {
-      flyTo({ position: alert.position, region: `alert-${alert.id}` });
-      setHighlightRegion({ position: alert.position, radius: 10, active: true });
-      setTimeout(() => setHighlightRegion({ position: alert.position, radius: 10, active: false }), 5000);
+      const pos = alert.position;
+      flyTo({ position: pos, region: `alert-${alert.id}` });
+      setHighlightRegion({ position: pos, radius: 10, active: true });
+      setTimeout(() => setHighlightRegion({ position: pos, radius: 10, active: false }), 5000);
     }
   };
 

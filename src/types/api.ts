@@ -8,7 +8,7 @@
  * TypeScript 编译器会在编译期进行类型检查。
  */
 
-import type { SceneNode, POI, SceneAction, Vec3, RawPoint } from './index';
+import type { SceneNode, POI, SceneAction, Vec3, RawPoint, Robot, RobotModel, RobotStatus, MeshRole } from './index';
 
 // ===================================================================
 // 场景数据相关
