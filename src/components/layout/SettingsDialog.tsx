@@ -19,10 +19,26 @@ const PRESETS: Record<string, { baseUrl: string; model: string }> = {
 const STORAGE_KEY = 'llm-settings';
 
 export function loadSettings(): LLMSettings {
+  // 优先使用 localStorage（用户手动配置的）
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) return JSON.parse(raw);
   } catch {}
+
+  // 回退到环境变量（Vercel/CI 配置的）
+  const envKey = import.meta.env.VITE_LLM_API_KEY as string | undefined;
+  const envUrl = import.meta.env.VITE_LLM_BASE_URL as string | undefined;
+  const envModel = import.meta.env.VITE_LLM_MODEL as string | undefined;
+
+  if (envKey) {
+    return {
+      provider: 'deepseek',
+      baseUrl: envUrl || 'https://api.deepseek.com',
+      apiKey: envKey,
+      model: envModel || 'deepseek-chat',
+    };
+  }
+
   return {
     provider: 'deepseek',
     baseUrl: 'https://api.deepseek.com',

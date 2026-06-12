@@ -10,7 +10,8 @@
 - **AI接入**: Settings面板配置 LLM Provider/BaseURL/APIKey/Model，默认 DeepSeek，无 Key 时 mock 降级
 - **Key**: npm install needs `--legacy-peer-deps`; ai@6 removed (zod/v4 conflict)
 - **Started**: 2026-06-12
-- **GitHub**: `yaksha405/HIVE` (**private**), GitHub Pages 因 private 不可外网访问（曾用名 subsurface-digital-twin）
+- **GitHub**: `yaksha405/HIVE` (**public**), GitHub Pages: https://yaksha405.github.io/HIVE/ （曾用名 subsurface-digital-twin）
+- **Vercel**: https://robot-azure-nu.vercel.app （vercel.json 配置为纯前端静态构建，排除 backend Python）
 - **Build**: `npm run build` 只跑 `vite build`（跳过 tsc），因为有多处 R3F/deck.gl 类型兼容性问题但运行时无影响。`npm run build:check` 保留完整类型检查
 - **数据管线**: 所有数据必须走 `src/api/` 层（sceneApi/fractureApi/robotApi/alertApi），组件不得直接 import `data/` 生成器
 - **后端**: `backend/` FastAPI 提供全部数据接口 + Open3D 点云处理（去噪/ICP/Poisson/RANSAC/SLAM）+ PotreeConverter 八叉树转换。真实数据处理后存入 DataStore，GET 接口优先返回真实数据
