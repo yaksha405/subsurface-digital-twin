@@ -8,6 +8,8 @@ interface SceneStore {
   gasThreshold: number;
   confidenceFilter: number;
   physicalTruthMode: boolean;
+  /** 裂缝着色模式：默认(gas) / 渗透率(permeability) / 应力(stress) */
+  fractureColorMode: 'gas' | 'permeability' | 'stress';
   // Spatial actions
   cameraTarget: CameraTarget | null;
   highlightRegion: HighlightRegion;
@@ -40,6 +42,7 @@ interface SceneStore {
   setGasThreshold: (value: number) => void;
   setConfidenceFilter: (value: number) => void;
   setPhysicalTruthMode: (value: boolean) => void;
+  setFractureColorMode: (mode: 'gas' | 'permeability' | 'stress') => void;
   flyTo: (target: CameraTarget) => void;
   clearCameraTarget: () => void;
   setHighlightRegion: (region: HighlightRegion) => void;
@@ -79,6 +82,7 @@ export const useSceneStore = create<SceneStore>((set, get) => ({
   gasThreshold: 1.5,
   confidenceFilter: 0,
   physicalTruthMode: false,
+  fractureColorMode: 'gas',
   cameraTarget: null,
   highlightRegion: { position: [0, 0, 0], radius: 10, active: false },
   volumeMeasureMode: false,
@@ -116,6 +120,8 @@ export const useSceneStore = create<SceneStore>((set, get) => ({
   setPhysicalTruthMode: (value) => {
     set({ physicalTruthMode: value });
   },
+
+  setFractureColorMode: (mode) => set({ fractureColorMode: mode }),
 
   flyTo: (target) => set({ cameraTarget: target }),
 

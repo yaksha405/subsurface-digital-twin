@@ -10,6 +10,7 @@ import { loadSettings } from '../components/layout/SettingsDialog';
 import { generateMockAIResponse, quickCommands } from '../lib/mockAI';
 import { SCENE_TOOLS, parseToolCall, buildSceneContext } from './llmTools';
 import type { Fracture, ScenarioType, SceneAction } from '../types';
+import { useSceneStore } from '../store/useSceneStore';
 
 export { quickCommands as fetchQuickCommands };
 
@@ -179,12 +180,78 @@ async function mockStreamChat(
   const userInput = lastMessage?.content || '';
   const response = generateMockAIResponse(userInput, sceneContext);
 
+  // 立即执行场景动作（不等流式打字）— 避免"没反应"的体验
+  const allActions = response.actions || (response.action ? [response.action] : []);
+  for (const action of allActions) {
+    executeMockAction(action);
+  }
+
+  // 同步流式显示文字（加快速度，避免用户长时间等待）
   const tokens = response.message.split(/(\s+|[\n,.!?;:])/);
   for (const token of tokens) {
     if (signal?.aborted) break;
-    await new Promise((r) => setTimeout(r, 12 + Math.random() * 20));
+    await new Promise((r) => setTimeout(r, 6 + Math.random() * 10));
     if (token) onToken(token);
   }
 
-  return response;
+  return { ...response, actions: undefined, action: undefined };
+}
+
+/** Mock 模式下直接执行场景动作 */
+function executeMockAction(action: any) {
+  const store = useSceneStore.getState();
+  switch (action.type) {
+    case 'flyTo':
+      store.flyTo({ position: action.position, region: action.region });
+      store.setHighlightRegion({ position: action.position, radius: action.radius || 12, active: true });
+      setTimeout(() => {
+        const cur = useSceneStore.getState().highlightRegion;
+        store.setHighlightRegion({ ...cur, active: false });
+      }, 5000);
+      break;
+    case 'markPoints':
+      if (action.points?.length) {
+        store.addAIMarkers(action.points.map((p: any, i: number) => ({
+          id: `ai-marker-${Date.now()}-${i}`,
+          position: p.position,
+          label: p.label,
+          level: p.level || 'info',
+          createdAt: Date.now(),
+        })));
+      }
+      break;
+    case 'clearMarkers':
+      store.clearAIMarkers();
+      break;
+    case 'toggleLayer':
+      if (action.layer) {
+        const key = action.layer as keyof typeof store.layers;
+        if (key in store.layers) {
+          store.setLayer(key, !useSceneStore.getState().layers[key]);
+        }
+      }
+      break;
+    case 'activateTool':
+      store.setActiveTool(action.tool);
+      break;
+    case 'selectFracture':
+      if (action.fractureId) {
+        const f = store.fractures.find((f) => f.id === action.fractureId);
+        if (f) {
+          store.selectFracture(f);
+          const center = f.path.reduce((a: number[], p: number[]) => [a[0]+p[0], a[1]+p[1], a[2]+p[2]], [0,0,0]);
+          const n = f.path.length || 1;
+          store.flyTo({ position: [center[0]/n, center[1]/n, center[2]/n], region: f.name });
+        }
+      }
+      break;
+    case 'fitAll':
+      store.flyTo({ position: [0, 0, 0] });
+      break;
+    case 'setColorMode':
+      if (action.mode) {
+        store.setFractureColorMode(action.mode);
+      }
+      break;
+  }
 }

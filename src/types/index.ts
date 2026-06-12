@@ -57,7 +57,8 @@ export interface SceneAction {
     | 'setGasThreshold'
     | 'switchScenario'
     | 'fitAll'
-    | 'clearMarkers';
+    | 'clearMarkers'
+    | 'setColorMode';
   position?: [number, number, number];
   region?: string;
   layer?: string;
@@ -67,6 +68,7 @@ export interface SceneAction {
   scenario?: ScenarioType;
   points?: { position: [number, number, number]; label: string; level?: 'danger' | 'warning' | 'info' }[];
   radius?: number;
+  mode?: 'gas' | 'permeability' | 'stress';
 }
 
 /** LLM 放置的 3D 标记 */

@@ -3,18 +3,16 @@ import { Deck, OrbitView } from '@deck.gl/core';
 import { HeatmapLayer } from '@deck.gl/aggregation-layers';
 import type { Layer } from '@deck.gl/core';
 import { useSceneStore } from '../../store/useSceneStore';
-import { useSceneNodes } from '../../hooks/useSceneNodes';
-import type { SceneNode } from '../../types';
+import type { Fracture } from '../../types';
 
 /**
- * Deck.gl HeatmapLayer 集成组件
- * 使用 @deck.gl/aggregation-layers 的 HeatmapLayer 处理瓦斯/温度数据数组
- * 渲染在叠加 canvas 上，通过 mixBlendMode 产生雾化叠加效果
+ * Deck.gl HeatmapLayer — 瓦斯/温度热力图
  *
- * 数据来源：useSceneNodes Hook（mock 模式用内置数据，live 模式从后端 API 获取）
+ * 数据来源：裂缝路径上的传感器节点（不是岩体随机散点）
+ * 瓦斯只在裂缝中累积，不会在完整岩层中出现
  */
 
-// 瓦斯色谱：深蓝 → 青 → 黄 → 红（PRD要求红蓝渐变）
+// 瓦斯色谱：深蓝 → 青 → 黄 → 红
 const GAS_COLOR_RANGE: [number, number, number][] = [
   [13, 27, 80],
   [20, 80, 140],
@@ -39,19 +37,21 @@ interface HeatmapDataPoint {
   weight: number;
 }
 
-function nodesToHeatmapData(nodes: SceneNode[]): { gas: HeatmapDataPoint[]; temp: HeatmapDataPoint[] } {
+/** 从裂缝路径节点提取热力图数据点 — 只在裂缝上有数据 */
+function fracturesToHeatmapData(fractures: Fracture[]): { gas: HeatmapDataPoint[]; temp: HeatmapDataPoint[] } {
   const gas: HeatmapDataPoint[] = [];
   const temp: HeatmapDataPoint[] = [];
-  for (const node of nodes) {
-    const pos = node.geometry.center;
-    gas.push({
-      position: [pos.x, pos.y, pos.z],
-      weight: node.sensors.ch4_concentration_pct,
-    });
-    temp.push({
-      position: [pos.x, pos.y, pos.z],
-      weight: node.sensors.temperature_celsius,
-    });
+  for (const f of fractures) {
+    for (const node of f.nodes) {
+      gas.push({
+        position: node.position,
+        weight: node.sensors.ch4_pct,
+      });
+      temp.push({
+        position: node.position,
+        weight: node.sensors.temperature_c,
+      });
+    }
   }
   return { gas, temp };
 }
@@ -64,15 +64,14 @@ export function DeckGlHeatmap() {
   const layers = useSceneStore((s) => s.layers);
   const physicalTruthMode = useSceneStore((s) => s.physicalTruthMode);
   const gasThreshold = useSceneStore((s) => s.gasThreshold);
-  const { data: nodes } = useSceneNodes();
+  const fractures = useSceneStore((s) => s.fractures);
 
   const showGas = layers.gasHeatmap && !physicalTruthMode;
   const showTemp = layers.tempHeatmap && !physicalTruthMode;
 
   useEffect(() => {
-    if (error || !containerRef.current || !nodes) return;
+    if (error || !containerRef.current || fractures.length === 0) return;
     if (!showGas && !showTemp) {
-      // Clean up deck when no layers needed
       if (deckRef.current) {
         try {
           deckRef.current.setProps({ layers: [] });
@@ -84,19 +83,19 @@ export function DeckGlHeatmap() {
     }
 
     try {
-      const { gas, temp } = nodesToHeatmapData(nodes);
+      const { gas, temp } = fracturesToHeatmapData(fractures);
 
       const deckLayers: Layer[] = [];
 
-      if (showGas) {
+      if (showGas && gas.length > 0) {
         deckLayers.push(
           new HeatmapLayer<HeatmapDataPoint>({
             id: 'gas-heatmap',
             data: gas,
-            getPosition: (d) => d.position,
+            getPosition: (d) => [d.position[0], d.position[1], d.position[2]],
             getWeight: (d) => d.weight,
-            radiusPixels: 40,
-            intensity: 1.2,
+            radiusPixels: 25,
+            intensity: 1.5,
             threshold: 0.03,
             colorRange: GAS_COLOR_RANGE,
             opacity: 0.55,
@@ -104,14 +103,14 @@ export function DeckGlHeatmap() {
         );
       }
 
-      if (showTemp) {
+      if (showTemp && temp.length > 0) {
         deckLayers.push(
           new HeatmapLayer<HeatmapDataPoint>({
             id: 'temp-heatmap',
             data: temp,
-            getPosition: (d) => d.position,
+            getPosition: (d) => [d.position[0], d.position[1], d.position[2]],
             getWeight: (d) => d.weight,
-            radiusPixels: 45,
+            radiusPixels: 30,
             intensity: 1.0,
             threshold: 0.03,
             colorRange: TEMP_COLOR_RANGE,
@@ -139,10 +138,10 @@ export function DeckGlHeatmap() {
         deckRef.current.setProps({ layers: deckLayers });
       }
     } catch (e) {
-      console.error('[DeckGlHeatmap] Failed to initialize Deck.gl:', e);
+      console.error('[DeckGlHeatmap] Failed:', e);
       setError(true);
     }
-  }, [showGas, showTemp, gasThreshold, error, nodes]);
+  }, [showGas, showTemp, gasThreshold, error, fractures]);
 
   useEffect(() => {
     return () => {

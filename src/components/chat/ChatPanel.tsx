@@ -255,5 +255,11 @@ function executeActions(action: SceneAction) {
       store.flyTo({ position: [0, 0, 0] });
       break;
     }
+    case 'setColorMode': {
+      if (action.mode) {
+        store.setFractureColorMode(action.mode);
+      }
+      break;
+    }
   }
 }

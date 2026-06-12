@@ -16,6 +16,40 @@ import type { Fracture } from '../../types';
  * 渲染方式：每条裂缝 = 两个不规则面（上下盘）+ 边缘线
  */
 
+// 渗透率颜色映射：蓝(低) → 绿 → 黄 → 红(高)
+function permeabilityColor(perm: number): THREE.Color {
+  const t = Math.max(0, Math.min(1, perm / 4.0)); // 0~4 mD
+  const color = new THREE.Color();
+  if (t < 0.25) {
+    const lt = t / 0.25;
+    color.setRGB(0.1 + lt * 0.1, 0.2 + lt * 0.4, 0.9 - lt * 0.3);
+  } else if (t < 0.5) {
+    const lt = (t - 0.25) / 0.25;
+    color.setRGB(0.2 + lt * 0.2, 0.6 + lt * 0.3, 0.6 - lt * 0.4);
+  } else if (t < 0.75) {
+    const lt = (t - 0.5) / 0.25;
+    color.setRGB(0.4 + lt * 0.6, 0.9 - lt * 0.1, 0.2);
+  } else {
+    const lt = (t - 0.75) / 0.25;
+    color.setRGB(1.0, 0.8 - lt * 0.6, 0.1);
+  }
+  return color;
+}
+
+// 应力颜色映射：绿(低) → 黄 → 红(高)
+function stressColor(stress: number): THREE.Color {
+  const t = Math.max(0, Math.min(1, (stress - 5) / 20)); // 5~25 MPa
+  const color = new THREE.Color();
+  if (t < 0.5) {
+    const lt = t / 0.5;
+    color.setRGB(lt * 1.0, 0.7 + lt * 0.2, 0.1);
+  } else {
+    const lt = (t - 0.5) / 0.5;
+    color.setRGB(1.0, 0.9 - lt * 0.7, 0.1);
+  }
+  return color;
+}
+
 // 颜色映射
 function valueToColor(
   value: number, min: number, max: number, threshold?: number
@@ -136,6 +170,7 @@ function FractureSurface({
 }) {
   const [hovered, setHovered] = useState(false);
   const gasThreshold = useSceneStore((s) => s.gasThreshold);
+  const colorMode = useSceneStore((s) => s.fractureColorMode);
 
   const { surfaceGeo, leftEdgeGeo, rightEdgeGeo } = useMemo(() => {
     const points = fracture.path.map((p) => new THREE.Vector3(...p));
@@ -208,9 +243,20 @@ function FractureSurface({
         const frac = idx - lo;
         value = nodeSensors[lo].value * (1 - frac) + nodeSensors[hi].value * frac;
       }
+      // 颜色：根据着色模式决定
       const metric = nodeSensors.length > 0 ? nodeSensors[0] : getSensorMetric(fracture.sensorReading, scenario);
       const threshold = scenario === 'coal' ? gasThreshold : metric.threshold;
-      const c = valueToColor(value, metric.min, metric.max, threshold);
+      let c: THREE.Color;
+      if (colorMode === 'permeability') {
+        // 渗透率着色 — 用裂缝自身渗透率
+        c = permeabilityColor(fracture.sensorReading.permeability_md);
+      } else if (colorMode === 'stress') {
+        // 应力着色
+        c = stressColor(fracture.sensorReading.stress_mpa);
+      } else {
+        // 默认：gas/传感器值着色
+        c = valueToColor(value, metric.min, metric.max, threshold);
+      }
       surfaceColors.push(c.r, c.g, c.b, c.r, c.g, c.b);
     }
 
@@ -224,7 +270,7 @@ function FractureSurface({
     rightEdgeGeo.setAttribute('position', new THREE.Float32BufferAttribute(rightEdgeVerts, 3));
 
     return { surfaceGeo, leftEdgeGeo, rightEdgeGeo };
-  }, [fracture, isSelected, hovered, scenario, gasThreshold]);
+  }, [fracture, isSelected, hovered, scenario, gasThreshold, colorMode]);
 
   const handleClick = useCallback(
     (e: any) => { e.stopPropagation(); onSelect(fracture); },

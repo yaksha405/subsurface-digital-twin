@@ -208,6 +208,8 @@ export function generateMockAIResponse(
       if (stressPoints.length > 0) {
         actions.push({ type: 'markPoints', points: stressPoints });
       }
+      // 切换裂缝着色为应力模式
+      actions.push({ type: 'setColorMode', mode: 'stress' });
       actions.push({
         type: 'flyTo',
         position: fractureCenter(top[0].f),
@@ -254,6 +256,8 @@ export function generateMockAIResponse(
           level: 'info' as const,
         })),
       });
+      // 切换裂缝着色模式为渗透率（不用热力图，用裂缝面颜色映射）
+      actions.push({ type: 'setColorMode', mode: 'permeability' });
     }
     if (top.length > 0) {
       actions.push({
