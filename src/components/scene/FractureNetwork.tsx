@@ -137,13 +137,12 @@ function FractureSurface({
   const [hovered, setHovered] = useState(false);
   const gasThreshold = useSceneStore((s) => s.gasThreshold);
 
-  const { upperGeo, lowerGeo, edgeGeo, colors } = useMemo(() => {
+  const { surfaceGeo, leftEdgeGeo, rightEdgeGeo } = useMemo(() => {
     const points = fracture.path.map((p) => new THREE.Vector3(...p));
-    if (points.length < 2) return { upperGeo: null, lowerGeo: null, edgeGeo: null, colors: new Float32Array(0) };
+    if (points.length < 2) return { surfaceGeo: null, leftEdgeGeo: null, rightEdgeGeo: null };
 
     // 裂缝宽度：主裂缝宽，分支窄
     const width = fracture.type === 'main' ? 4.5 : 2.5;
-    const gap = fracture.type === 'main' ? 0.8 : 0.4; // 上下盘间距
 
     // 沿路径计算法线方向（用于展宽裂缝面）
     const curve = new THREE.CatmullRomCurve3(points);
@@ -152,12 +151,10 @@ function FractureSurface({
 
     // 计算每个点的局部坐标系（切线 + 法线）
     const upVec = new THREE.Vector3(0, 1, 0);
-    const upperVerts: number[] = [];
-    const lowerVerts: number[] = [];
-    const edgeVerts: number[] = [];
-    const colorArr: number[] = [];
-    const upperColors: number[] = [];
-    const lowerColors: number[] = [];
+    const surfaceVerts: number[] = [];
+    const leftEdgeVerts: number[] = [];
+    const rightEdgeVerts: number[] = [];
+    const surfaceColors: number[] = [];
 
     // 传感器数据插值
     const nodeSensors = fracture.nodes.map((n) => getSensorMetric(n.sensors, scenario));
@@ -178,35 +175,27 @@ function FractureSurface({
       if (side.lengthSq() < 0.001) side = new THREE.Vector3().crossVectors(tangent, new THREE.Vector3(1, 0, 0));
       side.normalize();
 
-      // 真正的法线（垂直于切线和侧向）
-      const normal = new THREE.Vector3().crossVectors(side, tangent).normalize();
-
       // 不规则宽度噪声
       const noiseW =
         Math.sin(p.x * 0.3 + p.z * 0.2) * 0.4 +
         Math.cos(p.y * 0.25 + p.x * 0.15) * 0.3;
       const halfW = width * (0.6 + noiseW * 0.4);
 
-      // 不规则起伏（粗糙面）
+      // 不规则起伏（粗糙面）— 单面微偏移，不再产生双层
       const roughness =
         Math.sin(p.x * 0.8 + p.z * 0.5) * 0.3 +
         Math.cos(p.y * 0.6 + p.x * 0.4) * 0.2;
 
-      // 上下盘顶点
-      const gapHalf = gap * 0.5 + roughness * 0.3;
-      upperVerts.push(
-        p.x - side.x * halfW, p.y + gapHalf + normal.y * roughness, p.z - side.z * halfW,
-        p.x + side.x * halfW, p.y + gapHalf - normal.y * roughness, p.z + side.z * halfW,
-      );
-      lowerVerts.push(
-        p.x - side.x * halfW, p.y - gapHalf - normal.y * roughness * 0.8, p.z - side.z * halfW,
-        p.x + side.x * halfW, p.y - gapHalf + normal.y * roughness * 0.8, p.z + side.z * halfW,
-      );
+      // 单一裂缝面顶点（不再分上盘/下盘）
+      const yOff = roughness * 0.3;
+      const lx = p.x - side.x * halfW;
+      const lz = p.z - side.z * halfW;
+      const rx = p.x + side.x * halfW;
+      const rz = p.z + side.z * halfW;
 
-      // 边缘线（裂缝轮廓）
-      edgeVerts.push(
-        p.x - side.x * halfW, p.y + gapHalf + normal.y * roughness, p.z - side.z * halfW,
-      );
+      surfaceVerts.push(lx, p.y + yOff, lz, rx, p.y - yOff, rz);
+      leftEdgeVerts.push(lx, p.y + yOff, lz);
+      rightEdgeVerts.push(rx, p.y - yOff, rz);
 
       // 颜色插值
       let value: number;
@@ -222,19 +211,19 @@ function FractureSurface({
       const metric = nodeSensors.length > 0 ? nodeSensors[0] : getSensorMetric(fracture.sensorReading, scenario);
       const threshold = scenario === 'coal' ? gasThreshold : metric.threshold;
       const c = valueToColor(value, metric.min, metric.max, threshold);
-      upperColors.push(c.r, c.g, c.b, c.r, c.g, c.b);
-      lowerColors.push(c.r * 0.7, c.g * 0.7, c.b * 0.7, c.r * 0.7, c.g * 0.7, c.b * 0.7);
+      surfaceColors.push(c.r, c.g, c.b, c.r, c.g, c.b);
     }
 
     // 构建 BufferGeometry
-    const upperGeo = buildSurfaceGeo(upperVerts, upperColors, framePoints.length);
-    const lowerGeo = buildSurfaceGeo(lowerVerts, lowerColors, framePoints.length);
+    const surfaceGeo = buildSurfaceGeo(surfaceVerts, surfaceColors, framePoints.length);
 
-    // 边缘线
-    const edgeGeo = new THREE.BufferGeometry();
-    edgeGeo.setAttribute('position', new THREE.Float32BufferAttribute(edgeVerts, 3));
+    // 双侧边缘线
+    const leftEdgeGeo = new THREE.BufferGeometry();
+    leftEdgeGeo.setAttribute('position', new THREE.Float32BufferAttribute(leftEdgeVerts, 3));
+    const rightEdgeGeo = new THREE.BufferGeometry();
+    rightEdgeGeo.setAttribute('position', new THREE.Float32BufferAttribute(rightEdgeVerts, 3));
 
-    return { upperGeo, lowerGeo, edgeGeo, colors: new Float32Array(0) };
+    return { surfaceGeo, leftEdgeGeo, rightEdgeGeo };
   }, [fracture, isSelected, hovered, scenario, gasThreshold]);
 
   const handleClick = useCallback(
@@ -242,10 +231,11 @@ function FractureSurface({
     [fracture, onSelect]
   );
 
-  if (!upperGeo || !lowerGeo) return null;
+  if (!surfaceGeo) return null;
 
   const emissiveColor = isSelected ? '#FFE600' : hovered ? '#FFE600' : '#000000';
   const emissiveIntensity = isSelected ? 0.4 : hovered ? 0.2 : 0;
+  const edgeColor = isSelected ? '#FFE600' : hovered ? '#FFCC00' : '#8B7355';
 
   return (
     <group
@@ -253,42 +243,26 @@ function FractureSurface({
       onPointerOver={() => setHovered(true)}
       onPointerOut={() => setHovered(false)}
     >
-      {/* 上盘（亮面） */}
-      <mesh geometry={upperGeo}>
+      {/* 裂缝面 — 单一表面，消除重影 */}
+      <mesh geometry={surfaceGeo}>
         <meshStandardMaterial
           vertexColors
           side={THREE.DoubleSide}
           transparent
-          opacity={isSelected ? 0.92 : hovered ? 0.82 : 0.7}
+          opacity={isSelected ? 0.85 : hovered ? 0.75 : 0.65}
           emissive={emissiveColor}
           emissiveIntensity={emissiveIntensity}
-          roughness={0.75}
+          roughness={0.8}
           depthWrite={false}
         />
       </mesh>
 
-      {/* 下盘（暗面） */}
-      <mesh geometry={lowerGeo}>
-        <meshStandardMaterial
-          vertexColors
-          side={THREE.DoubleSide}
-          transparent
-          opacity={isSelected ? 0.88 : hovered ? 0.75 : 0.6}
-          emissive={emissiveColor}
-          emissiveIntensity={emissiveIntensity * 0.5}
-          roughness={0.85}
-          depthWrite={false}
-        />
-      </mesh>
-
-      {/* 裂缝边缘轮廓线 */}
-      <line geometry={edgeGeo}>
-        <lineBasicMaterial
-          color={isSelected ? '#FFE600' : hovered ? '#FFCC00' : '#8B7355'}
-          transparent
-          opacity={isSelected ? 0.9 : 0.5}
-          linewidth={1}
-        />
+      {/* 裂缝两侧轮廓线 */}
+      <line geometry={leftEdgeGeo}>
+        <lineBasicMaterial color={edgeColor} transparent opacity={isSelected ? 0.9 : 0.5} linewidth={1} />
+      </line>
+      <line geometry={rightEdgeGeo}>
+        <lineBasicMaterial color={edgeColor} transparent opacity={isSelected ? 0.9 : 0.5} linewidth={1} />
       </line>
     </group>
   );
