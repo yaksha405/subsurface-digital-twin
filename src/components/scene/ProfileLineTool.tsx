@@ -331,7 +331,7 @@ function ProfileCrossSection({
         {/* 标题栏 + 风险等级 */}
         <div className="flex items-center justify-between mb-2">
           <span className="text-[#FF8800] font-bold text-[11px]">{measureCfg.profileTitle}</span>
-          <span className="px-1.5 py-0.5 rounded text-[8px] font-bold" style={{
+          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold" style={{
             background: `${dangerous === 0 ? '#00CC66' : dangerous <= projected.length * 0.2 ? '#FFCC00' : dangerous <= projected.length * 0.5 ? '#FF8800' : '#FF3333'}20`,
             color: dangerous === 0 ? '#00CC66' : dangerous <= projected.length * 0.2 ? '#FFCC00' : dangerous <= projected.length * 0.5 ? '#FF8800' : '#FF3333'
           }}>
@@ -405,7 +405,7 @@ function ProfileCrossSection({
         </svg>
 
         {/* 统计栏 — 场景化6列 */}
-        <div className="grid grid-cols-6 gap-1 mt-2 text-[8px]">
+        <div className="grid grid-cols-6 gap-1 mt-2 text-[9px]">
           <div className="text-center px-0.5 py-1 bg-[#0F0F16]/60 rounded">
             <div className="text-[#A0A0B0]">{measureCfg.pointLabel}</div>
             <div className="text-[#E0E0E8] font-mono font-bold">{projected.length}</div>

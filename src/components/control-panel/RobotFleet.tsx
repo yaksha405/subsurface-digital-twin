@@ -5,6 +5,7 @@ import { useRobotStats, useFilteredRobots, defaultFilter, type RobotFilter } fro
 import { useSceneStore } from '../../store/useSceneStore';
 import type { Robot, RobotModel, RobotStatus, MeshRole } from '../../types';
 import { Search, Bot, Battery, Signal, Wifi, WifiOff } from 'lucide-react';
+import { ROBOT_STATUS } from '../../lib/sceneColors';
 
 const MODEL_LABELS: Record<RobotModel, string> = {
   snake: '蛇形',
@@ -13,6 +14,7 @@ const MODEL_LABELS: Record<RobotModel, string> = {
   climbing: '攀爬式',
   aerial: '飞行',
   spider: '蛛型',
+  floatwalker: '浮走式',
 };
 
 const STATUS_LABELS: Record<RobotStatus, string> = {
@@ -23,13 +25,7 @@ const STATUS_LABELS: Record<RobotStatus, string> = {
   maintenance: '维护中',
 };
 
-const STATUS_COLORS: Record<RobotStatus, string> = {
-  online: '#00FF66',
-  offline: '#666',
-  low_battery: '#FFA500',
-  error: '#FF3333',
-  maintenance: '#4DA6FF',
-};
+const STATUS_COLORS: Record<RobotStatus, string> = ROBOT_STATUS;
 
 const MESH_LABELS: Record<MeshRole, string> = {
   gateway: '网关',
@@ -55,6 +51,7 @@ const MODEL_OPTIONS: { value: string; label: string }[] = [
   { value: 'wheeled', label: '轮式' },
   { value: 'climbing', label: '攀爬式' },
   { value: 'aerial', label: '飞行' },
+  { value: 'floatwalker', label: '浮走式' },
 ];
 
 const MESH_OPTIONS: { value: string; label: string }[] = [
@@ -106,8 +103,8 @@ function RobotCard({ robot, isFocused, onClick, depthLabel }: { robot: Robot; is
 
       {/* Row 2: task + mesh role */}
       <div className="flex items-center gap-1 mb-1.5">
-        <Badge variant="neutral" className="text-[8px] px-1 py-0">{STATUS_LABELS[robot.status]}</Badge>
-        <Badge variant="neutral" className="text-[8px] px-1 py-0">{MESH_LABELS[robot.meshRole]}</Badge>
+        <Badge variant="neutral" className="text-[9px] px-1 py-0">{STATUS_LABELS[robot.status]}</Badge>
+        <Badge variant="neutral" className="text-[9px] px-1 py-0">{MESH_LABELS[robot.meshRole]}</Badge>
         <span className="text-[9px] text-[#A0A0B0]/70 truncate flex-1">{robot.task}</span>
       </div>
 
@@ -115,14 +112,14 @@ function RobotCard({ robot, isFocused, onClick, depthLabel }: { robot: Robot; is
       <div className="flex items-center gap-2.5">
         <div className="flex items-center gap-0.5">
           <Battery className="w-2.5 h-2.5" style={{ color: batteryColor(robot.battery) }} />
-          <span className="text-[8px] font-mono" style={{ color: batteryColor(robot.battery) }}>{robot.battery}%</span>
+          <span className="text-[9px] font-mono" style={{ color: batteryColor(robot.battery) }}>{robot.battery}%</span>
         </div>
         <div className="flex items-center gap-0.5">
           <Signal className="w-2.5 h-2.5 text-[#A0A0B0]/50" />
-          <span className="text-[8px] font-mono text-[#A0A0B0]/70">{robot.signalStrength}dBm</span>
+          <span className="text-[9px] font-mono text-[#A0A0B0]/70">{robot.signalStrength}dBm</span>
         </div>
-        <span className="text-[8px] font-mono text-[#A0A0B0]/50 ml-auto">{depthLabel}={robot.depth}m</span>
-        <span className="text-[8px] text-[#A0A0B0]/40">{timeAgo(robot.lastUpdate)}</span>
+        <span className="text-[9px] font-mono text-[#A0A0B0]/50 ml-auto">{depthLabel}={robot.depth}m</span>
+        <span className="text-[9px] text-[#A0A0B0]/40">{timeAgo(robot.lastUpdate)}</span>
       </div>
     </div>
   );
@@ -218,8 +215,8 @@ export function RobotFleet() {
             ))}
             {!loading && robots.length === 0 && (
               <div className="text-[10px] text-[#A0A0B0]/40 text-center py-4">
-                {filter.model !== 'all' && filter.model !== 'snake' && filter.model !== 'spider'
-                  ? `${MODEL_LABELS[filter.model as RobotModel]} 机器人在当前裂缝场景未部署`
+                {filter.model !== 'all'
+                  ? `${MODEL_LABELS[filter.model as RobotModel] || filter.model} 机器人在当前场景未部署`
                   : '无匹配机器人'}
               </div>
             )}

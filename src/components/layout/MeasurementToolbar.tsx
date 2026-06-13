@@ -2,11 +2,11 @@ import { useSceneStore } from '../../store/useSceneStore';
 import type { AnnotationTool } from '../../types';
 import { useEffect } from 'react';
 
-const TOOLS: { key: AnnotationTool; label: string; icon: string; shortcut: string }[] = [
-  { key: 'profile', label: '剖面线', icon: '📏', shortcut: 'F1' },
-  { key: 'area', label: '区域框选', icon: '⬜', shortcut: 'F2' },
-  { key: 'text', label: '文字标注', icon: '🏷', shortcut: 'F3' },
-  { key: 'distance', label: '测距', icon: '📐', shortcut: 'F4' },
+const TOOLS: { key: AnnotationTool; label: string; icon: string; shortcut: string; guide: string }[] = [
+  { key: 'profile', label: '剖面线', icon: '📏', shortcut: 'F1', guide: '点击 3D 场景中两点，自动生成剖面线和深度图' },
+  { key: 'area', label: '区域框选', icon: '⬜', shortcut: 'F2', guide: '拖拽鼠标框选一个矩形区域，统计内部裂缝密度' },
+  { key: 'text', label: '文字标注', icon: '🏷', shortcut: 'F3', guide: '点击 3D 场景中任意位置，输入标注文字' },
+  { key: 'distance', label: '测距', icon: '📐', shortcut: 'F4', guide: '依次点击两个点，自动计算三维空间距离' },
 ];
 
 const SHORTCUT_MAP: Record<string, AnnotationTool> = {
@@ -21,6 +21,8 @@ export function MeasurementToolbar() {
   const setActiveTool = useSceneStore((s) => s.setActiveTool);
   const annotations = useSceneStore((s) => s.annotations);
   const clearAnnotations = useSceneStore((s) => s.clearAnnotations);
+
+  const activeToolInfo = TOOLS.find(t => t.key === activeTool);
 
   // 全局键盘快捷键 F1-F4
   useEffect(() => {
@@ -39,7 +41,7 @@ export function MeasurementToolbar() {
 
   return (
     <div className="flex items-center gap-1">
-      {TOOLS.map(({ key, label, icon, shortcut }) => (
+      {TOOLS.map(({ key, label, icon, shortcut, guide }) => (
         <button
           key={key}
           onClick={() => setActiveTool(activeTool === key ? 'none' : key)}
@@ -48,12 +50,12 @@ export function MeasurementToolbar() {
               ? 'bg-[#FFE600]/20 text-[#FFE600] border border-[#FFE600]/40 shadow-[0_0_8px_rgba(255,230,0,0.15)]'
               : 'text-[#A0A0B0] border border-transparent hover:bg-white/5 hover:text-[#E0E0E8]'
           }`}
-          title={`${label} (${shortcut})`}
+          title={`${label} (${shortcut}) — ${guide}`}
         >
           <span>{icon}</span>
           <span className="hidden sm:inline">{label}</span>
           {/* 快捷键标签 */}
-          <span className={`text-[8px] px-0.5 rounded ${
+          <span className={`text-[9px] px-0.5 rounded ${
             activeTool === key ? 'bg-[#FFE600]/20 text-[#FFE600]/80' : 'bg-white/5 text-[#A0A0B0]/50'
           }`}>{shortcut}</span>
         </button>
@@ -67,10 +69,22 @@ export function MeasurementToolbar() {
           清除({annotations.length})
         </button>
       )}
-      {activeTool !== 'none' && (
-        <span className="ml-2 text-[9px] text-[#FFE600]/60 animate-pulse">
-          按 ESC 取消
-        </span>
+
+      {/* C3: 操作指引提示 — 工具激活时显示 */}
+      {activeToolInfo && (
+        <div className="ml-2 flex items-center gap-1.5 px-2 py-1 rounded bg-[#FFE600]/8 border border-[#FFE600]/20 text-[#FFE600] animate-fade-in">
+          <svg className="w-3 h-3 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 16v-4M12 8h.01" />
+          </svg>
+          <span className="text-[9px] leading-tight">{activeToolInfo.guide}</span>
+          <button
+            onClick={() => setActiveTool('none')}
+            className="text-[9px] text-[#A0A0B0] hover:text-[#FFE600] ml-1 underline"
+          >
+            ESC 退出
+          </button>
+        </div>
       )}
     </div>
   );

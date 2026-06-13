@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
-import { Settings, X, Eye, EyeOff } from 'lucide-react';
+import { Settings, X, Eye, EyeOff, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 
 export interface LLMSettings {
   provider: 'deepseek' | 'openai' | 'qwen' | 'custom';
@@ -55,9 +55,13 @@ export function SettingsDialog() {
   const [open, setOpen] = useState(false);
   const [settings, setSettings] = useState<LLMSettings>(loadSettings);
   const [showKey, setShowKey] = useState(false);
+  const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'fail'>('idle');
+  const [testMessage, setTestMessage] = useState('');
 
   useEffect(() => {
     setSettings(loadSettings());
+    setTestStatus('idle');
+    setTestMessage('');
   }, [open]);
 
   const handleProviderChange = (provider: LLMSettings['provider']) => {
@@ -68,6 +72,38 @@ export function SettingsDialog() {
       baseUrl: preset.baseUrl || s.baseUrl,
       model: preset.model || s.model,
     }));
+    setTestStatus('idle');
+  };
+
+  // M8: 连接测试
+  const handleTest = async () => {
+    setTestStatus('testing');
+    setTestMessage('');
+    try {
+      const res = await fetch(`${settings.baseUrl.replace(/\/$/, '')}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(settings.apiKey ? { Authorization: `Bearer ${settings.apiKey}` } : {}),
+        },
+        body: JSON.stringify({
+          model: settings.model,
+          messages: [{ role: 'user', content: 'ping' }],
+          max_tokens: 5,
+          stream: false,
+        }),
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!res.ok) {
+        const errText = await res.text().catch(() => '');
+        throw new Error(`HTTP ${res.status} ${errText.slice(0, 100)}`);
+      }
+      setTestStatus('success');
+      setTestMessage(`连接成功 · ${settings.model}`);
+    } catch (e) {
+      setTestStatus('fail');
+      setTestMessage((e as Error).message || '连接失败');
+    }
   };
 
   const handleSave = () => {
@@ -123,7 +159,7 @@ export function SettingsDialog() {
               <input
                 type="text"
                 value={settings.baseUrl}
-                onChange={(e) => setSettings((s) => ({ ...s, baseUrl: e.target.value }))}
+                onChange={(e) => { setSettings((s) => ({ ...s, baseUrl: e.target.value })); setTestStatus('idle'); }}
                 className="w-full px-3 py-2 bg-[#121218] border border-white/10 rounded text-xs text-[#E0E0E8] focus:outline-none focus:border-[#FFE600]/40"
                 placeholder="https://api.deepseek.com"
               />
@@ -136,7 +172,7 @@ export function SettingsDialog() {
                 <input
                   type={showKey ? 'text' : 'password'}
                   value={settings.apiKey}
-                  onChange={(e) => setSettings((s) => ({ ...s, apiKey: e.target.value }))}
+                  onChange={(e) => { setSettings((s) => ({ ...s, apiKey: e.target.value })); setTestStatus('idle'); }}
                   className="w-full px-3 py-2 pr-8 bg-[#121218] border border-white/10 rounded text-xs text-[#E0E0E8] focus:outline-none focus:border-[#FFE600]/40"
                   placeholder="sk-..."
                 />
@@ -156,10 +192,35 @@ export function SettingsDialog() {
               <input
                 type="text"
                 value={settings.model}
-                onChange={(e) => setSettings((s) => ({ ...s, model: e.target.value }))}
+                onChange={(e) => { setSettings((s) => ({ ...s, model: e.target.value })); setTestStatus('idle'); }}
                 className="w-full px-3 py-2 bg-[#121218] border border-white/10 rounded text-xs text-[#E0E0E8] focus:outline-none focus:border-[#FFE600]/40"
                 placeholder="deepseek-chat"
               />
+            </div>
+
+            {/* M8: 连接测试 */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleTest}
+                disabled={testStatus === 'testing'}
+                className="px-3 py-1.5 bg-white/5 border border-white/10 rounded text-[10px] text-[#E0E0E8] hover:bg-white/10 transition-all flex items-center gap-1.5"
+              >
+                {testStatus === 'testing' ? (
+                  <><Loader2 className="w-3 h-3 animate-spin" /> 测试中...</>
+                ) : (
+                  <>测试连接</>
+                )}
+              </button>
+              {testStatus === 'success' && (
+                <span className="flex items-center gap-1 text-[10px] text-[#3FB950]">
+                  <CheckCircle2 className="w-3 h-3" /> {testMessage}
+                </span>
+              )}
+              {testStatus === 'fail' && (
+                <span className="flex items-center gap-1 text-[10px] text-[#FF3333]">
+                  <AlertCircle className="w-3 h-3" /> {testMessage}
+                </span>
+              )}
             </div>
           </div>
 

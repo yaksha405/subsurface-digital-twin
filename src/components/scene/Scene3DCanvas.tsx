@@ -20,6 +20,7 @@ import { ReactorContainment } from './ReactorContainment';
 import { FractureNetwork } from './FractureNetwork';
 import { PotreeViewer, PotreeCameraSync } from './PotreeViewer';
 import { DeckGlHeatmap } from './DeckGlHeatmap';
+import { PlaybackEngine, PlaybackBar } from './PlaybackController';
 
 export function Scene3DCanvas() {
   const layers = useSceneStore((s) => s.layers);
@@ -95,6 +96,7 @@ export function Scene3DCanvas() {
           <AnnotationOverlay />
 
           <CameraFlyToHandler />
+          <PlaybackEngine />
           <CameraTracker />
           <OrbitControls
             makeDefault
@@ -121,12 +123,14 @@ export function Scene3DCanvas() {
       {/* Potree 工业级点云渲染（独立 WebGL context，八叉树 LOD） */}
       <PotreeViewer />
 
-      {/* Tech stack badges */}
-      <div className="absolute bottom-3 left-3 z-20 flex gap-1 pointer-events-none">
-        <span className="text-[8px] px-1.5 py-0.5 bg-[#1A1D2A]/80 text-[#A0A0B0] rounded border border-white/5">Three.js R3F</span>
-        <span className="text-[8px] px-1.5 py-0.5 bg-[#1A1D2A]/80 text-[#44AAFF]/70 rounded border border-white/5">Potree LOD</span>
-        <span className="text-[8px] px-1.5 py-0.5 bg-[#1A1D2A]/80 text-[#FF8800]/70 rounded border border-white/5">Open3D Backend</span>
-        <span className="text-[8px] px-1.5 py-0.5 bg-[#1A1D2A]/80 text-[#FFE600]/70 rounded border border-white/5">DeepSeek AI</span>
+      {/* 任务回放控制条 */}
+      <PlaybackBar />
+
+      {/* 右下角坐标信息（替代原来的开发者标签） */}
+      <div className="absolute bottom-3 left-3 z-20 pointer-events-none">
+        <span className="text-[9px] px-1.5 py-0.5 bg-[#1A1D2A]/80 text-[#3FB950]/70 rounded border border-white/5 font-mono">
+          ● LIVE
+        </span>
       </div>
 
       {/* 浮动场景控制工具栏 — 右上角 */}

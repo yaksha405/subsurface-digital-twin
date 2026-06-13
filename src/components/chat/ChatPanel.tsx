@@ -26,6 +26,7 @@ export function ChatPanel() {
     if (scenario === 'refinery') return '炼油化工内检AI助手';
     if (scenario === 'gold') return '金矿裂缝分析AI助手';
     if (scenario === 'oil') return '油气裂缝分析AI助手';
+    if (scenario === 'underground') return '地下暗流探测AI助手';
     return '地质裂缝分析AI助手';
   }, [scenario]);
 
@@ -54,37 +55,49 @@ export function ChatPanel() {
     let streamed = '';
     setStreamingText('');
 
-    const state = useSceneStore.getState();
-    const response = await streamChat(
-      coreMessages,
-      (delta) => {
-        streamed += delta;
-        setStreamingText(streamed);
-      },
-      undefined,
-      {
-        fractures: state.fractures,
-        scenario: state.scenario,
-        gasThreshold: state.gasThreshold,
+    try {
+      const state = useSceneStore.getState();
+      const response = await streamChat(
+        coreMessages,
+        (delta) => {
+          streamed += delta;
+          setStreamingText(streamed);
+        },
+        undefined,
+        {
+          fractures: state.fractures,
+          scenario: state.scenario,
+          gasThreshold: state.gasThreshold,
+        }
+      );
+
+      // 3. 添加完整 AI 消息
+      const aiMsg: ChatMessageType = {
+        id: `msg-${Date.now()}-ai`,
+        role: 'assistant',
+        content: response.message,
+        timestamp: Date.now(),
+        action: response.action,
+        actions: response.actions,
+      };
+      useSceneStore.setState((state) => ({ messages: [...state.messages, aiMsg] }));
+      setStreamingText(null);
+
+      // 4. 执行空间联动（言出法随）
+      const allActions = response.actions || (response.action ? [response.action] : []);
+      for (const action of allActions) {
+        executeActions(action);
       }
-    );
-
-    // 3. 添加完整 AI 消息
-    const aiMsg: ChatMessageType = {
-      id: `msg-${Date.now()}-ai`,
-      role: 'assistant',
-      content: response.message,
-      timestamp: Date.now(),
-      action: response.action,
-      actions: response.actions,
-    };
-    useSceneStore.setState((state) => ({ messages: [...state.messages, aiMsg] }));
-    setStreamingText(null);
-
-    // 4. 执行空间联动（言出法随）
-    const allActions = response.actions || (response.action ? [response.action] : []);
-    for (const action of allActions) {
-      executeActions(action);
+    } catch (err) {
+      // C2: 错误恢复 — 显示错误消息并允许重试
+      setStreamingText(null);
+      const errMsg: ChatMessageType = {
+        id: `msg-${Date.now()}-err`,
+        role: 'assistant',
+        content: `## 请求失败\n\nAI 助手暂时不可用：\n\n> ${(err as Error)?.message || '网络错误或 API Key 无效'}\n\n请检查设置中的 API Key 配置，或稍后重试。`,
+        timestamp: Date.now(),
+      };
+      useSceneStore.setState((state) => ({ messages: [...state.messages, errMsg] }));
     }
   };
 
@@ -110,7 +123,7 @@ export function ChatPanel() {
         </div>
         <div className="flex-1">
           <div className="text-xs font-semibold text-[#E0E0E8]">{aiTitle}</div>
-          <div className="flex items-center gap-1 text-[8px] text-[#A0A0B0]">
+          <div className="flex items-center gap-1 text-[9px] text-[#A0A0B0]">
             <span className="w-1 h-1.5 rounded-full bg-[#FFE600] animate-pulse" />
             {loadSettings().apiKey ? 'DeepSeek Live' : 'Mock 模式 · 请在设置中配置API Key'}
           </div>

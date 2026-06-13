@@ -11,7 +11,7 @@ function updateWelcomeMessage(mode: ScenarioType) {
     oil: '## 系统就绪\n\n油气裂缝分析AI助手已上线。\n\n当前监测油气储层裂缝网络，可使用快捷指令分析孔隙压力、渗透率、含油饱和度等数据。',
     pipeline: '## 系统就绪\n\n管线巡检AI助手已上线。\n\n当前监测油气输送管网，可使用快捷指令分析泄漏、壁厚、腐蚀、H₂S等数据。',
     nuclear: '## 系统就绪\n\n核反应堆检修AI助手已上线。\n\n当前监测压水堆(PWR)管道系统，可使用快捷指令分析剂量率、疲劳、FAC、振动等数据。',
-    underground: '## 系统就绪\n\n地下暗流探测AI助手已上线。\n\n当前监测地下岩溶暗河/油气运移通道网络，蛇形与猪形机器人协同探测。可使用快捷指令分析流体流速、渗透率、油气饱和度、地温梯度等数据。',
+    underground: '## 系统就绪\n\n地下暗流探测AI助手已上线。\n\n当前监测地下岩溶暗河/承压含水层通道网络，浮走式(章鱼)机器人协同探测。可使用快捷指令分析水流流速、渗透率、矿化度、地温梯度等数据。',
     refinery: '## 系统就绪\n\n炼油化工设备内检AI助手已上线。\n\n当前监测炼油厂核心设备（换热器、加热炉、蒸馏塔）内部通道，蛇形机器人已深入内部回传数据。\n\n可使用快捷指令分析壁厚减薄、结垢、蠕变、裂纹、振动等数据。',
   };
   useSceneStore.setState({
@@ -46,7 +46,7 @@ const DATA_SOURCES: DataSourceOption[] = [
   { key: 'pipeline', label: '模拟数据二·油气管线', shortLabel: '管线', icon: '🛢', desc: '油气输送管道站场管网', scenario: 'pipeline' },
   { key: 'nuclear', label: '模拟数据三·核反应堆', shortLabel: '核反应堆', icon: '☢', desc: '压水堆一/二回路管道系统', scenario: 'nuclear' },
   { key: 'refinery', label: '模拟数据四·炼油化工', shortLabel: '炼油化工', icon: '🏭', desc: '换热器·加热炉·蒸馏塔内部通道', scenario: 'refinery' },
-  { key: 'underground', label: '模拟数据五·地下暗流', shortLabel: '地下暗流', icon: '🌊', desc: '岩溶暗河/油气运移通道·管径变化', scenario: 'underground' },
+  { key: 'underground', label: '模拟数据五·地下暗流', shortLabel: '地下暗流', icon: '🌊', desc: '地下岩溶暗河/深层渗流通道·管径变化', scenario: 'underground' },
 ];
 
 export function ScenarioSelector() {

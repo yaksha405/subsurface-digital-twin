@@ -73,7 +73,87 @@ function loadPotreeScript(): Promise<void> {
       await loadScript(`${base}potree/jquery.min.js`);
     }
 
-    // 2. Potree CSS
+    // 1.5 BinaryHeap — Potree 1.8 内部依赖但未在 potree.js 中定义
+    if (!(window as any).BinaryHeap) {
+      (window as any).BinaryHeap = class BinaryHeap {
+        private content: any[] = [];
+        private scoreFunction: (x: any) => number;
+        constructor(scoreFunction: (x: any) => number) {
+          this.scoreFunction = scoreFunction;
+        }
+        push(element: any) {
+          this.content.push(element);
+          this.bubbleUp(this.content.length - 1);
+        }
+        pop(): any {
+          const result = this.content[0];
+          const end = this.content.pop()!;
+          if (this.content.length > 0) {
+            this.content[0] = end;
+            this.sinkDown(0);
+          }
+          return result;
+        }
+        remove(node: any) {
+          const length = this.content.length;
+          for (let i = 0; i < length; i++) {
+            if (this.content[i] !== node) continue;
+            const end = this.content.pop()!;
+            if (i !== length - 1) {
+              this.content[i] = end;
+              this.bubbleUp(i);
+              this.sinkDown(i);
+            }
+            return;
+          }
+        }
+        size(): number { return this.content.length; }
+        bubbleUp(n: number) {
+          const element = this.content[n];
+          const score = this.scoreFunction(element);
+          while (n > 0) {
+            const parentN = Math.floor((n + 1) / 2) - 1;
+            const parent = this.content[parentN];
+            if (score >= this.scoreFunction(parent)) break;
+            this.content[parentN] = element;
+            this.content[n] = parent;
+            n = parentN;
+          }
+        }
+        sinkDown(n: number) {
+          const length = this.content.length;
+          const element = this.content[n];
+          const elemScore = this.scoreFunction(element);
+          for (;;) {
+            const child2N = (n + 1) * 2;
+            const child1N = child2N - 1;
+            let swap = -1;
+            let child1Score: number | undefined;
+            if (child1N < length) {
+              const child1 = this.content[child1N];
+              child1Score = this.scoreFunction(child1);
+              if (child1Score < elemScore) swap = child1N;
+            }
+            if (child2N < length) {
+              const child2 = this.content[child2N];
+              const child2Score = this.scoreFunction(child2);
+              if (child2Score < (swap === -1 ? elemScore : child1Score!)) swap = child2N;
+            }
+            if (swap === -1) break;
+            this.content[n] = this.content[swap];
+            this.content[swap] = element;
+            n = swap;
+          }
+        }
+      };
+    }
+
+    // 2. proj4（Potree 坐标投影依赖，缺失会导致 "proj4 is not defined"）
+    if (!(window as any).proj4) {
+      await loadScript(`${base}potree/proj4.js`);
+    }
+
+    // 3. Potree CSS
     if (!document.querySelector('link[href*="potree.css"]')) {
       const link = document.createElement('link');
       link.rel = 'stylesheet';
@@ -81,7 +161,7 @@ function loadPotreeScript(): Promise<void> {
       document.head.appendChild(link);
     }
 
-    // 3. Potree JS
+    // 4. Potree JS
     if (!(window as any).Potree?.Viewer) {
       await loadScript(`${base}potree/potree.js`);
       // 验证 Potree 正确导出
@@ -138,7 +218,7 @@ export function PotreeViewer() {
         viewer.setClipTask(Potree.ClipTask.SHOW_INSIDE);
 
         // 隐藏 Potree 的 UI 面板和工具栏
-        viewer.setNavigationMode(Potree.OrbitControls); // 使用 OrbitControls
+        try { viewer.setNavigationMode(Potree.OrbitControls); } catch { /* 部分 Potree 构建无此方法 */ }
         if (viewer.toggleSidebar) viewer.toggleSidebar();
         if (viewer.setTools) viewer.setTools([]);
 

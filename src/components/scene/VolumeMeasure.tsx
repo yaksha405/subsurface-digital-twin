@@ -254,7 +254,7 @@ export function VolumeMeasure() {
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-[#FFE600] font-bold text-[11px]">{measureCfg.areaTitle}</span>
                   {analysis && (
-                    <span className="px-1.5 py-0.5 rounded text-[8px] font-bold" style={{ background: `${analysis.riskLevel.color}20`, color: analysis.riskLevel.color }}>
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold" style={{ background: `${analysis.riskLevel.color}20`, color: analysis.riskLevel.color }}>
                       {analysis.riskLevel.label}
                     </span>
                   )}

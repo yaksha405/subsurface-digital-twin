@@ -105,7 +105,7 @@ function TrendRow({
             {current}{unit}
           </span>
           {delta !== 0 && (
-            <span className={`text-[8px] ${delta > 0 ? 'text-[#FF3333]' : 'text-[#00FF66]'}`}>
+            <span className={`text-[9px] ${delta > 0 ? 'text-[#FF3333]' : 'text-[#00FF66]'}`}>
               {delta > 0 ? '▲' : '▼'}{Math.abs(Math.round(delta * 10) / 10)}
             </span>
           )}
@@ -155,7 +155,7 @@ export function SensorTrends() {
             <path d="M3 3v18h18M7 14l4-4 4 4 5-5" />
           </svg>
           <span>传感器趋势</span>
-          <span className="text-[8px] text-[#A0A0B0]/40 ml-auto">近 2.5 小时</span>
+          <span className="text-[9px] text-[#A0A0B0]/40 ml-auto">近 2.5 小时</span>
           <ChevronDown className={`w-3 h-3 text-[#A0A0B0] transition-transform ${collapsed ? '' : 'rotate-180'}`} />
         </CardTitle>
       </CardHeader>
@@ -173,7 +173,7 @@ export function SensorTrends() {
           <div className="flex gap-0.5">
             <button
               onClick={(e) => { e.stopPropagation(); handleViewChange('aggregate'); }}
-              className={`flex-1 px-1 py-0.5 text-[8px] rounded transition-all ${
+              className={`flex-1 px-1 py-0.5 text-[9px] rounded transition-all ${
                 view === 'aggregate'
                   ? 'bg-[#FFE600]/10 text-[#FFE600] border border-[#FFE600]/20'
                   : 'text-[#A0A0B0]/50 border border-transparent hover:bg-white/5'
@@ -183,7 +183,7 @@ export function SensorTrends() {
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); handleViewChange('regional'); }}
-              className={`flex-1 px-1 py-0.5 text-[8px] rounded transition-all ${
+              className={`flex-1 px-1 py-0.5 text-[9px] rounded transition-all ${
                 view === 'regional'
                   ? 'bg-[#FFE600]/10 text-[#FFE600] border border-[#FFE600]/20'
                   : 'text-[#A0A0B0]/50 border border-transparent hover:bg-white/5'

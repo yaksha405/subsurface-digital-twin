@@ -2,6 +2,7 @@ import { Badge } from '../ui/badge';
 import type { Robot, RobotModel, RobotStatus, MeshRole } from '../../types';
 import { Battery, Signal, Wifi, WifiOff, Activity, MapPin, Radio, X } from 'lucide-react';
 import { useSceneStore } from '../../store/useSceneStore';
+import { ROBOT_STATUS } from '../../lib/sceneColors';
 
 /** 场景特定传感器显示配置 — 机器人回传的三项传感器 */
 const ROBOT_SENSOR_CONFIG: Record<string, {
@@ -15,6 +16,7 @@ const ROBOT_SENSOR_CONFIG: Record<string, {
   pipeline:  { primary: { label: '泄漏', unit: '%LEL', threshold: 20 }, aux: { label: '压力', unit: 'MPa' },   depthLabel: '行程' },
   nuclear:   { primary: { label: '剂量', unit: 'mSv/h', threshold: 25 },aux: { label: '压力', unit: 'MPa' },   depthLabel: '距RPV' },
   refinery:  { primary: { label: '减薄', unit: '%', threshold: 3 },    aux: { label: '腐蚀', unit: 'mm/yr' }, depthLabel: '行程' },
+  underground: { primary: { label: '甲烷', unit: '%', threshold: 0.3 }, aux: { label: '含水率', unit: '%' }, depthLabel: '深度' },
 };
 
 const MODEL_LABELS: Record<RobotModel, string> = {
@@ -24,6 +26,7 @@ const MODEL_LABELS: Record<RobotModel, string> = {
   climbing: '攀爬式',
   aerial: '飞行',
   spider: '蛛型',
+  floatwalker: '浮走式',
 };
 
 const STATUS_LABELS: Record<RobotStatus, string> = {
@@ -34,13 +37,7 @@ const STATUS_LABELS: Record<RobotStatus, string> = {
   maintenance: '维护中',
 };
 
-const STATUS_COLORS: Record<RobotStatus, string> = {
-  online: '#00FF66',
-  offline: '#666',
-  low_battery: '#FFA500',
-  error: '#FF3333',
-  maintenance: '#4DA6FF',
-};
+const STATUS_COLORS: Record<RobotStatus, string> = ROBOT_STATUS;
 
 const MESH_LABELS: Record<MeshRole, string> = {
   gateway: '网关',
@@ -86,8 +83,8 @@ export function RobotDetailDialog({ robot, open, onClose }: { robot: Robot | nul
         <div className="flex items-center gap-1.5 px-2.5 py-1.5 border-b border-white/5">
           <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: statusColor, boxShadow: `0 0 4px ${statusColor}` }} />
           <span className="text-[10px] font-mono font-semibold text-[#E0E0E8] truncate">{robot.id}</span>
-          <span className="text-[8px] text-[#A0A0B0] flex-shrink-0">{MODEL_LABELS[robot.model]}</span>
-          <span className="text-[8px] flex-shrink-0" style={{ color: statusColor }}>{STATUS_LABELS[robot.status]}</span>
+          <span className="text-[9px] text-[#A0A0B0] flex-shrink-0">{MODEL_LABELS[robot.model]}</span>
+          <span className="text-[9px] flex-shrink-0" style={{ color: statusColor }}>{STATUS_LABELS[robot.status]}</span>
           <button
             onClick={onClose}
             className="ml-auto w-4 h-4 flex items-center justify-center rounded hover:bg-white/10 transition-colors flex-shrink-0"
@@ -120,23 +117,23 @@ export function RobotDetailDialog({ robot, open, onClose }: { robot: Robot | nul
           {/* Position */}
           <div className="flex items-center gap-0.5">
             <MapPin className="w-2.5 h-2.5 text-[#A0A0B0]/40" />
-            <span className="text-[8px] font-mono text-[#A0A0B0]/50">
+            <span className="text-[9px] font-mono text-[#A0A0B0]/50">
               [{robot.position[0].toFixed(1)}, {robot.position[1].toFixed(1)}, {robot.position[2].toFixed(1)}]
             </span>
-            <span className="text-[8px] text-[#A0A0B0]/30 ml-auto">{timeAgo(robot.lastUpdate)}</span>
+            <span className="text-[9px] text-[#A0A0B0]/30 ml-auto">{timeAgo(robot.lastUpdate)}</span>
           </div>
 
           {/* Mesh + sensors in one row */}
           <div className="flex items-center gap-1.5 pt-0.5 border-t border-white/5">
             <div className="flex items-center gap-0.5">
               {robot.meshConnected ? <Wifi className="w-2.5 h-2.5 text-[#00FF66]/60" /> : <WifiOff className="w-2.5 h-2.5 text-[#FF3333]/60" />}
-              <span className="text-[8px] text-[#A0A0B0]/60">{MESH_LABELS[robot.meshRole]}</span>
+              <span className="text-[9px] text-[#A0A0B0]/60">{MESH_LABELS[robot.meshRole]}</span>
             </div>
-            <span className="text-[8px] font-mono ml-auto" style={{ color: primaryOver ? '#FF3333' : '#FFA500' }}>
+            <span className="text-[9px] font-mono ml-auto" style={{ color: primaryOver ? '#FF3333' : '#FFA500' }}>
               {sc.primary.label} {robot.sensors.ch4}{sc.primary.unit}
             </span>
-            <span className="text-[8px] font-mono text-[#FF6B35]">{robot.sensors.temperature}°</span>
-            <span className="text-[8px] font-mono text-[#4DA6FF]">{sc.aux.label} {robot.sensors.humidity}{sc.aux.unit}</span>
+            <span className="text-[9px] font-mono text-[#FF6B35]">{robot.sensors.temperature}°</span>
+            <span className="text-[9px] font-mono text-[#4DA6FF]">{sc.aux.label} {robot.sensors.humidity}{sc.aux.unit}</span>
           </div>
         </div>
       </div>

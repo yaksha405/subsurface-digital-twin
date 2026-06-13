@@ -1,18 +1,14 @@
 import { Html } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
-import { useRef, useState } from 'react';
+import { useRef, useState, useMemo } from 'react';
 import * as THREE from 'three';
 import { useAllRobots } from '../../hooks/useRobots';
 import { useSceneStore } from '../../store/useSceneStore';
 import type { Robot, RobotStatus } from '../../types';
+import { ROBOT_STATUS } from '../../lib/sceneColors';
+import { computePlaybackState } from '../../lib/playbackEngine';
 
-const STATUS_COLORS: Record<RobotStatus, string> = {
-  online: '#00FF66',
-  offline: '#444444',
-  low_battery: '#FFA500',
-  error: '#FF3333',
-  maintenance: '#4DA6FF',
-};
+const STATUS_COLORS: Record<RobotStatus, string> = ROBOT_STATUS;
 
 /** 按场景计算机器人标记大小 — 管道场景管径小，标记需同步缩小 */
 function getMarkerScale(dataSource: string): number {
@@ -23,7 +19,173 @@ function getMarkerScale(dataSource: string): number {
   return 1.0; // 地下裂缝场景保持原大小
 }
 
+/**
+ * 浮走式机器人（章鱼/水母式）— 地下暗流场景专用
+ *
+ * 视觉特征：
+ * - 半透明伞盖（dome），随时间脉动收缩
+ * - 6 条触须，随水流方向飘摆
+ * - 整体上下浮动（水中漂浮）
+ * - 软发光，非金属质感
+ */
+function FloatWalkerMarker({ robot, isFocused, onClick, markerScale }: { robot: Robot; isFocused: boolean; onClick: () => void; markerScale: number }) {
+  const [hovered, setHovered] = useState(false);
+  const groupRef = useRef<THREE.Group>(null);
+  const domeRef = useRef<THREE.Mesh>(null);
+  const ringRef = useRef<THREE.Mesh>(null);
+  const tentacleRefs = useRef<THREE.Mesh[]>([]);
+
+  const color = STATUS_COLORS[robot.status];
+
+  // 触须基础几何 — 用细长锥体
+  const tentacleGeo = useMemo(() => {
+    const points: THREE.Vector3[] = [];
+    for (let i = 0; i <= 8; i++) {
+      const t = i / 8;
+      points.push(new THREE.Vector3(0, -t * 0.5 * markerScale, 0));
+    }
+    const curve = new THREE.CatmullRomCurve3(points);
+    return new THREE.TubeGeometry(curve, 8, 0.03 * markerScale, 4, false);
+  }, [markerScale]);
+
+  // 6 条触须的角度
+  const tentacleAngles = useMemo(
+    () => Array.from({ length: 6 }, (_, i) => (i / 6) * Math.PI * 2),
+    []
+  );
+
+  useFrame((state) => {
+    const t = state.clock.elapsedTime;
+    const phase = parseFloat(robot.id.replace(/\D/g, '')) * 0.37; // 每台机器人相位不同
+
+    // 整体上下漂浮
+    if (groupRef.current) {
+      groupRef.current.position.y = robot.position[1] + Math.sin(t * 0.8 + phase) * 0.15 * markerScale;
+      // 缓慢旋转，模拟水中调整方向
+      groupRef.current.rotation.y = Math.sin(t * 0.3 + phase) * 0.5;
+    }
+
+    // 伞盖脉动 — 像水母收缩推进
+    if (domeRef.current) {
+      const pulse = 1 + Math.sin(t * 1.5 + phase) * 0.12;
+      domeRef.current.scale.set(pulse, 1 + Math.sin(t * 1.5 + phase) * 0.08, pulse);
+    }
+
+    // 触须飘摆
+    tentacleRefs.current.forEach((mesh, i) => {
+      if (!mesh) return;
+      const sway = Math.sin(t * 1.2 + phase + i * 1.04) * 0.3;
+      mesh.rotation.z = Math.cos(tentacleAngles[i]) * sway;
+      mesh.rotation.x = Math.sin(tentacleAngles[i]) * sway;
+    });
+
+    // 聚焦时脉冲光环
+    if (ringRef.current && isFocused) {
+      const s = 1 + Math.sin(t * 4) * 0.3;
+      ringRef.current.scale.setScalar(s);
+      const mat = ringRef.current.material as THREE.MeshBasicMaterial;
+      mat.opacity = 0.5 + Math.sin(t * 4) * 0.3;
+    }
+  });
+
+  const baseSize = (isFocused ? 0.7 : hovered ? 0.6 : 0.35) * markerScale;
+  const opacity = robot.status === 'offline' ? 0.2 : 0.75;
+
+  return (
+    <group ref={groupRef} position={robot.position}>
+      {/* 聚焦脉冲光环 */}
+      {isFocused && (
+        <>
+          <mesh ref={ringRef}>
+            <ringGeometry args={[1.2 * markerScale, 1.8 * markerScale, 24]} />
+            <meshBasicMaterial color="#FFE600" transparent opacity={0.7} side={THREE.DoubleSide} />
+          </mesh>
+          <mesh>
+            <sphereGeometry args={[0.9 * markerScale, 16, 16]} />
+            <meshBasicMaterial color="#FFE600" transparent opacity={0.12} />
+          </mesh>
+        </>
+      )}
+
+      {/* 半透明伞盖 — 章鱼/水母式头部 */}
+      <mesh
+        ref={domeRef}
+        onClick={(e) => { e.stopPropagation(); onClick(); }}
+        onPointerOver={(e) => { e.stopPropagation(); setHovered(true); document.body.style.cursor = 'pointer'; }}
+        onPointerOut={() => { setHovered(false); document.body.style.cursor = 'auto'; }}
+      >
+        <sphereGeometry args={[Math.max(0.12, baseSize * 1.3), 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.55]} />
+        <meshPhysicalMaterial
+          color={color}
+          transparent
+          opacity={opacity * 0.7}
+          emissive={color}
+          emissiveIntensity={0.4}
+          roughness={0.2}
+          metalness={0.0}
+          transmission={0.4}
+          thickness={0.3}
+          ior={1.33}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+
+      {/* 中心核心光点 */}
+      <mesh>
+        <sphereGeometry args={[baseSize * 0.4, 10, 10]} />
+        <meshBasicMaterial color={color} transparent opacity={opacity} />
+      </mesh>
+
+      {/* 6 条触须 — 飘摆 */}
+      {tentacleAngles.map((angle, i) => (
+        <mesh
+          key={i}
+          ref={(el) => { if (el) tentacleRefs.current[i] = el; }}
+          geometry={tentacleGeo}
+          position={[
+            Math.cos(angle) * baseSize * 0.7,
+            -baseSize * 0.1,
+            Math.sin(angle) * baseSize * 0.7,
+          ]}
+          rotation={[0, -angle, 0]}
+        >
+          <meshStandardMaterial
+            color={color}
+            transparent
+            opacity={opacity * 0.5}
+            emissive={color}
+            emissiveIntensity={0.15}
+            roughness={0.3}
+          />
+        </mesh>
+      ))}
+
+      {(hovered || isFocused) && (
+        <Html distanceFactor={30} style={{ pointerEvents: 'none' }}>
+          <div style={{
+            background: 'rgba(10,10,18,0.95)',
+            border: `1px solid ${isFocused ? '#FFE600' : color}40`,
+            borderRadius: '6px',
+            padding: '4px 8px',
+            whiteSpace: 'nowrap',
+            fontSize: '10px',
+            color: isFocused ? '#FFE600' : '#E0E0E8',
+            fontFamily: 'monospace',
+          }}>
+            {robot.id} · 浮走式
+          </div>
+        </Html>
+      )}
+    </group>
+  );
+}
+
 function RobotMarker({ robot, isFocused, onClick, markerScale }: { robot: Robot; isFocused: boolean; onClick: () => void; markerScale: number }) {
+  // 浮走式机器人使用专门的渲染
+  if (robot.model === 'floatwalker') {
+    return <FloatWalkerMarker robot={robot} isFocused={isFocused} onClick={onClick} markerScale={markerScale} />;
+  }
+
   const [hovered, setHovered] = useState(false);
   const color = STATUS_COLORS[robot.status];
   const ringRef = useRef<THREE.Mesh>(null);
@@ -88,23 +250,34 @@ function RobotMarker({ robot, isFocused, onClick, markerScale }: { robot: Robot;
 
 export function RobotMarkers() {
   const dataSource = useSceneStore((s) => s.dataSource);
-  const { data: robots, loading } = useAllRobots(dataSource);
+  const { data: allRobots, loading } = useAllRobots(dataSource);
   const flyTo = useSceneStore((s) => s.flyTo);
   const openRobotDetail = useSceneStore((s) => s.openRobotDetail);
   const focusedRobotId = useSceneStore((s) => s.focusedRobotId);
+  const playbackProgress = useSceneStore((s) => s.playbackProgress);
+  const playbackActive = useSceneStore((s) => s.playbackActive);
+  const fractures = useSceneStore((s) => s.fractures);
 
-  if (loading || !robots) return null;
+  // 回放模式：用动画位置替代静态位置
+  // 仅根据 playbackActive 判断（而非 progress >= 1），使播放结束后的最终帧保持一致（无突然弹出）
+  const playbackRobots = useMemo(() => {
+    if (!playbackActive || !allRobots || allRobots.length === 0) return null;
+    return computePlaybackState(allRobots, fractures, playbackProgress).robots;
+  }, [allRobots, fractures, playbackProgress, playbackActive]);
+
+  if (loading || !allRobots) return null;
 
   const markerScale = getMarkerScale(dataSource);
+  const effectiveRobots = playbackRobots ?? allRobots;
+
   const handleRobotClick = (robot: Robot) => {
-    // 放大聚焦到该机器人 — 不用大球高亮，相机贴近视即可看清
     flyTo({ position: robot.position, region: `robot-${robot.id}`, zoom: 'close' });
     openRobotDetail(robot);
   };
 
   return (
     <group>
-      {robots.map((robot) => (
+      {effectiveRobots.map((robot) => (
         <RobotMarker
           key={robot.id}
           robot={robot}

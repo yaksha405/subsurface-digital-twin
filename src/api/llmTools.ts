@@ -265,6 +265,7 @@ export function buildSceneContext(
     pipeline: '管线网络',
     nuclear: '核反应堆',
     refinery: '炼油化工设备',
+    underground: '地下暗流',
   };
 
   const sensorKey: Record<ScenarioType, string> = {
@@ -274,6 +275,7 @@ export function buildSceneContext(
     pipeline: 'ch4_pct',
     nuclear: 'ch4_pct',
     refinery: 'rock_strength_mpa',
+    underground: 'permeability_md',
   };
 
   const sensorLabel: Record<ScenarioType, string> = {
@@ -283,6 +285,7 @@ export function buildSceneContext(
     pipeline: '天然气泄漏(%LEL)',
     nuclear: '剂量率(mSv/h)',
     refinery: '壁厚减薄率(%)',
+    underground: '流速(m/s)',
   };
 
   const key = sensorKey[scenario];
@@ -296,6 +299,7 @@ export function buildSceneContext(
     pipeline: `天然气泄漏阈值：20 %LEL`,
     nuclear: `剂量率控制阈值：25 mSv/h`,
     refinery: `壁厚减薄报警阈值：3%`,
+    underground: `流速异常阈值：3.0 m/s`,
   };
 
   // 找出最危险的节点（按场景关键传感器排序）
@@ -322,6 +326,7 @@ export function buildSceneContext(
     if (scenario === 'pipeline') return b.ch4 - a.ch4;
     if (scenario === 'nuclear') return b.ch4 - a.ch4;
     if (scenario === 'refinery') return b.value - a.value; // 按壁厚减薄率排序
+    // oil / underground 按渗透率/流速排序
     return b.permeability - a.permeability;
   });
 
@@ -332,7 +337,8 @@ export function buildSceneContext(
     if (scenario === 'pipeline') return n.ch4 > 20;
     if (scenario === 'nuclear') return n.ch4 > 25;
     if (scenario === 'refinery') return n.value > 3.0; // 壁厚减薄率 >3%
-    return n.permeability > 1.0;
+    if (scenario === 'underground') return n.permeability > 3.0; // 流速 >3.0 m/s
+    return n.permeability > 1.0; // oil
   });
 
   const fractureSummary = fractures
@@ -358,6 +364,7 @@ export function buildSceneContext(
     pipeline: (n) => `泄漏=${n.ch4}%LEL, 温度=${n.temp}°C, 应力=${n.stress}MPa, 振动=${n.microseismic}Hz`,
     nuclear: (n) => `剂量率=${n.ch4}mSv/h, 疲劳=${(n.waterPressure).toFixed(0)}%, FAC=${n.permeability}mm/yr, 振动=${n.microseismic}mm/s, 温度=${n.temp}°C`,
     refinery: (n) => `壁厚减薄=${n.permeability}%, 温度=${n.temp}°C, 应力=${n.stress}MPa, 声发射=${n.microseismic}mV`,
+    underground: (n) => `流速=${n.permeability}m/s, 温度=${n.temp}°C, 水压=${n.waterPressure}MPa, 渗透率=${n.permeability}mD`,
   };
 
   const topPoints = top5

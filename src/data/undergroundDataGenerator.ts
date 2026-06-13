@@ -1,24 +1,25 @@
 /**
- * 地下暗流/油藏通道数据生成器
+ * 地下暗流数据生成器
  *
- * 模拟地质勘探中的地下流体运移通道网络：
- * - 岩溶暗河系统 (Karst conduit network)
- * - 深层油气运移通道 (Hydrocarbon migration pathway)
- * - 地下水渗流通道 (Groundwater flow channel)
+ * 模拟地质勘探中的地下岩溶暗河/渗流通道网络：
+ * - 岩溶暗河系统 (Karst conduit network) — 地下水在石灰岩中溶蚀形成的通道
+ * - 深层渗流通道 (Deep seepage channel) — 承压含水层中的水流通道
  *
  * 物理特征（基于真实地质研究）：
- * - 管径沿路径大幅变化：狭窄瓶颈(0.3-0.8m) ↔ 开阔溶洞(3-8m)
- * - 蛇形机器人穿越狭窄段，猪形(管道猪)机器人在开阔段推进
+ * - 通道管径沿路径大幅变化：狭窄瓶颈(0.3-0.8m) ↔ 开阔溶洞(3-8m)
+ * - 蛇形机器人穿越狭窄段，履带/蛛形机器人在开阔段作业
  * - 网络拓扑：主干暗河 + 支流 + 合流 + 盲端溶洞
- * - 流体类型：水、油、卤水混合，达西-韦斯巴赫湍流
+ * - 流体类型：地下水、卤水、 mineral water
  * - 地温梯度：~25°C/km，深处温度可达80-120°C
  * - 渗透率：岩溶通道1-10000 mD（远高于孔隙基质）
  *
+ * 注：石油储存在岩石微孔隙中（非通道），深度1500-7500m，不适合机器人通道探索。
+ *     本场景聚焦地下水流通道（深度10-800m），这是机器人可以实际穿行的地质空间。
+ *
  * 参考文献：
  * - KarstConduitCatalogue (ESSD 2025) — LiDAR 欧洲岩溶通道数据集
- * - Jiang et al. 2024 — 缝洞型油藏气水驱替渗流规律
  * - Worthington (2015) — 深部岩溶管道流体动力学, Groundwater
- * - Huang et al. 2024 (Frontiers Earth Sci) — 裂缝开度与渗透率关系
+ * - 广西地下暗河数字化分布图 (2025)
  */
 
 import type { Fracture, FractureNode, SensorReading } from '../types';
@@ -47,43 +48,43 @@ const CHANNEL_SPECS: Record<ChannelType, {
 }> = {
   // 主干暗河 — 最宽最深，大量流体通过
   trunk: {
-    diameter_m: [2.0, 5.5],
+    diameter_m: [0.35, 0.55],
     flow_velocity_ms: [0.3, 2.0],
     reynolds: [50000, 500000],
     temperature_c: [35, 85],
-    fluid_type: ['地下水', '原油', '油水混合', '卤水'],
+    fluid_type: ['地下水', '承压水', '岩溶水', '矿化水'],
   },
   // 支流通道 — 中等管径，从主干分出
   tributary: {
-    diameter_m: [0.8, 2.5],
+    diameter_m: [0.12, 0.25],
     flow_velocity_ms: [0.1, 0.8],
     reynolds: [8000, 80000],
     temperature_c: [30, 70],
-    fluid_type: ['地下水', '油水混合', '卤水'],
+    fluid_type: ['地下水', '岩溶水', '渗流水'],
   },
   // 狭窄瓶颈 — 只有蛇形机器人能通过
   constriction: {
-    diameter_m: [0.3, 0.8],
+    diameter_m: [0.04, 0.08],
     flow_velocity_ms: [0.5, 3.5],   // 文丘里效应：狭窄处流速激增
     reynolds: [10000, 100000],
     temperature_c: [40, 95],
-    fluid_type: ['地下水', '原油', '卤水'],
+    fluid_type: ['地下水', '承压水'],
   },
-  // 开阔溶洞 — 猪形/履带机器人作业区
+  // 开阔溶洞 — 履带/蛛形机器人作业区
   chamber: {
-    diameter_m: [4.0, 8.0],
+    diameter_m: [0.5, 0.8],
     flow_velocity_ms: [0.01, 0.3],  // 溶洞内流速骤降
     reynolds: [40000, 300000],
     temperature_c: [45, 110],
-    fluid_type: ['地下水', '原油', '油水混合', '卤水', '凝析油'],
+    fluid_type: ['地下水', '岩溶水', '矿化水', '卤水'],
   },
   // 盲端溶洞 — 流体停滞，沉积物堆积
   blind_end: {
-    diameter_m: [1.5, 4.0],
+    diameter_m: [0.18, 0.35],
     flow_velocity_ms: [0.0, 0.1],
     reynolds: [0, 5000],
     temperature_c: [50, 120],
-    fluid_type: ['滞留卤水', '重油', '盐水'],
+    fluid_type: ['滞留卤水', '矿化水', '沉积盐水'],
   },
 };
 
@@ -103,10 +104,9 @@ function genUndergroundSensorReading(ct: ChannelType): SensorReading {
   const waterP = +(depth_m * 0.01 + 0.5 * vel * vel).toFixed(2);
   // 孔隙压力
   const poreP = +(depth_m * 0.0098 + rand(-1, 3)).toFixed(2);
-  // 含油饱和度（油藏场景）
-  const oilSat = fluid.includes('油') ? +rand(30, 85).toFixed(1) : +rand(0, 15).toFixed(1);
-  // 含水饱和度
-  const waterSat = +(100 - oilSat - rand(2, 10)).toFixed(1);
+  // 含水饱和度 — 地下水场景接近饱和
+  const oilSat = +rand(0, 5).toFixed(1);
+  const waterSat = +(95 - oilSat + rand(-2, 2)).toFixed(1);
   // pH
   const ph = +rand(5.0, 8.5).toFixed(1);
   // 矿化度 (TDS)
@@ -125,10 +125,10 @@ function genUndergroundSensorReading(ct: ChannelType): SensorReading {
   const tort = +rand(1.1, 2.5).toFixed(3);
   // 分形维数
   const fracDim = +rand(2.05, 2.45).toFixed(4);
-  // CH₄（油气场景）
-  const ch4 = fluid.includes('油') || fluid.includes('气') ? +rand(0.5, 8.0).toFixed(2) : +rand(0, 0.3).toFixed(2);
-  // H₂S（高含硫油气）
-  const h2s = fluid.includes('油') ? +rand(0, 800).toFixed(0) : +rand(0, 5).toFixed(0);
+  // CH₄ — 地下水微量甲烷（地下有机物厌氧分解）
+  const ch4 = +rand(0, 0.3).toFixed(2);
+  // H₂S — 地下水微量（硫酸盐还原菌活动）
+  const h2s = +rand(0, 15).toFixed(0);
   // CO₂
   const co2 = +rand(0, 150).toFixed(0);
   // 位移
@@ -243,10 +243,10 @@ function branchPath(
 let channelId = 0;
 
 const CHANNEL_NAMES = [
-  'UC-1', 'UC-2', 'UC-3', 'UC-4', 'UC-5', 'UC-6',
-  'UC-A1', 'UC-A2', 'UC-B1', 'UC-B2', 'UC-C1', 'UC-C2',
-  'UC-D1', 'UC-D2', 'UC-E1', 'UC-E2', 'UC-F1', 'UC-F2',
-  'UC-G1', 'UC-H1',
+  'UR-1', 'UR-2', 'UR-3', 'UR-4', 'UR-5', 'UR-6',
+  'UR-A1', 'UR-A2', 'UR-B1', 'UR-B2', 'UR-C1', 'UR-C2',
+  'UR-D1', 'UR-D2', 'UR-E1', 'UR-E2', 'UR-F1', 'UR-F2',
+  'UR-G1', 'UR-H1',
 ];
 
 function buildChannel(
@@ -325,7 +325,7 @@ export function generateUndergroundNetwork(): Fracture[] {
     [25, -32, 30],    // 深部终点 (东南)
     20, 0.6, 1.4
   );
-  channels.push(buildChannel(trunk1Path, 'trunk', true, null, '主干暗河-UC1'));
+  channels.push(buildChannel(trunk1Path, 'trunk', true, null, '主干暗河-UR1'));
 
   // 主干2: 东北入口 → 深部西南
   const trunk2Path = conduitPath(
@@ -333,7 +333,7 @@ export function generateUndergroundNetwork(): Fracture[] {
     [-20, -30, 35],   // 深部终点 (西南)
     18, 0.7, 1.3
   );
-  channels.push(buildChannel(trunk2Path, 'trunk', true, null, '主干暗河-UC2'));
+  channels.push(buildChannel(trunk2Path, 'trunk', true, null, '主干暗河-UR2'));
 
   // 主干3: 中央深部 — 连接主干1和主干2
   const trunk1Mid = trunk1Path[Math.floor(trunk1Path.length * 0.5)]; // 主干1中点
@@ -343,7 +343,7 @@ export function generateUndergroundNetwork(): Fracture[] {
     [trunk2Mid[0], trunk2Mid[1], trunk2Mid[2]],
     14, 0.8, 1.5
   );
-  channels.push(buildChannel(trunk3Path, 'trunk', true, null, '深层连通暗河-UC3'));
+  channels.push(buildChannel(trunk3Path, 'trunk', true, null, '深层连通暗河-UR3'));
 
   // === 开阔溶洞 — 在主干路径上的关键位置扩展（起点必须精确在主干路径点上）===
   // 溶洞A: 主干1 的 60% 处 — 大型溶洞
@@ -353,7 +353,7 @@ export function generateUndergroundNetwork(): Fracture[] {
     [r1(caveAPos[0] + 7), r1(caveAPos[1] - 2), r1(caveAPos[2] + 5)],
     8, 0.5, 0.8
   );
-  channels.push(buildChannel(caveAPath, 'chamber', false, null, '溶洞-A（油水汇集）'));
+  channels.push(buildChannel(caveAPath, 'chamber', false, null, '溶洞-A（地下水汇集）'));
 
   // 溶洞B: 主干2 的 70% 处
   const caveBPos = trunk2Path[Math.floor(trunk2Path.length * 0.7)];
@@ -362,7 +362,7 @@ export function generateUndergroundNetwork(): Fracture[] {
     [r1(caveBPos[0] - 7), r1(caveBPos[1] - 3), r1(caveBPos[2] + 7)],
     8, 0.5, 0.7
   );
-  channels.push(buildChannel(caveBPath, 'chamber', false, null, '溶洞-B（深部卤水腔）'));
+  channels.push(buildChannel(caveBPath, 'chamber', false, null, '溶洞-B（深层承压水腔）'));
 
   // 溶洞C: 主干3 中点 — 起点精确在主干3路径上
   const caveCPos = trunk3Path[Math.floor(trunk3Path.length * 0.5)];
@@ -371,7 +371,7 @@ export function generateUndergroundNetwork(): Fracture[] {
     [r1(caveCPos[0] + 5), r1(caveCPos[1] + 1), r1(caveCPos[2] + 5)],
     6, 0.4, 0.6
   );
-  channels.push(buildChannel(caveCPath, 'chamber', false, null, '溶洞-C（深层交汇腔）'));
+  channels.push(buildChannel(caveCPath, 'chamber', false, null, '溶洞-C（暗河交汇腔）'));
 
   // === 狭窄瓶颈 — 连接溶洞到主干，管径骤缩 ===
   // 瓶颈A: 从溶洞A 底部继续向下收窄
@@ -381,7 +381,7 @@ export function generateUndergroundNetwork(): Fracture[] {
     [constrAEnd[0] + 5, constrAEnd[1] - 6, constrAEnd[2] + 3],
     6, 0.3, 0.5
   );
-  channels.push(buildChannel(constrAPath, 'constriction', false, null, '狭窄通道-A1（蛇形机器人通道）'));
+  channels.push(buildChannel(constrAPath, 'constriction', false, null, '狭窄通道-A1（蛇形机器人入口）'));
 
   // 瓶颈B: 从溶洞B 向下
   const constrBEnd = caveBPath[caveBPath.length - 1];
@@ -390,7 +390,7 @@ export function generateUndergroundNetwork(): Fracture[] {
     [constrBEnd[0] - 4, constrBEnd[1] - 5, constrBEnd[2] + 4],
     6, 0.3, 0.6
   );
-  channels.push(buildChannel(constrBPath, 'constriction', false, null, '狭窄通道-B1（蛇形机器人通道）'));
+  channels.push(buildChannel(constrBPath, 'constriction', false, null, '狭窄通道-B1（蛇形机器人入口）'));
 
   // 瓶颈C: 从溶洞C 向下
   const constrCEnd = caveCPath[caveCPath.length - 1];
@@ -399,7 +399,7 @@ export function generateUndergroundNetwork(): Fracture[] {
     [constrCEnd[0] + 3, constrCEnd[1] - 4, constrCEnd[2] - 5],
     5, 0.3, 0.5
   );
-  channels.push(buildChannel(constrCPath, 'constriction', false, null, '狭窄通道-C1（蛇形机器人通道）'));
+  channels.push(buildChannel(constrCPath, 'constriction', false, null, '狭窄通道-C1（蛇形机器人入口）'));
 
   // === 支流通道 — 从主干/瓶颈分出 ===
   // 支流1: 从瓶颈A 底部继续向下，变为支流
@@ -465,7 +465,7 @@ export function generateUndergroundNetwork(): Fracture[] {
     [trunk2Mid2[0], trunk2Mid2[1], trunk2Mid2[2]],
     8, 0.4, 1.0
   );
-  channels.push(buildChannel(merge1Path, 'tributary', false, null, '汇流通道-A3→UC2'));
+  channels.push(buildChannel(merge1Path, 'tributary', false, null, '汇流通道-A3→UR2'));
 
   // 合流2: 支流4 尾部 → 主干1
   const trib4End = trib4Path[trib4Path.length - 1];
@@ -475,7 +475,7 @@ export function generateUndergroundNetwork(): Fracture[] {
     [trunk1Late[0], trunk1Late[1], trunk1Late[2]],
     8, 0.4, 1.0
   );
-  channels.push(buildChannel(merge2Path, 'tributary', false, null, '汇流通道-B3→UC1'));
+  channels.push(buildChannel(merge2Path, 'tributary', false, null, '汇流通道-B3→UR1'));
 
   // === 盲端溶洞 — 从支流末端延伸出的盲端 ===
   // 盲端1: 从支流1 尾部
@@ -485,7 +485,7 @@ export function generateUndergroundNetwork(): Fracture[] {
     [-0.3, -0.6, -0.4],
     rand(8, 14), 6, 0.4
   );
-  channels.push(buildChannel(blind1Path, 'blind_end', false, null, '盲端溶洞-D1（重油沉积）'));
+  channels.push(buildChannel(blind1Path, 'blind_end', false, null, '盲端溶洞-D1（沉积物滞留）'));
 
   // 盲端2: 从支流2 尾部
   const trib2End = trib2Path[trib2Path.length - 1];
@@ -494,7 +494,7 @@ export function generateUndergroundNetwork(): Fracture[] {
     [0.4, -0.6, 0.3],
     rand(8, 14), 6, 0.4
   );
-  channels.push(buildChannel(blind2Path, 'blind_end', false, null, '盲端溶洞-D2（盐水滞留）'));
+  channels.push(buildChannel(blind2Path, 'blind_end', false, null, '盲端溶洞-D2（矿化水滞留）'));
 
   // 盲端3: 从瓶颈C 尾部
   const constrCEnd2 = constrCPath[constrCPath.length - 1];
@@ -503,7 +503,7 @@ export function generateUndergroundNetwork(): Fracture[] {
     [-0.3, -0.7, 0.3],
     rand(6, 12), 5, 0.4
   );
-  channels.push(buildChannel(blind3Path, 'blind_end', false, null, '盲端溶洞-D3（凝析油聚集）'));
+  channels.push(buildChannel(blind3Path, 'blind_end', false, null, '盲端溶洞-D3（深层滞水）'));
 
   // === 深部合流 — 支流5/6 末端汇合到主干3 ===
   const trib5End = trib5Path[trib5Path.length - 1];
@@ -513,7 +513,7 @@ export function generateUndergroundNetwork(): Fracture[] {
     [trunk3End[0], trunk3End[1], trunk3End[2]],
     6, 0.4, 0.8
   );
-  channels.push(buildChannel(merge3Path, 'tributary', false, null, '深层汇流-A4→UC3'));
+  channels.push(buildChannel(merge3Path, 'tributary', false, null, '深层汇流-A4→UR3'));
 
   // 缓存所有路径点
   cachedPathPoints = channels.flatMap((ch) => ch.path);

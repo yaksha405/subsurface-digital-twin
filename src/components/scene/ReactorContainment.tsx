@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import * as THREE from 'three';
 import { useSceneStore } from '../../store/useSceneStore';
+import { NUCLEAR_IDENTITY } from '../../lib/sceneColors';
 
 /**
  * 核反应堆安全壳厂房 — PWR 压水堆结构渲染
@@ -31,13 +32,13 @@ export function ReactorContainment() {
       {/* 安全壳外壳 — 仅线框，不画实体球避免遮挡 */}
       <lineSegments position={[0, -5, 0]}>
         <edgesGeometry args={[new THREE.CylinderGeometry(24, 24, 30, 24, 1, true)]} />
-        <lineBasicMaterial color="#1A5A6A" transparent opacity={0.25} depthWrite={false} />
+        <lineBasicMaterial color={NUCLEAR_IDENTITY.containment} transparent opacity={0.25} depthWrite={false} />
       </lineSegments>
       {/* 安全壳穹顶 — 仅纬线环 */}
       {[8, 14, 20, 24].map((r, i) => (
         <mesh key={`dome-ring-${i}`} position={[0, 10 + Math.sqrt(576 - r * r), 0]} rotation={[Math.PI / 2, 0, 0]}>
           <torusGeometry args={[r, 0.08, 4, 48]} />
-          <meshBasicMaterial color="#1A5A6A" transparent opacity={0.2} depthWrite={false} />
+          <meshBasicMaterial color={NUCLEAR_IDENTITY.containment} transparent opacity={0.2} depthWrite={false} />
         </mesh>
       ))}
 
@@ -49,7 +50,7 @@ export function ReactorContainment() {
       {/* 地面网格环 */}
       <mesh position={[0, -19.9, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[23.8, 24, 64]} />
-        <meshBasicMaterial color="#0D4A5A" transparent opacity={0.4} side={THREE.DoubleSide} depthWrite={false} />
+        <meshBasicMaterial color={NUCLEAR_IDENTITY.containment} transparent opacity={0.4} side={THREE.DoubleSide} depthWrite={false} />
       </mesh>
 
       {/* 反应堆压力容器 (RPV) */}
@@ -57,12 +58,12 @@ export function ReactorContainment() {
         {/* RPV 筒体 */}
         <mesh>
           <cylinderGeometry args={[4, 4.5, 14, 16]} />
-          <meshStandardMaterial color="#3A3A4E" roughness={0.5} metalness={0.6} transparent opacity={0.35} depthWrite={false} />
+          <meshStandardMaterial color={NUCLEAR_IDENTITY.rpv} roughness={0.5} metalness={0.6} transparent opacity={0.35} depthWrite={false} />
         </mesh>
         {/* RPV 顶盖 */}
         <mesh position={[0, 7.5, 0]}>
           <sphereGeometry args={[4.2, 16, 8, 0, Math.PI * 2, 0, Math.PI / 3]} />
-          <meshStandardMaterial color="#4A4A5E" roughness={0.5} metalness={0.6} transparent opacity={0.35} depthWrite={false} />
+          <meshStandardMaterial color={NUCLEAR_IDENTITY.rpv} roughness={0.5} metalness={0.6} transparent opacity={0.35} depthWrite={false} />
         </mesh>
       </group>
 
@@ -74,12 +75,12 @@ export function ReactorContainment() {
             {/* SG 筒体 */}
             <mesh>
               <cylinderGeometry args={[3, 3.5, 18, 16]} />
-              <meshStandardMaterial color="#2A4A5A" roughness={0.5} metalness={0.5} transparent opacity={0.3} depthWrite={false} />
+              <meshStandardMaterial color={NUCLEAR_IDENTITY.sg} roughness={0.5} metalness={0.5} transparent opacity={0.3} depthWrite={false} />
             </mesh>
             {/* SG 顶部 */}
             <mesh position={[0, 10, 0]}>
               <sphereGeometry args={[3.2, 16, 8, 0, Math.PI * 2, 0, Math.PI / 3]} />
-              <meshStandardMaterial color="#3A5A6A" roughness={0.5} metalness={0.5} transparent opacity={0.3} depthWrite={false} />
+              <meshStandardMaterial color={NUCLEAR_IDENTITY.sg} roughness={0.5} metalness={0.5} transparent opacity={0.3} depthWrite={false} />
             </mesh>
           </group>
         );
@@ -92,7 +93,7 @@ export function ReactorContainment() {
           <group key={`rcp-${i}`} position={[x, -14, z]}>
             <mesh>
               <cylinderGeometry args={[2, 2.5, 4, 12]} />
-              <meshStandardMaterial color="#3A3A4E" roughness={0.4} metalness={0.7} transparent opacity={0.35} depthWrite={false} />
+              <meshStandardMaterial color={NUCLEAR_IDENTITY.rcp} roughness={0.4} metalness={0.7} transparent opacity={0.35} depthWrite={false} />
             </mesh>
           </group>
         );
@@ -102,11 +103,11 @@ export function ReactorContainment() {
       <group position={[8, -2, 8]}>
         <mesh>
           <cylinderGeometry args={[2, 2, 8, 12]} />
-          <meshStandardMaterial color="#2A4A3A" roughness={0.4} metalness={0.6} transparent opacity={0.3} depthWrite={false} />
+          <meshStandardMaterial color={NUCLEAR_IDENTITY.prz} roughness={0.4} metalness={0.6} transparent opacity={0.3} depthWrite={false} />
         </mesh>
         <mesh position={[0, 5, 0]}>
           <sphereGeometry args={[2.2, 12, 6, 0, Math.PI * 2, 0, Math.PI / 3]} />
-          <meshStandardMaterial color="#3A5A4A" roughness={0.4} metalness={0.6} transparent opacity={0.3} depthWrite={false} />
+          <meshStandardMaterial color={NUCLEAR_IDENTITY.prz} roughness={0.4} metalness={0.6} transparent opacity={0.3} depthWrite={false} />
         </mesh>
       </group>
     </group>

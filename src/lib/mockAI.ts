@@ -79,6 +79,7 @@ export function generateMockAIResponse(
       scenario === 'refinery' ? '通道密度 & 壁厚减薄\n- 腐蚀速率评估\n- 泄漏浓度检测' :
       scenario === 'gold' ? '裂缝密度 & 应力分布\n- 微震活动评估\n- 风险等级' :
       scenario === 'oil' ? '裂缝密度 & 孔隙压力\n- 渗透率评估\n- 含油饱和度' :
+      scenario === 'underground' ? '通道密度 & 渗透率分布\n- 矿化度评估\n- 地温梯度' :
       '裂缝密度 & 渗透率\n- RQD 岩质分级\n- 风险等级评估';
     return {
       message: `## 已激活区域框选工具\n\n请在3D场景中拖拽选择一个立方体区域。\n\n将生成完整${areaTitle}报告，包含：\n- ${features}`,
@@ -88,7 +89,7 @@ export function generateMockAIResponse(
 
   // ========== 全景/重置 ==========
   if (lowerInput.includes('全景') || lowerInput.includes('重置') || lowerInput.includes('全图') || lowerInput.includes('home')) {
-    const sceneLabel = scenario === 'pipeline' ? '管线网络' : scenario === 'nuclear' ? '反应堆管道' : scenario === 'refinery' ? '设备通道网络' : '裂缝网络';
+    const sceneLabel = scenario === 'pipeline' ? '管线网络' : scenario === 'nuclear' ? '反应堆管道' : scenario === 'refinery' ? '设备通道网络' : scenario === 'underground' ? '地下暗流通道' : '裂缝网络';
     return {
       message: `## 已重置到全景视角\n\n当前场景展示全部${sceneLabel}。`,
       actions: [
@@ -881,9 +882,9 @@ const QUICK_COMMANDS: Record<string, QuickCommand[]> = {
   // 地下暗流场景
   underground: [
     { label: '暗流网络概览', command: '地下暗流通道网络概览' },
-    { label: '流速分析', command: '分析通道流体流速分布' },
+    { label: '流速分析', command: '分析通道水流速分布' },
     { label: '渗透率评估', command: '评估岩层渗透率分布' },
-    { label: '油气饱和度', command: '分析含油饱和度异常区域' },
+    { label: '水质异常', command: '分析矿化度和水质异常区域' },
     { label: '狭窄瓶颈定位', command: '找出最狭窄的通道瓶颈并标记' },
     { label: '溶洞体积估算', command: '估算溶洞腔体体积' },
     { label: '地温梯度', command: '地温梯度异常分析' },

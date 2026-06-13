@@ -78,7 +78,7 @@ export function ToolActions() {
           >
             <Icon className="w-3.5 h-3.5" />
             <span className="flex-1 text-left">{label}</span>
-            <kbd className="text-[8px] px-1 py-0.5 rounded bg-white/5 text-[#A0A0B0] border border-white/10">{shortcut}</kbd>
+            <kbd className="text-[9px] px-1 py-0.5 rounded bg-white/5 text-[#A0A0B0] border border-white/10">{shortcut}</kbd>
           </Button>
         ))}
 

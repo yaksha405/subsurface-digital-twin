@@ -40,11 +40,9 @@ const MODEL_WEIGHTS_REFINERY: { model: RobotModel; weight: number }[] = [
   { model: 'snake', weight: 100 },    // 蛇形（多关节柔性体, 穿越管内通道）
 ];
 
-// 地下暗流场景：蛇形 + 猪形(管道猪)混合 — 狭窄段蛇形，开阔段猪形/履带
+// 地下暗流场景：全部浮走式(章鱼)机器人 — 水中漂浮蠕动推进
 const MODEL_WEIGHTS_UNDERGROUND: { model: RobotModel; weight: number }[] = [
-  { model: 'snake', weight: 55 },     // 蛇形（穿越狭窄瓶颈/溶洞入口）
-  { model: 'tracked', weight: 30 },   // 履带（开阔溶洞底部爬行）
-  { model: 'spider', weight: 15 },    // 蛛型（溶洞壁面攀爬）
+  { model: 'floatwalker', weight: 100 }, // 浮走/章鱼式（水中漂浮蠕动，暗流通道主战）
 ];
 
 // 任务池（地下裂缝场景）
@@ -101,21 +99,21 @@ const TASKS_NUCLEAR = [
   '冷态/热态功能试验辅助',
 ];
 
-// 任务池（地下暗流场景 — 蛇形/猪形/履带协作探测）
+// 任务池（地下暗流场景 — 浮走/蛇形/履带/蛛形协作探测）
 const TASKS_UNDERGROUND = [
   '暗流通道三维扫描',
-  '油气浓度取样',
+  '水质取样分析',
   '溶洞沉积物探测',
   'Mesh 中继转发',
   '狭窄瓶颈穿行',
   '水文参数探查',
-  '深部流体追踪',
+  '暗流漂浮巡游',
   '待命中',
   '盲端溶洞成像',
   '岩壁裂缝巡检',
   '流量速率测量',
   '温度梯度测绘',
-  '盐水腐蚀评估',
+  '矿化度检测',
   '渗透率原位测试',
 ];
 
@@ -271,10 +269,10 @@ function generateRobot(index: number, dataSource: DataSourceType): Robot {
     temperature = +rand(8, 55).toFixed(1);
     humidity = +rand(3.0, 12.0).toFixed(1);
   } else if (dataSource === 'underground') {
-    // 地下暗流：CH₄/油气浓度(%) / 地温(°C) / 含水率(%)
-    ch4 = +rand(0.1, 6.0).toFixed(2);
+    // 地下暗流：溶解氧(mg/L) / 地温(°C) / 含水率(%)
+    ch4 = +rand(0, 0.3).toFixed(2);       // 微量甲烷（地下有机物厌氧分解）
     temperature = +rand(35, 110).toFixed(1);  // 地温梯度
-    humidity = +rand(85, 100).toFixed(1);      // 地下接近饱和
+    humidity = +rand(95, 100).toFixed(1);      // 地下水环境接近饱和
   } else {
     // 地下裂缝：CH₄(%) / 环境温度(°C) / 湿度(%)
     ch4 = Math.round(rand(0.1, 3.5) * 100) / 100;

@@ -30,7 +30,7 @@ const C = {
 };
 const SC = { online: C.green, offline: C.dim, low_battery: C.orange, error: C.red, maintenance: C.blue };
 const SL = { online: '在线', offline: '离线', low_battery: '低电量', error: '故障', maintenance: '维护中' };
-const ML = { tracked: '履带', wheeled: '轮式', climbing: '攀爬', snake: '蛇形', aerial: '飞行' };
+const ML = { tracked: '履带', wheeled: '轮式', climbing: '攀爬', snake: '蛇形', aerial: '飞行', spider: '蛛型', floatwalker: '浮走' };
 const MS = { gateway: '网关', relay: '中继', edge: '边缘', leaf: '叶节点' };
 const SG = { coal: '煤矿', gold: '金矿', oil: '油气' };
 

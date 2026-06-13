@@ -170,21 +170,34 @@ export function FractureDetailPanel() {
   const selectedFracture = useSceneStore((s) => s.selectedFracture);
   const selectedFractureNode = useSceneStore((s) => s.selectedFractureNode);
   const scenario = useSceneStore((s) => s.scenario);
+  const dataSource = useSceneStore((s) => s.dataSource);
   const selectFracture = useSceneStore((s) => s.selectFracture);
   const selectFractureNode = useSceneStore((s) => s.selectFractureNode);
   const flyTo = useSceneStore((s) => s.flyTo);
   const highlightWithTimer = useSceneStore((s) => s.highlightWithTimer);
 
   if (!selectedFracture) {
+    const emptyStateMap: Record<string, { icon: string; hint: string; label: string }> = {
+      coal: { icon: '⛏', hint: '点击 3D 场景中的裂缝', label: '查看瓦斯、应力、渗透率等参数' },
+      gold: { icon: '🪨', hint: '点击 3D 场景中的裂缝', label: '查看微震、岩爆风险、应力集中数据' },
+      oil: { icon: '🛢', hint: '点击 3D 场景中的裂缝', label: '查看孔隙压力、渗透率、含油饱和度' },
+      pipeline: { icon: '🛢', hint: '点击 3D 场景中的管道', label: '查看泄漏、壁厚、腐蚀、H₂S 数据' },
+      nuclear: { icon: '☢', hint: '点击 3D 场景中的管道', label: '查看剂量率、疲劳、FAC、振动数据' },
+      refinery: { icon: '🏭', hint: '点击 3D 场景中的设备通道', label: '查看壁厚减薄、结垢、蠕变数据' },
+      underground: { icon: '🌊', hint: '点击 3D 场景中的暗流通道', label: '查看流速、渗透率、矿化度、地温数据' },
+    };
+    const ds = dataSource === 'fracture' ? scenario : dataSource;
+    const emptyInfo = emptyStateMap[ds] || emptyStateMap.coal;
+
     return (
       <div className="h-full flex flex-col items-center justify-center text-[#A0A0B0] p-4">
-        <div className="text-3xl mb-3">🔬</div>
+        <div className="text-3xl mb-3">{emptyInfo.icon}</div>
         <div className="text-xs text-center leading-relaxed">
-          点击 3D 场景中的裂缝<br />
-          查看详细参数和传感器数据
+          {emptyInfo.hint}<br />
+          {emptyInfo.label}
         </div>
         <div className="mt-4 text-[9px] text-[#A0A0B0]/50">
-          当前数据源: {scenario === 'coal' ? '模拟一·煤矿裂缝' : scenario === 'gold' ? '模拟一·金矿裂缝' : scenario === 'oil' ? '模拟一·油气裂缝' : scenario === 'pipeline' ? '模拟二·管线网络' : scenario === 'nuclear' ? '模拟三·核反应堆' : '模拟四·炼油化工'}
+          快捷操作：拖拽旋转 · 滚轮缩放 · 右键平移
         </div>
       </div>
     );
@@ -323,7 +336,7 @@ export function FractureDetailPanel() {
           >
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-[9px] text-[#A0A0B0] tracking-wider uppercase">综合安全评分</span>
-              <span className="text-[8px]" style={{ color: safetyColor }}>
+              <span className="text-[9px]" style={{ color: safetyColor }}>
                 {safetyLabel === '危险' ? '极高危' : safetyLabel === '警告' ? '高风险' : safetyLabel === '关注' ? '需关注' : '正常'}
               </span>
             </div>
@@ -461,7 +474,7 @@ export function FractureDetailPanel() {
               );
             })}
           </div>
-          <div className="text-[8px] text-[#A0A0B0]/40 mt-1 text-center">
+          <div className="text-[9px] text-[#A0A0B0]/40 mt-1 text-center">
             点击测点可飞行定位到3D位置
           </div>
         </div>

@@ -57,7 +57,7 @@ export function GasThresholdSlider() {
           <div className="flex-1 h-2 rounded-sm" style={{
             background: 'linear-gradient(to right, #1A80E0, #44DDAA, #DDCC22, #FF6622, #FF2222)'
           }} />
-          <span className="text-[8px] text-[#A0A0B0]">安全 → 危险</span>
+          <span className="text-[9px] text-[#A0A0B0]">安全 → 危险</span>
         </div>
       </CardContent>
     </Card>

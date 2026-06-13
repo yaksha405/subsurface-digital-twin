@@ -62,8 +62,8 @@ const SCENARIO_CFG: Record<DataSourceType, ScenarioAlertCfg> = {
     depthLabel: '行程', robotCount: 160,
   },
   underground: {
-    primaryLabel: 'CH₄', primaryUnit: '%', primaryThreshold: 4,
-    primaryTitle: '油气浓度超标', tempLabel: '地温', tempThreshold: 90,
+    primaryLabel: '矿化度', primaryUnit: 'mg/L', primaryThreshold: 50000,
+    primaryTitle: '矿化度异常', tempLabel: '地温', tempThreshold: 90,
     depthLabel: '深度', robotCount: 160,
   },
 };

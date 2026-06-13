@@ -19,7 +19,10 @@ export function ControlPanel() {
         <div className="p-3 border-b border-white/5 flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-[#FFE600] animate-pulse" />
           <h2 className="text-sm font-semibold text-[#E0E0E8] tracking-wide">控制台</h2>
-          <span className="ml-auto text-[9px] text-[#A0A0B0] font-mono">SHADCN · RADIX UI</span>
+          <span className="ml-auto text-[9px] text-[#3FB950] font-mono flex items-center gap-1">
+            <span className="w-1 h-1 rounded-full bg-[#3FB950] animate-pulse" />
+            实时
+          </span>
         </div>
 
         <ScrollArea className="flex-1">

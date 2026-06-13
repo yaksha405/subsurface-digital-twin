@@ -111,7 +111,7 @@ export interface HighlightRegion {
 // ===================================================================
 
 /** 机器人型号 */
-export type RobotModel = 'tracked' | 'wheeled' | 'climbing' | 'snake' | 'aerial' | 'spider';
+export type RobotModel = 'tracked' | 'wheeled' | 'climbing' | 'snake' | 'aerial' | 'spider' | 'floatwalker';
 
 /** 机器人状态 */
 export type RobotStatus = 'online' | 'offline' | 'low_battery' | 'error' | 'maintenance';

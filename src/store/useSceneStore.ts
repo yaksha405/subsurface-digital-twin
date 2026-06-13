@@ -82,6 +82,28 @@ interface SceneStore {
   setAIMarkers: (markers: AIMarker[]) => void;
   addAIMarkers: (markers: AIMarker[]) => void;
   clearAIMarkers: () => void;
+
+  // === C1: 告警确认 ===
+  acknowledgedAlertIds: string[];
+  acknowledgeAlert: (id: string) => void;
+  acknowledgeAllAlerts: (ids: string[]) => void;
+
+  // === 任务回放 ===
+  /** 回放进度 0~1（0=刚开始，1=全部渲染完毕） */
+  playbackProgress: number;
+  /** 是否正在播放回放 */
+  isPlaying: boolean;
+  /** 回放是否处于活跃状态（开始播放后为 true，用户点击"完成"或切换场景后为 false） */
+  playbackActive: boolean;
+  /** 回放速度倍率 */
+  playbackSpeed: number;
+  setPlaybackProgress: (v: number) => void;
+  setPlaying: (v: boolean) => void;
+  setPlaybackSpeed: (v: number) => void;
+  /** 开始回放（进度归零、播放开始） */
+  startPlayback: () => void;
+  /** 停止回放（恢复完整渲染） */
+  stopPlayback: () => void;
 }
 
 export const useSceneStore = create<SceneStore>((set, get) => ({
@@ -208,4 +230,26 @@ export const useSceneStore = create<SceneStore>((set, get) => ({
   setAIMarkers: (markers) => set({ aiMarkers: markers }),
   addAIMarkers: (markers) => set((state) => ({ aiMarkers: [...state.aiMarkers, ...markers] })),
   clearAIMarkers: () => set({ aiMarkers: [] }),
+
+  // C1: 告警确认
+  acknowledgedAlertIds: [],
+  acknowledgeAlert: (id) => set((state) => ({
+    acknowledgedAlertIds: state.acknowledgedAlertIds.includes(id)
+      ? state.acknowledgedAlertIds
+      : [...state.acknowledgedAlertIds, id],
+  })),
+  acknowledgeAllAlerts: (ids) => set((state) => ({
+    acknowledgedAlertIds: [...new Set([...state.acknowledgedAlertIds, ...ids])],
+  })),
+
+  // 任务回放
+  playbackProgress: 1,
+  isPlaying: false,
+  playbackActive: false,
+  playbackSpeed: 50,
+  setPlaybackProgress: (v) => set({ playbackProgress: Math.max(0, Math.min(1, v)) }),
+  setPlaying: (v) => set({ isPlaying: v }),
+  setPlaybackSpeed: (v) => set({ playbackSpeed: v }),
+  startPlayback: () => set({ isPlaying: true, playbackProgress: 0, playbackActive: true }),
+  stopPlayback: () => set({ isPlaying: false, playbackProgress: 1, playbackActive: false }),
 }));
