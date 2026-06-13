@@ -48,6 +48,9 @@ let _curveCache: Map<string, THREE.CatmullRomCurve3> = new Map();
 // 缓存：每条分支的汇合点信息 { branchId → { parentId, junctionFraction } }
 let _junctionCache: Map<string, { parentId: string; junctionFraction: number }> = new Map();
 
+// 缓存：fractureId → 地表入口点（所有机器人在 pathT=0 时的集合点）
+let _rootEntryCache = new Map<string, [number, number, number]>();
+
 /**
  * 计算分支裂缝与其母体（主裂缝）的连接关系。
  *
@@ -94,6 +97,94 @@ function computeBranchJunction(
   const result = { parentId: bestParentId, junctionFraction: bestFraction };
   _junctionCache.set(branch.id, result);
   return result;
+}
+
+/**
+ * 计算裂缝的"地表入口"——机器人未开始爬行时的集合点。
+ *
+ * 物理逻辑：
+ * - 主裂缝（type='main'）的地表入口 = 自己的 path[0]
+ *   但如果该主裂缝入口本身在地下深处（如地下暗流的主干3），
+ *   则回退到最近的地表主裂缝入口
+ * - 非主裂缝的地表入口 = 沿母体关系追溯到根主裂缝的 path[0]
+ *
+ * 这确保了所有机器人在回放开始时都在地表入口聚集，
+ * 而不是凭空出现在地下深处的分支入口。
+ */
+function getRootEntryPoint(
+  fracture: Fracture,
+  fractures: Fracture[],
+): [number, number, number] {
+  const existing = _rootEntryCache.get(fracture.id);
+  if (existing) return existing;
+
+  const mains = fractures.filter(f => f.type === 'main');
+  if (mains.length === 0) {
+    _rootEntryCache.set(fracture.id, fracture.path[0]);
+    return fracture.path[0];
+  }
+
+  // 找到 Y 值最高（最接近地表/入口）的主裂缝入口
+  const maxMainY = Math.max(...mains.map(m => m.path[0][1]));
+  // 地表主裂缝：入口 Y 值在最高主裂缝的 5 以内
+  const surfaceMains = mains.filter(m => m.path[0][1] >= maxMainY - 5);
+
+  if (fracture.type === 'main') {
+    // 主裂缝自身是地表入口
+    if (surfaceMains.includes(fracture)) {
+      _rootEntryCache.set(fracture.id, fracture.path[0]);
+      return fracture.path[0];
+    }
+    // 地下主裂缝（如深层连通暗河）→ 最近的地表主裂缝入口
+    const nearest = findNearestEntry(fracture.path[0], surfaceMains);
+    _rootEntryCache.set(fracture.id, nearest);
+    return nearest;
+  }
+
+  // 非主裂缝 → 追溯母体
+  const visited = new Set<string>();
+  let current: Fracture | undefined = fracture;
+  while (current && !visited.has(current.id)) {
+    visited.add(current.id);
+    if (current.type === 'main') break;
+    const j = computeBranchJunction(current, fractures);
+    current = fractures.find(f => f.id === j.parentId);
+  }
+
+  if (current && current.type === 'main') {
+    if (surfaceMains.includes(current)) {
+      _rootEntryCache.set(fracture.id, current.path[0]);
+      return current.path[0];
+    }
+    const nearest = findNearestEntry(current.path[0], surfaceMains);
+    _rootEntryCache.set(fracture.id, nearest);
+    return nearest;
+  }
+
+  // 兜底
+  const fallback = surfaceMains[0]?.path[0] ?? fracture.path[0];
+  _rootEntryCache.set(fracture.id, fallback);
+  return fallback;
+}
+
+/** 在候选主裂缝中找到入口距离 target 最近的那条 */
+function findNearestEntry(
+  target: [number, number, number],
+  candidates: Fracture[],
+): [number, number, number] {
+  let best = candidates[0]?.path[0] ?? target;
+  let bestDist = Infinity;
+  for (const c of candidates) {
+    const dx = c.path[0][0] - target[0];
+    const dy = c.path[0][1] - target[1];
+    const dz = c.path[0][2] - target[2];
+    const dist = dx * dx + dy * dy + dz * dz;
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = c.path[0];
+    }
+  }
+  return best;
 }
 
 /**
@@ -437,11 +528,15 @@ export function computePlaybackState(
 
     let finalPos: [number, number, number];
     if (pathT < 0.05) {
-      const entryPoint = fracture.path[0];
+      // ★ 未开始爬行的机器人聚集在地表入口（不是裂缝自身的入口）
+      // 分支机器人的 path[0] 可能在地下深处，但它们应该从地表入口出发
+      const rootEntry = getRootEntryPoint(fracture, fractures);
+      const entryBlend = pathT / 0.05; // 0→1 平滑过渡
+      const curveEntry = fracture.path[0];
       finalPos = [
-        entryPoint[0] + assign.entryOffset * (1 - pathT / 0.05),
-        entryPoint[1] + Math.cos(assign.entryOffset * 3) * 0.5,
-        entryPoint[2] + Math.sin(assign.entryOffset * 2) * (1 - pathT / 0.05),
+        rootEntry[0] * (1 - entryBlend) + curveEntry[0] * entryBlend + assign.entryOffset * (1 - pathT / 0.05),
+        rootEntry[1] * (1 - entryBlend) + curveEntry[1] * entryBlend + Math.cos(assign.entryOffset * 3) * 0.5,
+        rootEntry[2] * (1 - entryBlend) + curveEntry[2] * entryBlend + Math.sin(assign.entryOffset * 2) * (1 - pathT / 0.05),
       ];
     } else {
       finalPos = [pos.x, pos.y, pos.z];
@@ -477,4 +572,5 @@ export function resetPlaybackCache() {
   _assignments = new Map();
   _curveCache = new Map();
   _junctionCache = new Map();
+  _rootEntryCache = new Map();
 }
