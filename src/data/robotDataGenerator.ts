@@ -3,6 +3,7 @@ import { getAllPathPoints, generateFractureNetwork } from './fractureDataGenerat
 import { getAllPipelinePathPoints, generatePipelineNetwork } from './pipelineDataGenerator';
 import { getAllNuclearPathPoints, generateNuclearNetwork } from './nuclearDataGenerator';
 import { getAllRefineryPathPoints, generateRefineryNetwork } from './refineryDataGenerator';
+import { getAllUndergroundPathPoints, generateUndergroundNetwork } from './undergroundDataGenerator';
 
 // Seeded random
 let seed = 7777;
@@ -37,6 +38,13 @@ const MODEL_WEIGHTS_NUCLEAR: { model: RobotModel; weight: number }[] = [
 // 炼油化工场景：全部蛇形机器人（穿越换热器管束/炉管/塔内件狭窄通道）
 const MODEL_WEIGHTS_REFINERY: { model: RobotModel; weight: number }[] = [
   { model: 'snake', weight: 100 },    // 蛇形（多关节柔性体, 穿越管内通道）
+];
+
+// 地下暗流场景：蛇形 + 猪形(管道猪)混合 — 狭窄段蛇形，开阔段猪形/履带
+const MODEL_WEIGHTS_UNDERGROUND: { model: RobotModel; weight: number }[] = [
+  { model: 'snake', weight: 55 },     // 蛇形（穿越狭窄瓶颈/溶洞入口）
+  { model: 'tracked', weight: 30 },   // 履带（开阔溶洞底部爬行）
+  { model: 'spider', weight: 15 },    // 蛛型（溶洞壁面攀爬）
 ];
 
 // 任务池（地下裂缝场景）
@@ -93,6 +101,24 @@ const TASKS_NUCLEAR = [
   '冷态/热态功能试验辅助',
 ];
 
+// 任务池（地下暗流场景 — 蛇形/猪形/履带协作探测）
+const TASKS_UNDERGROUND = [
+  '暗流通道三维扫描',
+  '油气浓度取样',
+  '溶洞沉积物探测',
+  'Mesh 中继转发',
+  '狭窄瓶颈穿行',
+  '水文参数探查',
+  '深部流体追踪',
+  '待命中',
+  '盲端溶洞成像',
+  '岩壁裂缝巡检',
+  '流量速率测量',
+  '温度梯度测绘',
+  '盐水腐蚀评估',
+  '渗透率原位测试',
+];
+
 // 任务池（炼油化工场景 — 蛇形机器人内部巡检）
 const TASKS_REFINERY = [
   '换热器管束内窥检测',
@@ -140,6 +166,7 @@ function getRobotPosition(index: number, dataSource: DataSourceType): [number, n
     dataSource === 'pipeline' ? getAllPipelinePathPoints() :
     dataSource === 'nuclear' ? getAllNuclearPathPoints() :
     dataSource === 'refinery' ? getAllRefineryPathPoints() :
+    dataSource === 'underground' ? getAllUndergroundPathPoints() :
     getAllPathPoints();
 
   if (pathPoints.length > 0) {
@@ -169,11 +196,13 @@ function generateRobot(index: number, dataSource: DataSourceType): Robot {
     dataSource === 'pipeline' ? MODEL_WEIGHTS_PIPELINE :
     dataSource === 'nuclear' ? MODEL_WEIGHTS_NUCLEAR :
     dataSource === 'refinery' ? MODEL_WEIGHTS_REFINERY :
+    dataSource === 'underground' ? MODEL_WEIGHTS_UNDERGROUND :
     MODEL_WEIGHTS_FRACTURE;
   const tasks =
     dataSource === 'pipeline' ? TASKS_PIPELINE :
     dataSource === 'nuclear' ? TASKS_NUCLEAR :
     dataSource === 'refinery' ? TASKS_REFINERY :
+    dataSource === 'underground' ? TASKS_UNDERGROUND :
     TASKS_FRACTURE;
   const model = weightedPick(modelWeights).model;
   const status = weightedPick(STATUS_WEIGHTS).status;
@@ -205,6 +234,9 @@ function generateRobot(index: number, dataSource: DataSourceType): Robot {
   } else if (dataSource === 'pipeline') {
     // 距管道入口的距离(m)
     depth = Math.round(Math.sqrt(position[0] ** 2 + position[1] ** 2 + position[2] ** 2) * 10) / 10;
+  } else if (dataSource === 'underground') {
+    // 地下深度(m) — y 轴负方向，每单位 = 10m 实际深度
+    depth = Math.round(-position[1] * 10);
   } else {
     // 地下裂缝：距岩体表面深度(m)
     const distFromSurface = Math.min(
@@ -215,7 +247,7 @@ function generateRobot(index: number, dataSource: DataSourceType): Robot {
   }
 
   // 信号强度 — 非裂缝场景金属/混凝土环境衰减更大
-  const signalBase = dataSource === 'nuclear' ? -65 : dataSource === 'refinery' ? -60 : dataSource === 'pipeline' ? -55 : -40;
+  const signalBase = dataSource === 'nuclear' ? -65 : dataSource === 'refinery' ? -60 : dataSource === 'pipeline' ? -55 : dataSource === 'underground' ? -50 : -40;
   const signalStrength = Math.round(signalBase - depth * 0.3 + rand(-8, 8));
 
   // 传感器读数 — 按数据源使用不同物理量，值域符合行业实际
@@ -238,6 +270,11 @@ function generateRobot(index: number, dataSource: DataSourceType): Robot {
     ch4 = leakRoll > 0.85 ? +rand(15, 35).toFixed(1) : +rand(0, 10).toFixed(1);
     temperature = +rand(8, 55).toFixed(1);
     humidity = +rand(3.0, 12.0).toFixed(1);
+  } else if (dataSource === 'underground') {
+    // 地下暗流：CH₄/油气浓度(%) / 地温(°C) / 含水率(%)
+    ch4 = +rand(0.1, 6.0).toFixed(2);
+    temperature = +rand(35, 110).toFixed(1);  // 地温梯度
+    humidity = +rand(85, 100).toFixed(1);      // 地下接近饱和
   } else {
     // 地下裂缝：CH₄(%) / 环境温度(°C) / 湿度(%)
     ch4 = Math.round(rand(0.1, 3.5) * 100) / 100;
@@ -265,6 +302,7 @@ let cachedRobots: Robot[] | null = null;
 let cachedPipelineRobots: Robot[] | null = null;
 let cachedNuclearRobots: Robot[] | null = null;
 let cachedRefineryRobots: Robot[] | null = null;
+let cachedUndergroundRobots: Robot[] | null = null;
 
 export function generateMockRobots(dataSource: DataSourceType = 'fracture'): Robot[] {
   if (dataSource === 'pipeline') {
@@ -292,6 +330,15 @@ export function generateMockRobots(dataSource: DataSourceType = 'fracture'): Rob
     cachedRefineryRobots = [];
     for (let i = 0; i < 160; i++) cachedRefineryRobots.push(generateRobot(i, 'refinery'));
     return cachedRefineryRobots;
+  }
+
+  if (dataSource === 'underground') {
+    if (cachedUndergroundRobots) return cachedUndergroundRobots;
+    generateUndergroundNetwork();
+    seed = 7777;
+    cachedUndergroundRobots = [];
+    for (let i = 0; i < 160; i++) cachedUndergroundRobots.push(generateRobot(i, 'underground'));
+    return cachedUndergroundRobots;
   }
 
   if (cachedRobots) return cachedRobots;

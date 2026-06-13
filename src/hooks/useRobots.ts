@@ -4,8 +4,8 @@ import type { Robot, DataSourceType } from '../types';
 import type { RobotFleetStats } from '../types/api';
 
 // 模块级缓存（按数据源分别缓存）
-const robotCache: Record<string, Robot[] | null> = { fracture: null, pipeline: null, nuclear: null, refinery: null };
-const statsCache: Record<string, RobotFleetStats | null> = { fracture: null, pipeline: null, nuclear: null, refinery: null };
+const robotCache: Record<string, Robot[] | null> = { fracture: null, pipeline: null, nuclear: null, refinery: null, underground: null };
+const statsCache: Record<string, RobotFleetStats | null> = { fracture: null, pipeline: null, nuclear: null, refinery: null, underground: null };
 
 /** 清除指定数据源的缓存（切换数据源时调用） */
 export function clearRobotCache(dataSource: DataSourceType) {

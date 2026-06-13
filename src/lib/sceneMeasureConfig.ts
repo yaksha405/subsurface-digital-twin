@@ -7,7 +7,8 @@
 
 export type MeasureScenarioType =
   | 'coal' | 'gold' | 'oil'
-  | 'pipeline' | 'nuclear' | 'refinery';
+  | 'pipeline' | 'nuclear' | 'refinery'
+  | 'underground';
 
 export interface SceneMeasureConfig {
   /** 框选面板标题 */
@@ -136,6 +137,22 @@ export const SCENE_MEASURE_CONFIG: Record<MeasureScenarioType, SceneMeasureConfi
     tempLabel: '操作温度(均)',
     showRockGrade: false,
     slopeAngleLabel: '倾斜角',
+  },
+  underground: {
+    areaTitle: '区域暗流分析',
+    profileTitle: '通道截面分析',
+    pointLabel: '通道测点',
+    densityLabel: '通道密度',
+    primaryKey: 'ch4_pct',
+    primaryLabel: 'CH₄浓度',
+    primaryUnit: '%',
+    primaryThreshold: () => 4,
+    secondaryKey: 'permeability_md',
+    secondaryLabel: '渗透率(均)',
+    secondaryUnit: 'mD',
+    tempLabel: '地温(均)',
+    showRockGrade: false,
+    slopeAngleLabel: '通道倾角',
   },
 };
 

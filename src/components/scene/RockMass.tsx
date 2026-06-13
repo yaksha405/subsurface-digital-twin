@@ -30,6 +30,7 @@ export function RockMass() {
   }, []);
 
   if (!visible || dataSource === 'nuclear' || dataSource === 'refinery') return null;
+  // underground 场景显示岩体（暗流嵌在岩层中）
 
   return (
     <group>

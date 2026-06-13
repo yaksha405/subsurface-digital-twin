@@ -78,6 +78,7 @@ function getSensorMetric(
   if (scenario === 'pipeline') return { value: sensors.ch4_pct, min: 0, max: 40, threshold: 20 };
   if (scenario === 'nuclear') return { value: sensors.ch4_pct, min: 0, max: 100, threshold: 25 };
   if (scenario === 'refinery') return { value: sensors.rock_strength_mpa, min: 0, max: 10, threshold: 3 };
+  if (scenario === 'underground') return { value: sensors.ch4_pct, min: 0, max: 8, threshold: 4 };
   return { value: sensors.pore_pressure_mpa, min: 5, max: 35, threshold: 30 };
 }
 
@@ -92,7 +93,7 @@ export function FractureNetwork() {
 
   if (!visible || fractures.length === 0) return null;
 
-  const isPipeMode = scenario === 'pipeline' || scenario === 'nuclear' || scenario === 'refinery';
+  const isPipeMode = scenario === 'pipeline' || scenario === 'nuclear' || scenario === 'refinery' || scenario === 'underground';
 
   return (
     <group>
@@ -167,6 +168,12 @@ function getPipeColor(fracture: Fracture, scenario: string): string {
     if (sr.ch4_pct > 10 || sr.rock_strength_mpa > 3 || sr.acoustic_emission_mv > 1000) return '#FF8844';
     if (sr.permeability_md > 0.3 || sr.humidity_pct < 70) return '#FFAA00';
     return '#CC8844'; // 正常 — 高温合金琥珀色
+  }
+  if (scenario === 'underground') {
+    if (sr.ch4_pct > 4 || sr.h2s_ppm > 500) return '#FF2222';
+    if (sr.ch4_pct > 2 || sr.h2s_ppm > 100) return '#FF8844';
+    if (sr.permeability_md > 5 || sr.temperature_c > 90) return '#44DD88';
+    return '#2288CC'; // 正常 — 地下水蓝
   }
   return '#4488CC';
 }

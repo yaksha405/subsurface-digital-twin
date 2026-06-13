@@ -156,10 +156,10 @@ export interface Robot {
 // ===================================================================
 
 /** 行业场景类型 */
-export type ScenarioType = 'coal' | 'gold' | 'oil' | 'pipeline' | 'nuclear' | 'refinery';
+export type ScenarioType = 'coal' | 'gold' | 'oil' | 'pipeline' | 'nuclear' | 'refinery' | 'underground';
 
 /** 数据源类型（顶层切换） */
-export type DataSourceType = 'fracture' | 'pipeline' | 'nuclear' | 'refinery';
+export type DataSourceType = 'fracture' | 'pipeline' | 'nuclear' | 'refinery' | 'underground';
 
 /** 传感器读数 */
 export interface SensorReading {

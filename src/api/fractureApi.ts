@@ -27,6 +27,10 @@ async function getMockFractures(scenario: ScenarioType): Promise<Fracture[]> {
     const { generateRefineryNetwork } = await import('../data/refineryDataGenerator');
     return generateRefineryNetwork();
   }
+  if (scenario === 'underground') {
+    const { generateUndergroundNetwork } = await import('../data/undergroundDataGenerator');
+    return generateUndergroundNetwork();
+  }
   const { generateFractureNetwork } = await import('../data/fractureDataGenerator');
   return generateFractureNetwork(scenario);
 }

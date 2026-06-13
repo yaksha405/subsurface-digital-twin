@@ -878,11 +878,22 @@ const QUICK_COMMANDS: Record<string, QuickCommand[]> = {
     { label: '声发射检测', command: '声发射裂纹检测分析' },
     { label: '泄漏检测', command: '可燃气体泄漏检测分析' },
   ],
+  // 地下暗流场景
+  underground: [
+    { label: '暗流网络概览', command: '地下暗流通道网络概览' },
+    { label: '流速分析', command: '分析通道流体流速分布' },
+    { label: '渗透率评估', command: '评估岩层渗透率分布' },
+    { label: '油气饱和度', command: '分析含油饱和度异常区域' },
+    { label: '狭窄瓶颈定位', command: '找出最狭窄的通道瓶颈并标记' },
+    { label: '溶洞体积估算', command: '估算溶洞腔体体积' },
+    { label: '地温梯度', command: '地温梯度异常分析' },
+  ],
 };
 
 export function getQuickCommands(scenario: string): QuickCommand[] {
   if (scenario === 'pipeline') return QUICK_COMMANDS.pipeline;
   if (scenario === 'nuclear') return QUICK_COMMANDS.nuclear;
   if (scenario === 'refinery') return QUICK_COMMANDS.refinery;
+  if (scenario === 'underground') return QUICK_COMMANDS.underground;
   return QUICK_COMMANDS.fracture;
 }

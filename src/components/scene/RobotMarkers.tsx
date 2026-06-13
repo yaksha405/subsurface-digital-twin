@@ -19,6 +19,7 @@ function getMarkerScale(dataSource: string): number {
   if (dataSource === 'refinery') return 0.25;  // 换热器管径仅19-32mm，标记必须很小
   if (dataSource === 'pipeline') return 0.5;   // 管径较大
   if (dataSource === 'nuclear') return 0.45;   // 反应堆管道中等
+  if (dataSource === 'underground') return 0.6; // 地下暗流管径变化大，中等标记
   return 1.0; // 地下裂缝场景保持原大小
 }
 

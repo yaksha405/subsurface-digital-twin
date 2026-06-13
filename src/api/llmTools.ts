@@ -149,7 +149,7 @@ export const SCENE_TOOLS = [
       parameters: {
         type: 'object',
         properties: {
-          scenario: { type: 'string', enum: ['coal', 'gold', 'oil', 'pipeline', 'nuclear', 'refinery'], description: '场景类型' },
+          scenario: { type: 'string', enum: ['coal', 'gold', 'oil', 'pipeline', 'nuclear', 'refinery', 'underground'], description: '场景类型' },
         },
         required: ['scenario'],
       },
