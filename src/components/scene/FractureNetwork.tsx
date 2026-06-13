@@ -160,18 +160,30 @@ export function FractureNetwork() {
   return (
     <group>
       {fractures.map(renderChannel)}
-      {/* 入口标记 — 回放模式下只显示已揭示的入口 */}
-      {fractures.filter(f => f.type === 'main').map((fracture) => {
-        const revealRatio = revealRatios?.[fracture.id] ?? 1;
-        if (revealRatios && revealRatio <= 0) return null;
-        return isPipeMode ? (
-          <PipeEntrance key={`entrance-${fracture.id}`} position={fracture.path[0]} name={fracture.name} />
-        ) : isUndergroundMode ? (
-          <UndergroundEntrance key={`entrance-${fracture.id}`} position={fracture.path[0]} name={fracture.name} />
-        ) : (
-          <FractureEntrance key={`entrance-${fracture.id}`} position={fracture.path[0]} name={fracture.name} />
-        );
-      })}
+      {/* 入口标记 — 仅在真实地表/可部署入口的主管道起点显示
+          深层连通管道（如地下暗流的 Trunk3）起点在岩层深处，机器人无法从此处部署，不显示入口 */}
+      {(() => {
+        const mains = fractures.filter(f => f.type === 'main');
+        if (mains.length === 0) return null;
+        const startYs = mains.map(f => f.path[0][1]);
+        const surfaceY = Math.max(...startYs);
+        const ySpan = surfaceY - Math.min(...startYs);
+        // 阈值 = max(5, Y跨度的25%)，只有近地表的主管道起点才视为可部署入口
+        const surfaceThreshold = Math.max(5, ySpan * 0.25);
+        return mains
+          .filter(f => f.path[0][1] >= surfaceY - surfaceThreshold)
+          .map((fracture) => {
+            const revealRatio = revealRatios?.[fracture.id] ?? 1;
+            if (revealRatios && revealRatio <= 0) return null;
+            return isPipeMode ? (
+              <PipeEntrance key={`entrance-${fracture.id}`} position={fracture.path[0]} name={fracture.name} />
+            ) : isUndergroundMode ? (
+              <UndergroundEntrance key={`entrance-${fracture.id}`} position={fracture.path[0]} name={fracture.name} />
+            ) : (
+              <FractureEntrance key={`entrance-${fracture.id}`} position={fracture.path[0]} name={fracture.name} />
+            );
+          });
+      })()}
       {/* 测点标记 — 回放模式下隐藏（太多会影响性能） */}
       {!revealRatios && fractures.map((fracture) =>
         fracture.nodes.map((node) => (
