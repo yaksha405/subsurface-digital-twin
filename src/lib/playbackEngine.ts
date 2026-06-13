@@ -524,22 +524,47 @@ export function computePlaybackState(
     const curve = getCurve(fracture);
     if (!curve) continue;
 
-    const pos = curve.getPointAt(Math.min(0.999, Math.max(0, pathT)));
-
     let finalPos: [number, number, number];
-    if (pathT < 0.05) {
-      // ★ 未开始爬行的机器人聚集在地表入口（不是裂缝自身的入口）
-      // 分支机器人的 path[0] 可能在地下深处，但它们应该从地表入口出发
-      const rootEntry = getRootEntryPoint(fracture, fractures);
-      const entryBlend = pathT / 0.05; // 0→1 平滑过渡
-      const curveEntry = fracture.path[0];
-      finalPos = [
-        rootEntry[0] * (1 - entryBlend) + curveEntry[0] * entryBlend + assign.entryOffset * (1 - pathT / 0.05),
-        rootEntry[1] * (1 - entryBlend) + curveEntry[1] * entryBlend + Math.cos(assign.entryOffset * 3) * 0.5,
-        rootEntry[2] * (1 - entryBlend) + curveEntry[2] * entryBlend + Math.sin(assign.entryOffset * 2) * (1 - pathT / 0.05),
-      ];
+
+    if (fracture.type === 'branch' && pathT < 0.03) {
+      // ★ 分支机器人未进入分支前，沿母体曲线爬行到汇合点
+      // 物理逻辑：机器人和母体队伍一起从入口出发，爬到岔路口才转入分支
+      // 这样机器人始终沿着管道/裂缝路径移动，不会直线飞过空中
+      const junction = computeBranchJunction(fracture, fractures);
+      const parentFracture = fractureMap.get(junction.parentId);
+      const parentCurve = parentFracture ? getCurve(parentFracture) : null;
+
+      if (parentCurve) {
+        // 沿母体曲线跟随队伍前进，但不超过汇合点
+        const parentMax = Math.min(
+          maxProgressPerFracture[junction.parentId] ?? 0,
+          junction.junctionFraction,
+        );
+        const pPos = parentCurve.getPointAt(Math.min(0.999, Math.max(0, parentMax)));
+        const branchEntry = fracture.path[0];
+
+        // pathT 0→0.03: 从母体曲线平滑过渡到分支入口（汇合点）
+        const blend = pathT / 0.03;
+        finalPos = [
+          pPos.x * (1 - blend) + branchEntry[0] * blend + assign.entryOffset * 0.4,
+          pPos.y * (1 - blend) + branchEntry[1] * blend + Math.cos(assign.entryOffset * 3) * 0.3,
+          pPos.z * (1 - blend) + branchEntry[2] * blend + Math.sin(assign.entryOffset * 2) * 0.4,
+        ];
+      } else {
+        // 找不到母体 — 退化为沿自身曲线
+        const pos = curve.getPointAt(Math.min(0.999, Math.max(0, pathT)));
+        finalPos = [pos.x, pos.y, pos.z];
+      }
     } else {
-      finalPos = [pos.x, pos.y, pos.z];
+      // 主裂缝 / 已深入分支 — 沿自身曲线爬行
+      const pos = curve.getPointAt(Math.min(0.999, Math.max(0, pathT)));
+      // 入口附近的小散布，避免机器人重叠
+      const scatter = pathT < 0.05 ? (1 - pathT / 0.05) : 0;
+      finalPos = [
+        pos.x + assign.entryOffset * scatter * 0.4,
+        pos.y + Math.cos(assign.entryOffset * 3) * 0.3 * scatter,
+        pos.z + Math.sin(assign.entryOffset * 2) * 0.4 * scatter,
+      ];
     }
 
     // ★ 状态直接使用数据源原始 status — 颜色/存活状态完全一致

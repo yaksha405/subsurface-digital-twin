@@ -146,7 +146,7 @@ export function PlaybackBar() {
 
         {/* 速度控制 */}
         <div className="flex items-center gap-1">
-          {[1, 10, 50].map((s) => (
+          {[1, 10, 20, 30, 50].map((s) => (
             <button
               key={s}
               onClick={() => setPlaybackSpeed(s)}
