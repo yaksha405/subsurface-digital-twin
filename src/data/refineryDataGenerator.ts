@@ -133,8 +133,16 @@ export function generateRefineryNetwork(): Fracture[] {
   const hx=-2, hby=-8, hry=2, cy1=4, cy2=6, cy3=8;
   // 立管 — 从出口集合管(y=-10)上升到加热炉入口标高(y=-8)
   ch.push(buildChannel(vPath([-6,exY,0],[-6,hby,0],5),'process_pipe',true,'换热器→加热炉入口立管'));
-  // 入口分配管 — 连接到辐射段入口(x=-7处有U型管起点)
-  ch.push(buildChannel(hPath([-6,hby,0],[-7,hby,0],3),'process_pipe',true,'加热炉入口分配管'));
+  // 入口分配管 — 连接到辐射段入口集合管
+  ch.push(buildChannel(hPath([-6,hby,0],[hx-5,hby,0],4),'process_pipe',true,'加热炉入口分配管'));
+  // 辐射段底部入口集合管 — 沿x轴贯穿，所有U型管入口从此分出
+  ch.push(buildChannel(hPath([hx-7,hby,-6],[hx+5,hby,-6],10),'heater_tube',true,'H-101辐射入口集合管-北'));
+  ch.push(buildChannel(hPath([hx-7,hby,6],[hx+5,hby,6],10),'heater_tube',true,'H-101辐射入口集合管-南'));
+  ch.push(buildChannel(hPath([4,hby,-6],[4,hby,6],10),'heater_tube',true,'H-101辐射入口集合管-东'));
+  ch.push(buildChannel(hPath([-8,hby,-6],[-8,hby,6],10),'heater_tube',true,'H-101辐射入口集合管-西'));
+  // 入口集合管汇合 — 连接到入口分配管
+  ch.push(buildChannel(hPath([hx-5,hby,0],[hx-5,hby,-6],3),'heater_tube',true,'H-101入口汇集-北母管'));
+  ch.push(buildChannel(hPath([hx-5,hby,0],[hx-5,hby,6],3),'heater_tube',true,'H-101入口汇集-南母管'));
   // 辐射段 U 型炉管
   const rads = [['北墙',null,-6],['南墙',null,6],['东墙',4,null],['西墙',-8,null]] as const;
   for (const [wall,x,z] of rads) {
@@ -148,20 +156,42 @@ export function generateRefineryNetwork(): Fracture[] {
       }
     }
   }
-  // 对流段 3 层
+  // 辐射段顶部出口集合管 — 汇集所有U型管顶部出口
+  ch.push(buildChannel(hPath([hx-7,hry,-6],[hx+5,hry,-6],10),'heater_tube',true,'H-101辐射出口集合管-北'));
+  ch.push(buildChannel(hPath([hx-7,hry,6],[hx+5,hry,6],10),'heater_tube',true,'H-101辐射出口集合管-南'));
+  ch.push(buildChannel(hPath([4,hry,-6],[4,hry,6],10),'heater_tube',true,'H-101辐射出口集合管-东'));
+  ch.push(buildChannel(hPath([-8,hry,-6],[-8,hry,6],10),'heater_tube',true,'H-101辐射出口集合管-西'));
+  // 辐射出口→对流入口 竖直跨越管
+  ch.push(buildChannel(vPath([hx-7,hry,0],[hx-7,cy1,0],4),'heater_tube',true,'H-101辐射→对流跨越管'));
+  // 对流段 3 层 — 层间竖直连接管
   for (let ci=0;ci<3;ci++){const cy=[cy1,cy2,cy3][ci];
-    ch.push(buildChannel(hPath([hx-5,cy,-4],[hx+3,cy,4],14),'heater_tube',true,`H-101对流管-第${ci+1}层`));}
+    ch.push(buildChannel(hPath([hx-7,cy,-4],[hx+3,cy,4],14),'heater_tube',true,`H-101对流管-第${ci+1}层`));
+    if (ci<2) ch.push(buildChannel(vPath([hx+3,cy,4],[hx+3,[cy2,cy3][ci],4],3),'heater_tube',true,`H-101对流跨越-${ci+1}→${ci+2}`));}
+  // 对流出口→总出口
+  ch.push(buildChannel(hPath([hx+3,cy3,4],[hx+3,cy3,0],3),'process_pipe',true,'H-101对流出口弯管'));
   ch.push(buildChannel(hPath([hx+3,cy3,0],[10,cy3,0],6),'process_pipe',true,'H-101出口总管→蒸馏塔'));
 
   // === 3. 蒸馏塔 C-101 ===
   const cx=18, cby=-5, cty=35, cr=4, tr=3.2;
   ch.push(buildChannel(elbowPath([10,cy3,0],[cx-cr,12,0]),'process_pipe',true,'C-101进料管（加热炉→蒸馏塔）'));
+  // 进料分配器 — 从进料管终点连接到螺旋通道底部
+  ch.push(buildChannel(hPath([cx-cr,12,0],[cx-tr,12,0],3),'column_internal',true,'C-101进料分配器'));
+  ch.push(buildChannel(vPath([cx-tr,12,0],[cx-tr,14,0],3),'column_internal',true,'C-101进料竖管→精馏段'));
   ch.push(buildChannel(spiralPath([cx,0,0],tr,14,cty-2,4,40),'column_internal',true,'C-101精馏段螺旋通道'));
   ch.push(buildChannel(spiralPath([cx,0,0],tr*0.85,cby+2,12,3,30),'column_internal',true,'C-101汽提段螺旋通道'));
+  // 螺旋通道→降液管 连接（精馏段顶部到降液管A顶，汽提段到降液管B底）
+  ch.push(buildChannel(hPath([cx+tr,cty-2,0],[cx-2,cty-2,0],3),'column_internal',true,'C-101精馏顶→降液管A入口'));
+  ch.push(buildChannel(hPath([cx+tr*0.85,12,0],[cx+1.5,12,0],3),'column_internal',true,'C-101汽提→降液管B入口'));
   ch.push(buildChannel(hPath([cx+cr,cty,0],[cx,cty-3,0],6),'column_internal',true,'C-101回流管'));
+  ch.push(buildChannel(hPath([cx,cty,0],[cx+tr,cty,0],3),'column_internal',true,'C-101塔顶内连接'));
   ch.push(buildChannel(hPath([cx,cty,0],[cx+8,cty,0],6),'column_internal',false,'C-101塔顶抽出（石脑油）'));
+  // 侧线抽出从螺旋通道引出（连接管）
+  ch.push(buildChannel(hPath([cx+tr,18,0],[cx+cr,18,0],2),'column_internal',false,'C-101柴油抽出内管'));
   ch.push(buildChannel(hPath([cx+cr,18,0],[cx+8,18,0],5),'column_internal',false,'C-101侧线抽出（柴油）'));
+  ch.push(buildChannel(hPath([cx+tr,8,0],[cx+cr,8,0],2),'column_internal',false,'C-101煤油抽出内管'));
   ch.push(buildChannel(hPath([cx+cr,8,0],[cx+8,8,0],5),'column_internal',false,'C-101侧线抽出（煤油）'));
+  // 汽提段底部→塔底抽出
+  ch.push(buildChannel(vPath([cx-tr*0.85,12,0],[cx-tr*0.85,cby,0],4),'column_internal',false,'C-101汽提底→塔底管'));
   ch.push(buildChannel(hPath([cx,cby,0],[cx+8,cby,0],5),'column_internal',false,'C-101塔底抽出（重油）'));
   ch.push(buildChannel(vPath([cx-2,22,1],[cx-2,10,1],8),'column_internal',false,'C-101降液管-A'));
   ch.push(buildChannel(vPath([cx+1.5,16,-1.5],[cx+1.5,4,-1.5],8),'column_internal',false,'C-101降液管-B'));

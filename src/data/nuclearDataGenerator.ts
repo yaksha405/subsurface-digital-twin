@@ -154,7 +154,7 @@ export function generateNuclearNetwork(): Fracture[] {
   const pipes: Fracture[] = [];
   let id = 0;
 
-  // 4环路 × (热腿+冷腿+主蒸汽+给水) = 16条主管
+  // 4环路 × (热腿+冷腿+SG传热管+主蒸汽+给水+SG连接) = 24条主管
   for (let l = 0; l < 4; l++) {
     const { dx, dz, n } = DIRS[l];
     const hotNoz: [number, number, number] = [+(NOZ_R*dx).toFixed(1), RPV_HOT_Y, +(NOZ_R*dz).toFixed(1)];
@@ -167,11 +167,35 @@ export function generateNuclearNetwork(): Fracture[] {
     pipes.push(buildPipe(id++, `${n}-热腿`, pipePath([hotNoz, [+(RCP_DIST*dx).toFixed(1), RPV_HOT_Y, +(RCP_DIST*dz).toFixed(1)], [+((SG_DIST-4)*dx).toFixed(1), RPV_HOT_Y+1, +((SG_DIST-4)*dz).toFixed(1)], sgIn]), 'primary', true));
     // 冷腿
     pipes.push(buildPipe(id++, `${n}-冷腿`, pipePath([sgOut, [+((RCP_DIST+1)*dx).toFixed(1), -13, +((RCP_DIST+1)*dz).toFixed(1)], [+(RCP_DIST*dx).toFixed(1), -14, +(RCP_DIST*dz).toFixed(1)], [+((RCP_DIST-3)*dx).toFixed(1), -11, +((RCP_DIST-3)*dz).toFixed(1)], coldNoz]), 'primary', true));
-    // 主蒸汽
+    // SG传热管 — 连接热腿出口到冷腿入口，使一回路环路闭合
+    pipes.push(buildPipe(id++, `${n}-SG传热管`, pipePath([sgIn, [+((SG_DIST-2)*dx).toFixed(1), 0, +((SG_DIST-2)*dz).toFixed(1)], [+((SG_DIST-2)*dx).toFixed(1), -8, +((SG_DIST-2)*dz).toFixed(1)], sgOut]), 'primary', true));
+    // 主蒸汽 — 从SG顶部引出
     pipes.push(buildPipe(id++, `${n}-主蒸汽`, pipePath([[sgC[0], 4, sgC[2]], [sgC[0], 6, sgC[2]], [sgC[0]+dx*8, 8, sgC[2]+dz*8]]), 'secondary', true));
-    // 主给水
+    // SG顶部到主蒸汽连接
+    pipes.push(buildPipe(id++, `${n}-SG汽侧出口`, pipePath([[+((SG_DIST-2)*dx).toFixed(1), 0, +((SG_DIST-2)*dz).toFixed(1)], [sgC[0], 2, sgC[2]], [sgC[0], 4, sgC[2]]]), 'secondary', false));
+    // 主给水 — 从外部进入SG
     pipes.push(buildPipe(id++, `${n}-主给水`, pipePath([[sgC[0]+dx*8, -8, sgC[2]+dz*8], [sgC[0]+dx*4, -8, sgC[2]+dz*4], sgC]), 'secondary', true));
+    // 给水到SG冷侧连接
+    pipes.push(buildPipe(id++, `${n}-给水→SG冷侧`, pipePath([sgC, [+((SG_DIST-2)*dx).toFixed(1), -8, +((SG_DIST-2)*dz).toFixed(1)]]), 'secondary', false));
   }
+
+  // RPV堆芯 — 连接所有4环路的热腿/冷腿喷嘴
+  // 热腿环管（半径=NOZ_R的圆环，连接所有热腿喷嘴）
+  const rpvRingHot: [number, number, number][] = [];
+  for (let a = 0; a <= 360; a += 15) {
+    const rad = a * Math.PI / 180;
+    rpvRingHot.push([+(NOZ_R * Math.cos(rad)).toFixed(1), RPV_HOT_Y, +(NOZ_R * Math.sin(rad)).toFixed(1)]);
+  }
+  pipes.push(buildPipe(id++, 'RPV热腿分配环管', pipePath(rpvRingHot), 'primary', true));
+  // 冷腿环管
+  const rpvRingCold: [number, number, number][] = [];
+  for (let a = 0; a <= 360; a += 15) {
+    const rad = a * Math.PI / 180;
+    rpvRingCold.push([+(NOZ_R * Math.cos(rad)).toFixed(1), RPV_COLD_Y, +(NOZ_R * Math.sin(rad)).toFixed(1)]);
+  }
+  pipes.push(buildPipe(id++, 'RPV冷腿分配环管', pipePath(rpvRingCold), 'primary', true));
+  // RPV堆芯竖管 — 连接热腿环和冷腿环（从环上一点到对侧环上一点）
+  pipes.push(buildPipe(id++, 'RPV堆芯下降段', pipePath([[NOZ_R, RPV_HOT_Y, 0], [NOZ_R, RPV_COLD_Y, 0]]), 'primary', true));
 
   // 波动管
   pipes.push(buildPipe(id++, '稳压器波动管', pipePath([[0, RPV_HOT_Y, 10], [4, -5, 9], PRZ]), 'primary', false));
@@ -203,9 +227,9 @@ export function generateNuclearNetwork(): Fracture[] {
   pipes.push(buildPipe(id++, 'CCWS冷却回水-环路1', pipePath([[0, -14, 9], [10, -15, 12], [22, -16, 12]]), 'auxiliary', false));
   pipes.push(buildPipe(id++, 'CCWS冷却供水-环路3', pipePath([[-20, -16, -10], [-10, -15, -10], [0, -14, -9]]), 'auxiliary', false));
 
-  // 蒸汽发生器排污管
-  pipes.push(buildPipe(id++, 'SG排污管-环路1', pipePath([[0, -10, 16], [0, -10, 22], [4, -12, 24]]), 'secondary', false));
-  pipes.push(buildPipe(id++, 'SG排污管-环路3', pipePath([[0, -10, -16], [0, -10, -22], [-4, -12, -24]]), 'secondary', false));
+  // 蒸汽发生器排污管 — 从环路1/3的SG冷侧出口引出
+  pipes.push(buildPipe(id++, 'SG排污管-环路1', pipePath([[0, -12, 14], [0, -12, 22], [4, -14, 24]]), 'secondary', false));
+  pipes.push(buildPipe(id++, 'SG排污管-环路3', pipePath([[0, -12, -14], [0, -12, -22], [-4, -14, -24]]), 'secondary', false));
 
   // 分配机器人到节点
   assignRobots(pipes);

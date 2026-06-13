@@ -457,19 +457,20 @@ export function generatePipelineNetwork(): Fracture[] {
   pipelines.push(buildPipeline(nextPipeId(), headerPath, 'trunk', true, null, '采气汇集管'));
 
   // ========================================================
-  // 3. 外输干线（3 条平行大管，从汇集管中点向东延伸）
+  // 3. 外输干线（3 条平行大管，从汇集管引出向东延伸）
   // ========================================================
   const trunkEndX = 42;
-  const headerMidX = (headerStart[0] + headerEnd[0]) / 2;
+  // 从W4立管位置引出干线（保证连接到汇管上的已知点）
+  const trunkOriginX = wellheadBottoms[3][0] + 3; // W4 riser endpoint x ≈ 7
 
   for (let t = 0; t < trunkZs.length; t++) {
     const tz = trunkZs[t];
     const trunkY = headerY + t * 1.5; // 管廊分层叠放
-    // 从汇集管中点引出 L 型弯管到干线起点
-    const connectStart: [number, number, number] = [headerMidX, headerY, wellZ];
-    const trunkStart: [number, number, number] = [headerMidX + 2, trunkY, tz];
+    // 显式连接管 — 从W4立管弯头终点(在汇管上)到干线起点
+    const connectStart: [number, number, number] = [trunkOriginX, headerY, wellZ];
+    const trunkStart: [number, number, number] = [trunkOriginX + 3, trunkY, tz];
     const connectPath = generateElbowPipe(connectStart, trunkStart, 0);
-    // 干线主体
+    // 干线主体 — 用小抖动直线保证分支起点能对齐
     const trunkEnd: [number, number, number] = [trunkEndX, trunkY, tz];
     const trunkPath = generateHorizontalPipe(trunkStart, trunkEnd);
 
@@ -480,7 +481,8 @@ export function generatePipelineNetwork(): Fracture[] {
   // ========================================================
   // 4. 分配管线（从干线引出，向北/南分支）
   // ========================================================
-  const distributionXs = [-10, 5, 20, 35]; // 4 个分支 X 位置
+  // 干线范围: trunkOriginX+3 ≈ 10 到 42，分配管起点必须在此范围内
+  const distributionXs = [14, 22, 30, 38]; // 4 个分支 X 位置（均在干线范围内）
   let distCount = 0;
 
   for (const dx of distributionXs) {
@@ -489,13 +491,13 @@ export function generatePipelineNetwork(): Fracture[] {
       const tz = trunkZs[ti];
       const trunkY = headerY + ti * 1.5;
 
-      // 分配管从干线垂直引出
+      // 分配管从干线垂直引出 — 起点精确对齐干线Y和Z
       const branchDir = ti === 1 ? (distCount % 2 === 0 ? 1 : -1) : (ti === 0 ? 1 : -1);
       const branchLen = rand(14, 22);
-      const branchStart: [number, number, number] = [dx, trunkY, tz];
+      const branchStart: [number, number, number] = [+dx.toFixed(1), trunkY, +tz.toFixed(1)];
       const branchEnd: [number, number, number] = [
-        dx + rand(-3, 3),
-        trunkY + rand(-1, 1),
+        +(dx + rand(-2, 2)).toFixed(1),
+        trunkY,
         +(tz + branchDir * branchLen).toFixed(1),
       ];
       const branchPath = generateHorizontalPipe(branchStart, branchEnd);
@@ -507,18 +509,18 @@ export function generatePipelineNetwork(): Fracture[] {
   // ========================================================
   // 5. 计量站/阀室支线（在干线远端引出短支管）
   // ========================================================
-  const valveXs = [25, 32, 39];
+  const valveXs = [20, 28, 36]; // 均在干线范围内
   let valveCount = 0;
 
   for (const vx of valveXs) {
     for (let ti = 0; ti < trunkZs.length; ti++) {
-      if (valveCount >= 7) break;
+      if (valveCount >= 6) break;
       // 隔一条干线引出
       if ((vx + ti) % 2 === 0) continue;
       const tz = trunkZs[ti];
       const trunkY = headerY + ti * 1.5;
 
-      const valveStart: [number, number, number] = [vx, trunkY, tz];
+      const valveStart: [number, number, number] = [+vx.toFixed(1), trunkY, +tz.toFixed(1)];
       const valveDir = ti === 1 ? -1 : (ti === 0 ? 1 : -1);
       const valveEnd: [number, number, number] = [
         +(vx + rand(-2, 2)).toFixed(1),
