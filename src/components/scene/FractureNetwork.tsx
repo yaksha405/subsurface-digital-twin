@@ -197,10 +197,14 @@ export function FractureNetwork() {
 function PlaybackScanPoints({ fractures, revealRatios }: { fractures: Fracture[]; revealRatios: Record<string, number> }) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
 
-  // 为每条已揭示裂缝生成散点
+  // 为每条已揭示裂缝生成散点（确定性 — 不用 Math.random 避免闪烁）
   const { positions, opacities } = useMemo(() => {
     const positions: [number, number, number][] = [];
     const opacities: number[] = [];
+
+    // 确定性伪随机
+    let seed = 12345;
+    const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
 
     for (const f of fractures) {
       const ratio = revealRatios[f.id];
@@ -211,7 +215,7 @@ function PlaybackScanPoints({ fractures, revealRatios }: { fractures: Fracture[]
       const dotCount = Math.ceil(cutLen * ratio * 4);
 
       for (let i = 0; i < dotCount; i++) {
-        const t = Math.random() * (cutLen / f.path.length);
+        const t = rnd() * (cutLen / f.path.length);
         const pathIdx = Math.floor(t * (f.path.length - 1));
         const pathFrac = t * (f.path.length - 1) - pathIdx;
         const p1 = f.path[Math.min(pathIdx, f.path.length - 1)];
@@ -219,9 +223,9 @@ function PlaybackScanPoints({ fractures, revealRatios }: { fractures: Fracture[]
 
         const spread = (f.porosity || 1) * 0.8;
         positions.push([
-          p1[0] + (p2[0] - p1[0]) * pathFrac + (Math.random() - 0.5) * spread,
-          p1[1] + (p2[1] - p1[1]) * pathFrac + (Math.random() - 0.5) * spread,
-          p1[2] + (p2[2] - p1[2]) * pathFrac + (Math.random() - 0.5) * spread,
+          p1[0] + (p2[0] - p1[0]) * pathFrac + (rnd() - 0.5) * spread,
+          p1[1] + (p2[1] - p1[1]) * pathFrac + (rnd() - 0.5) * spread,
+          p1[2] + (p2[2] - p1[2]) * pathFrac + (rnd() - 0.5) * spread,
         ]);
         opacities.push(0.3 + ratio * 0.5);
       }

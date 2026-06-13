@@ -71,10 +71,22 @@ function computeBranchJunction(
   const origin = branch.path[0];
 
   // 候选母体：优先显式 parentFractureId，否则全部主裂缝
+  // ★ 排除自身 — 深层主裂缝(如UR3)如果包含自己会匹配到自身path[0]
   const explicitParent = fractures.find(f => f.id === branch.parentFractureId);
-  const candidates = explicitParent
-    ? [explicitParent]
-    : fractures.filter(f => f.type === 'main');
+  let candidates: Fracture[];
+  if (explicitParent) {
+    candidates = [explicitParent];
+  } else {
+    const allMains = fractures.filter(f => f.type === 'main' && f.id !== branch.id);
+    // 对于深层主裂缝，优先搜索地表主裂缝作为母体
+    if (allMains.length > 0) {
+      const maxY = Math.max(...allMains.map(m => m.path[0][1]));
+      const surfaceMains = allMains.filter(m => m.path[0][1] >= maxY - 5);
+      candidates = surfaceMains.length > 0 ? surfaceMains : allMains;
+    } else {
+      candidates = allMains;
+    }
+  }
 
   let bestParentId = '';
   let bestFraction = 0;
@@ -430,7 +442,19 @@ export function computePlaybackState(
   // 临时存储：robotId → { pathT, assign, fractureId }
   const robotPathT = new Map<string, number>();
 
-  // ---- Step 1: 主裂缝 / 其他类型 — 机器人按时间爬行 ----
+  // ---- Step 1: 主裂缝 — 检测是否为深层主裂缝（如深层连通暗河） ----
+  // 深层主裂缝的 path[0] 在地下深处，需要从地表主裂缝入口出发
+  const surfaceMainIds = new Set<string>();
+  {
+    const allMains = fractures.filter(f => f.type === 'main');
+    if (allMains.length > 0) {
+      const maxY = Math.max(...allMains.map(m => m.path[0][1]));
+      for (const m of allMains) {
+        if (m.path[0][1] >= maxY - 5) surfaceMainIds.add(m.id);
+      }
+    }
+  }
+
   for (let ri = 0; ri < robots.length; ri++) {
     const robot = robots[ri];
     const assign = assignments.get(robot.id);
@@ -445,6 +469,17 @@ export function computePlaybackState(
     if (deployPhase <= deployThreshold) {
       robotPathT.set(robot.id, 0);
       continue;
+    }
+
+    // ★ 深层主裂缝（非地表入口）— 需要母体到达连接点后才能开始爬行
+    if (!surfaceMainIds.has(fracture.id)) {
+      const junction = computeBranchJunction(fracture, fractures);
+      const parentMax = maxProgressPerFracture[junction.parentId] ?? 0;
+      if (parentMax < junction.junctionFraction) {
+        // 母体还没爬到连接点 → 机器人留在入口
+        robotPathT.set(robot.id, 0);
+        continue;
+      }
     }
 
     let pathT = crawlPhase * assign.speedFactor;
@@ -526,16 +561,19 @@ export function computePlaybackState(
 
     let finalPos: [number, number, number];
 
-    if (fracture.type === 'branch' && pathT < 0.03) {
-      // ★ 分支机器人未进入分支前，沿母体曲线爬行到汇合点
-      // 物理逻辑：机器人和母体队伍一起从入口出发，爬到岔路口才转入分支
+    // 判断是否需要沿母体曲线移动（分支 + 深层主裂缝）
+    const needsParentApproach = fracture.type === 'branch' || !surfaceMainIds.has(fracture.id);
+
+    if (needsParentApproach && pathT < 0.03) {
+      // ★ 分支/深层主裂缝机器人未进入自身曲线前，沿母体曲线爬行到连接点
+      // 物理逻辑：机器人和母体队伍一起从地表入口出发，爬到岔路口才转入分支
       // 这样机器人始终沿着管道/裂缝路径移动，不会直线飞过空中
       const junction = computeBranchJunction(fracture, fractures);
       const parentFracture = fractureMap.get(junction.parentId);
       const parentCurve = parentFracture ? getCurve(parentFracture) : null;
 
       if (parentCurve) {
-        // 沿母体曲线跟随队伍前进，但不超过汇合点
+        // 沿母体曲线跟随队伍前进，但不超过连接点
         const parentMax = Math.min(
           maxProgressPerFracture[junction.parentId] ?? 0,
           junction.junctionFraction,
@@ -543,13 +581,25 @@ export function computePlaybackState(
         const pPos = parentCurve.getPointAt(Math.min(0.999, Math.max(0, parentMax)));
         const branchEntry = fracture.path[0];
 
-        // pathT 0→0.03: 从母体曲线平滑过渡到分支入口（汇合点）
-        const blend = pathT / 0.03;
-        finalPos = [
-          pPos.x * (1 - blend) + branchEntry[0] * blend + assign.entryOffset * 0.4,
-          pPos.y * (1 - blend) + branchEntry[1] * blend + Math.cos(assign.entryOffset * 3) * 0.3,
-          pPos.z * (1 - blend) + branchEntry[2] * blend + Math.sin(assign.entryOffset * 2) * 0.4,
-        ];
+        // 计算母体连接点和裂缝入口的距离
+        const jdx = pPos.x - branchEntry[0];
+        const jdy = pPos.y - branchEntry[1];
+        const jdz = pPos.z - branchEntry[2];
+        const junctionDist = Math.sqrt(jdx*jdx + jdy*jdy + jdz*jdz);
+
+        if (junctionDist > 3.0) {
+          // 母体连接点和裂缝入口距离较远（如核反应堆管网节点不完全重合）
+          // 留在母体曲线上，不做直线过渡（避免穿过空隙）
+          finalPos = [pPos.x, pPos.y, pPos.z];
+        } else {
+          // 距离近 → 平滑过渡
+          const blend = pathT / 0.03;
+          finalPos = [
+            pPos.x * (1 - blend) + branchEntry[0] * blend + assign.entryOffset * 0.15,
+            pPos.y * (1 - blend) + branchEntry[1] * blend + Math.cos(assign.entryOffset * 3) * 0.12,
+            pPos.z * (1 - blend) + branchEntry[2] * blend + Math.sin(assign.entryOffset * 2) * 0.15,
+          ];
+        }
       } else {
         // 找不到母体 — 退化为沿自身曲线
         const pos = curve.getPointAt(Math.min(0.999, Math.max(0, pathT)));
