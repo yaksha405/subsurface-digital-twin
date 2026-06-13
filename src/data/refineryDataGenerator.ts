@@ -121,9 +121,20 @@ export function generateRefineryNetwork(): Fracture[] {
     ch.push(buildChannel(hPath([-8,exY,z],[-6,exY,z],3),'process_pipe',false,`${n}出口管`));
   }
 
+  // === 1b. 换热器入口集合 + 机器人入口 ===
+  // 机器人检修入口总管 — 从场景外部接入
+  ch.push(buildChannel(hPath([-36,exY+1.5,0],[-30,exY+1.5,0],4),'process_pipe',true,'机器人检修入口总管'));
+  // 入口集合总管 — 连接4台换热器入口
+  ch.push(buildChannel(hPath([-30,exY+1.5,-12],[-30,exY+1.5,12],14),'process_pipe',true,'换热器入口集合总管'));
+  // 出口集合总管 — 汇集4台换热器出口
+  ch.push(buildChannel(hPath([-6,exY,-12],[-6,exY,12],14),'process_pipe',true,'换热器出口集合总管'));
+
   // === 2. 加热炉 H-101 ===
   const hx=-2, hby=-8, hry=2, cy1=4, cy2=6, cy3=8;
-  ch.push(buildChannel(hPath([-6,-8,0],[hx-6,-8,0],6),'process_pipe',true,'换热器组→加热炉入口总管'));
+  // 立管 — 从出口集合管(y=-10)上升到加热炉入口标高(y=-8)
+  ch.push(buildChannel(vPath([-6,exY,0],[-6,hby,0],5),'process_pipe',true,'换热器→加热炉入口立管'));
+  // 入口分配管 — 连接到辐射段入口(x=-7处有U型管起点)
+  ch.push(buildChannel(hPath([-6,hby,0],[-7,hby,0],3),'process_pipe',true,'加热炉入口分配管'));
   // 辐射段 U 型炉管
   const rads = [['北墙',null,-6],['南墙',null,6],['东墙',4,null],['西墙',-8,null]] as const;
   for (const [wall,x,z] of rads) {
@@ -154,6 +165,14 @@ export function generateRefineryNetwork(): Fracture[] {
   ch.push(buildChannel(hPath([cx,cby,0],[cx+8,cby,0],5),'column_internal',false,'C-101塔底抽出（重油）'));
   ch.push(buildChannel(vPath([cx-2,22,1],[cx-2,10,1],8),'column_internal',false,'C-101降液管-A'));
   ch.push(buildChannel(vPath([cx+1.5,16,-1.5],[cx+1.5,4,-1.5],8),'column_internal',false,'C-101降液管-B'));
+
+  // === 4. 蒸馏塔→换热器回流（形成闭合回路）===
+  // 塔底重油出口汇集管
+  ch.push(buildChannel(hPath([cx+8,cby,0],[cx+8,cby,-9],4),'process_pipe',true,'C-101塔底重油回流汇集管'));
+  // 回流总管 — 从蒸馏塔底部沿z=-9走回换热器壳程入口
+  ch.push(buildChannel(hPath([cx+8,cby,-9],[-30,cby,-9],20),'process_pipe',true,'C-101→换热器回流总管'));
+  // 回流管接入换热器壳程入口侧
+  ch.push(buildChannel(elbowPath([-30,cby,-9],[-30,exY+2.5,-12]),'process_pipe',true,'回流管→E-101壳程入口'));
 
   assignSnakes(ch);
   cachedChannels = ch;
