@@ -6,29 +6,43 @@ import { QuickCommands } from './QuickCommands';
 import { ScrollArea } from '../ui/scroll-area';
 import { Badge } from '../ui/badge';
 import { Bot, ChevronRight } from 'lucide-react';
-import type { ChatMessage as ChatMessageType, SceneAction } from '../../types';
+import type { AIMarker, ChatMessage as ChatMessageType, SceneAction } from '../../types';
 import type { CoreMessage } from '../../types/api';
 import { streamChat } from '../../api/aiApi';
-import { loadSettings } from '../layout/SettingsDialog';
+import { loadSettings } from '../../lib/llmSettings';
+import { createFindingFromAIMarker } from '../../domain/findingFactory';
+import { fetchFractures } from '../../api/fractureApi';
+import { createAIActionAuditEntry } from '../../domain/aiActionPolicy';
+import { t, tf } from '../../domain/i18nCatalog';
 
 export function ChatPanel() {
   const messages = useSceneStore((s) => s.messages);
   const collapsed = useSceneStore((s) => s.chatCollapsed);
   const toggleCollapsed = useSceneStore((s) => s.toggleChatCollapsed);
   const scenario = useSceneStore((s) => s.scenario);
+  const locale = useSceneStore((s) => s.locale);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [streamingText, setStreamingText] = useState<string | null>(null);
 
   // 动态AI助手名称 — 随场景切换
   const aiTitle = useMemo(() => {
+    if (locale === 'en-US') {
+      if (scenario === 'pipeline') return 'Pipeline Inspection AI';
+      if (scenario === 'nuclear') return 'Reactor Maintenance AI';
+      if (scenario === 'refinery') return 'Refinery Internal Inspection AI';
+      if (scenario === 'gold') return 'Gold Mine Safety AI';
+      if (scenario === 'oil') return 'Reservoir Analysis AI';
+      if (scenario === 'underground') return 'Underground Flow Detection AI';
+      return 'Geological Fracture Analysis AI';
+    }
     if (scenario === 'pipeline') return '管线巡检AI助手';
     if (scenario === 'nuclear') return '核反应堆检修AI助手';
     if (scenario === 'refinery') return '炼油化工内检AI助手';
-    if (scenario === 'gold') return '金矿裂缝分析AI助手';
-    if (scenario === 'oil') return '油气裂缝分析AI助手';
+    if (scenario === 'gold') return '金矿安全AI助手';
+    if (scenario === 'oil') return '油气储层AI助手';
     if (scenario === 'underground') return '地下暗流探测AI助手';
     return '地质裂缝分析AI助手';
-  }, [scenario]);
+  }, [locale, scenario]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -91,10 +105,11 @@ export function ChatPanel() {
     } catch (err) {
       // C2: 错误恢复 — 显示错误消息并允许重试
       setStreamingText(null);
+      const reason = (err as Error)?.message || (locale === 'zh-CN' ? '网络错误或 API Key 无效' : 'Network error or invalid API key');
       const errMsg: ChatMessageType = {
         id: `msg-${Date.now()}-err`,
         role: 'assistant',
-        content: `## 请求失败\n\nAI 助手暂时不可用：\n\n> ${(err as Error)?.message || '网络错误或 API Key 无效'}\n\n请检查设置中的 API Key 配置，或稍后重试。`,
+        content: `## ${t('chat.requestFailedTitle', locale)}\n\n${tf('chat.requestFailedBody', locale, { reason })}`,
         timestamp: Date.now(),
       };
       useSceneStore.setState((state) => ({ messages: [...state.messages, errMsg] }));
@@ -103,33 +118,33 @@ export function ChatPanel() {
 
   if (collapsed) {
     return (
-      <div className="h-full bg-[#121218]/90 flex items-center justify-center">
+      <div className="h-full bg-white flex items-center justify-center">
         <button
           onClick={toggleCollapsed}
-          className="flex items-center gap-2 text-xs text-[#A0A0B0] hover:text-[#FFE600] transition-colors"
+          className="flex items-center gap-2 text-xs text-[#667085] hover:text-[#182230] transition-colors"
         >
           <Bot className="w-4 h-4" />
-          <span>展开AI对话</span>
+          <span>{t('chat.expand', locale)}</span>
         </button>
       </div>
     );
   }
 
   return (
-    <div className="h-full bg-[#121218]/90 backdrop-blur-md flex flex-col overflow-hidden">
-      <div className="px-3 py-1.5 border-b border-white/5 flex items-center gap-2">
-        <div className="w-5 h-5 rounded-full bg-[#FFE600]/15 border border-[#FFE600]/20 flex items-center justify-center">
-          <Bot className="w-3 h-3 text-[#FFE600]" />
+    <div className="h-full bg-white flex flex-col overflow-hidden">
+      <div className="px-3 py-2 border-b border-[#D9E1EA] flex items-center gap-2">
+        <div className="w-6 h-6 rounded-full bg-[#1F2937] border border-[#1F2937] flex items-center justify-center">
+          <Bot className="w-3 h-3 text-white" />
         </div>
         <div className="flex-1">
-          <div className="text-xs font-semibold text-[#E0E0E8]">{aiTitle}</div>
-          <div className="flex items-center gap-1 text-[9px] text-[#A0A0B0]">
-            <span className="w-1 h-1.5 rounded-full bg-[#FFE600] animate-pulse" />
-            {loadSettings().apiKey ? 'DeepSeek Live' : 'Mock 模式 · 请在设置中配置API Key'}
+          <div className="text-xs font-semibold text-[#182230]">{aiTitle}</div>
+          <div className="flex items-center gap-1 text-[9px] text-[#667085]">
+            <span className="w-1 h-1.5 rounded-full bg-[#087443] animate-pulse" />
+            {loadSettings().apiKey ? 'DeepSeek Live' : t('chat.mockHint', locale)}
           </div>
         </div>
         <Badge variant="neutral">{loadSettings().apiKey ? 'LIVE' : 'MOCK'}</Badge>
-        <button onClick={toggleCollapsed} className="text-[#A0A0B0] hover:text-[#FFE600] transition-colors">
+        <button onClick={toggleCollapsed} className="text-[#667085] hover:text-[#182230] transition-colors">
           <ChevronRight className="w-3.5 h-3.5 rotate-90" />
         </button>
       </div>
@@ -142,13 +157,13 @@ export function ChatPanel() {
           {streamingText !== null && (
             <div className="flex justify-start">
               <div className="flex gap-2 max-w-[90%]">
-                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-[#2A2D3A] border border-[#FFE600]/20 flex items-center justify-center mt-0.5">
-                  <Bot className="w-3 h-3 text-[#FFE600]" />
+                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-[#1F2937] border border-[#1F2937] flex items-center justify-center mt-0.5">
+                  <Bot className="w-3 h-3 text-white" />
                 </div>
-                <div className="bg-[#1A1D2A]/60 border border-white/5 rounded-lg rounded-tl-none px-3 py-2">
-                  <div className="text-xs text-[#E0E0E8] [&>p]:my-1 [&>h2]:text-sm [&>h2]:text-[#FFE600] [&>h2]:font-semibold [&>ul]:my-1 [&>ul]:ml-3 [&>li]:my-0.5 [&>blockquote]:border-l-2 [&>blockquote]:border-[#FFE600]/40 [&>blockquote]:pl-2 [&_code]:text-[#FFE600] [&_code]:bg-[#2A2D3A] [&_code]:px-1 [&_code]:rounded">
+                <div className="bg-[#F8FAFC] border border-[#D9E1EA] rounded-lg rounded-tl-none px-3 py-2">
+                  <div className="text-xs text-[#182230] [&>p]:my-1 [&>h2]:text-sm [&>h2]:text-[#9A6700] [&>h2]:font-semibold [&>ul]:my-1 [&>ul]:ml-3 [&>li]:my-0.5 [&>blockquote]:border-l-2 [&>blockquote]:border-[#C99A2E]/40 [&>blockquote]:pl-2 [&_code]:text-[#9A6700] [&_code]:bg-[#FFFAF0] [&_code]:px-1 [&_code]:rounded">
                     <StreamingMarkdown content={streamingText} />
-                    <span className="inline-block w-2 h-3 bg-[#FFE600] animate-pulse ml-0.5" />
+                    <span className="inline-block w-2 h-3 bg-[#1F2937] animate-pulse ml-0.5" />
                   </div>
                 </div>
               </div>
@@ -200,6 +215,38 @@ function snapToFracture(pos: [number, number, number]): [number, number, number]
 
 function executeActions(action: SceneAction) {
   const store = useSceneStore.getState();
+  const audit = createAIActionAuditEntry(action, `AI 执行 ${action.type}`, Date.now(), {
+    gasThreshold: store.gasThreshold,
+  });
+  store.addAIActionAudit(audit);
+  if (!audit.result.allowed) {
+    store.addFinding({
+      id: `finding-ai-blocked-${audit.id}`,
+      sourceType: 'manual',
+      sourceId: audit.id,
+      title: 'AI 动作被安全策略拦截',
+      description: audit.result.reason,
+      level: 'warning',
+      status: 'new',
+      position: [0, 0, 0],
+      truthBoundary: 'human_verified',
+      confidence: 1,
+      createdAt: audit.createdAt,
+      updatedAt: audit.createdAt,
+      evidence: [
+        {
+          id: `evidence-${audit.id}`,
+          type: 'operator_note',
+          label: 'AI Action Policy',
+          value: audit.result.reason,
+          truthBoundary: 'human_verified',
+          timestamp: audit.createdAt,
+          confidence: 1,
+        },
+      ],
+    });
+    return;
+  }
 
   switch (action.type) {
     case 'flyTo': {
@@ -223,17 +270,21 @@ function executeActions(action: SceneAction) {
 
     case 'markPoints': {
       if (action.points && action.points.length > 0) {
-        const markers = action.points.map((p: any, i: number) => ({
+        const createdAt = Date.now();
+        const markers: AIMarker[] = action.points.map((p, i) => ({
           id: `ai-marker-${Date.now()}-${i}`,
           // 吸附到最近裂缝点 — 确保标记在裂缝表面上
           position: snapToFracture(p.position),
           label: p.label,
           level: p.level || 'info',
-          createdAt: Date.now(),
+          createdAt,
           detail: p.detail,
           source: p.source,
         }));
         store.addAIMarkers(markers);
+        markers.forEach((marker) => {
+          store.addFinding(createFindingFromAIMarker(marker, createdAt));
+        });
       }
       break;
     }
@@ -293,10 +344,8 @@ function executeActions(action: SceneAction) {
       if (action.scenario) {
         store.setScenario(action.scenario);
         // 通过 API 层获取裂缝数据
-        import('../../api/fractureApi').then(({ fetchFractures }) => {
-          fetchFractures(action.scenario!).then((newFractures) => {
-            useSceneStore.getState().setFractures(newFractures);
-          });
+        fetchFractures(action.scenario).then((newFractures) => {
+          useSceneStore.getState().setFractures(newFractures);
         });
       }
       break;

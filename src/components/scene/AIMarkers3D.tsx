@@ -78,7 +78,7 @@ function AIMarkerPin({ marker }: { marker: AIMarker }) {
   useFrame(({ clock }) => {
     const t = clock.getElapsedTime();
     // 水波纹呼吸动效 — 三个同心圆错位扩散
-    const updateRipple = (ref: typeof ripple1Ref, phase: number, matRef?: THREE.Material) => {
+    const updateRipple = (ref: typeof ripple1Ref, phase: number) => {
       if (!ref.current) return;
       const cycle = (t + phase) % 3 / 3; // 3 秒周期
       const scale = 1 + cycle * 4;

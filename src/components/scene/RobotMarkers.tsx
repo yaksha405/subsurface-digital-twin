@@ -28,7 +28,7 @@ function getMarkerScale(dataSource: string): number {
  * - 整体上下浮动（水中漂浮）
  * - 软发光，非金属质感
  */
-function FloatWalkerMarker({ robot, isFocused, onClick, markerScale }: { robot: Robot; isFocused: boolean; onClick: () => void; markerScale: number }) {
+function FloatWalkerMarker({ robot, isFocused, markerScale }: { robot: Robot; isFocused: boolean; markerScale: number }) {
   const [hovered, setHovered] = useState(false);
   const groupRef = useRef<THREE.Group>(null);
   const domeRef = useRef<THREE.Mesh>(null);
@@ -110,7 +110,7 @@ function FloatWalkerMarker({ robot, isFocused, onClick, markerScale }: { robot: 
       {/* 半透明伞盖 — 章鱼/水母式头部 */}
       <mesh
         ref={domeRef}
-        onClick={(e) => { e.stopPropagation(); onClick(); }}
+        userData={{ selectableKind: 'robot', robotId: robot.id }}
         onPointerOver={(e) => { e.stopPropagation(); setHovered(true); document.body.style.cursor = 'pointer'; }}
         onPointerOut={() => { setHovered(false); document.body.style.cursor = 'auto'; }}
       >
@@ -128,6 +128,20 @@ function FloatWalkerMarker({ robot, isFocused, onClick, markerScale }: { robot: 
           ior={1.33}
           side={THREE.DoubleSide}
         />
+      </mesh>
+
+      <mesh
+        userData={{ selectableKind: 'robot', robotId: robot.id }}
+        onPointerOver={(e) => { e.stopPropagation(); setHovered(true); document.body.style.cursor = 'pointer'; }}
+        onPointerOut={() => { setHovered(false); document.body.style.cursor = 'auto'; }}
+      >
+        <sphereGeometry args={[Math.max(0.28, baseSize * 2.1), 12, 12]} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+      </mesh>
+
+      <mesh userData={{ selectableKind: 'robot', robotId: robot.id }}>
+        <sphereGeometry args={[Math.max(0.85, baseSize * 2.7), 12, 12]} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
 
       {/* 中心核心光点 */}
@@ -180,12 +194,7 @@ function FloatWalkerMarker({ robot, isFocused, onClick, markerScale }: { robot: 
   );
 }
 
-function RobotMarker({ robot, isFocused, onClick, markerScale }: { robot: Robot; isFocused: boolean; onClick: () => void; markerScale: number }) {
-  // 浮走式机器人使用专门的渲染
-  if (robot.model === 'floatwalker') {
-    return <FloatWalkerMarker robot={robot} isFocused={isFocused} onClick={onClick} markerScale={markerScale} />;
-  }
-
+function StandardRobotMarker({ robot, isFocused, markerScale }: { robot: Robot; isFocused: boolean; markerScale: number }) {
   const [hovered, setHovered] = useState(false);
   const color = STATUS_COLORS[robot.status];
   const ringRef = useRef<THREE.Mesh>(null);
@@ -220,12 +229,26 @@ function RobotMarker({ robot, isFocused, onClick, markerScale }: { robot: Robot;
 
       {/* 小光点 */}
       <mesh
-        onClick={(e) => { e.stopPropagation(); onClick(); }}
+        userData={{ selectableKind: 'robot', robotId: robot.id }}
         onPointerOver={(e) => { e.stopPropagation(); setHovered(true); document.body.style.cursor = 'pointer'; }}
         onPointerOut={() => { setHovered(false); document.body.style.cursor = 'auto'; }}
       >
         <sphereGeometry args={[Math.max(0.08, baseSize), 12, 12]} />
         <meshBasicMaterial color={color} transparent opacity={robot.status === 'offline' ? 0.25 : 0.9} />
+      </mesh>
+
+      <mesh
+        userData={{ selectableKind: 'robot', robotId: robot.id }}
+        onPointerOver={(e) => { e.stopPropagation(); setHovered(true); document.body.style.cursor = 'pointer'; }}
+        onPointerOut={() => { setHovered(false); document.body.style.cursor = 'auto'; }}
+      >
+        <sphereGeometry args={[Math.max(0.22, baseSize * 2.2), 10, 10]} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+      </mesh>
+
+      <mesh userData={{ selectableKind: 'robot', robotId: robot.id }}>
+        <sphereGeometry args={[Math.max(0.8, baseSize * 2.9), 12, 12]} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
 
       {(hovered || isFocused) && (
@@ -248,11 +271,18 @@ function RobotMarker({ robot, isFocused, onClick, markerScale }: { robot: Robot;
   );
 }
 
+function RobotMarker({ robot, isFocused, markerScale }: { robot: Robot; isFocused: boolean; markerScale: number }) {
+  if (robot.model === 'floatwalker') {
+    return <FloatWalkerMarker robot={robot} isFocused={isFocused} markerScale={markerScale} />;
+  }
+
+  return <StandardRobotMarker robot={robot} isFocused={isFocused} markerScale={markerScale} />;
+}
+
 export function RobotMarkers() {
   const dataSource = useSceneStore((s) => s.dataSource);
-  const { data: allRobots, loading } = useAllRobots(dataSource);
-  const flyTo = useSceneStore((s) => s.flyTo);
-  const openRobotDetail = useSceneStore((s) => s.openRobotDetail);
+  const scenario = useSceneStore((s) => s.scenario);
+  const { data: allRobots, loading } = useAllRobots(dataSource, scenario);
   const focusedRobotId = useSceneStore((s) => s.focusedRobotId);
   const playbackProgress = useSceneStore((s) => s.playbackProgress);
   const playbackActive = useSceneStore((s) => s.playbackActive);
@@ -270,11 +300,6 @@ export function RobotMarkers() {
   const markerScale = getMarkerScale(dataSource);
   const effectiveRobots = playbackRobots ?? allRobots;
 
-  const handleRobotClick = (robot: Robot) => {
-    flyTo({ position: robot.position, region: `robot-${robot.id}`, zoom: 'close' });
-    openRobotDetail(robot);
-  };
-
   return (
     <group>
       {effectiveRobots.map((robot) => (
@@ -282,7 +307,6 @@ export function RobotMarkers() {
           key={robot.id}
           robot={robot}
           isFocused={focusedRobotId === robot.id}
-          onClick={() => handleRobotClick(robot)}
           markerScale={markerScale}
         />
       ))}

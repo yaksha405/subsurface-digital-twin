@@ -8,12 +8,14 @@
  * 通用规则（防幻觉/言出法随/回答规范）集中维护，场景只维护特有部分
  */
 
-import type { CoreMessage, QuickCommand, AIResponse } from '../types/api';
-import { loadSettings } from '../components/layout/SettingsDialog';
+import type { CoreMessage, AIResponse } from '../types/api';
+import { loadSettings } from '../lib/llmSettings';
 import { generateMockAIResponse, quickCommands, getQuickCommands } from '../lib/mockAI';
 import { SCENE_TOOLS, parseToolCall, buildSceneContext } from './llmTools';
 import type { Fracture, ScenarioType, SceneAction } from '../types';
 import { useSceneStore } from '../store/useSceneStore';
+import { createFindingFromAIMarker } from '../domain/findingFactory';
+import type { AIMarker } from '../types';
 
 export { quickCommands as fetchQuickCommands, getQuickCommands };
 
@@ -59,6 +61,23 @@ interface ScenePromptConfig {
   toolExamples: string;   // 场景特有的工具调用示例
   extraRules?: string;    // 场景特有的回答规则（标准号等）
   knowledge: string;      // 行业领域知识
+}
+
+interface StreamToolCall {
+  id?: string;
+  index?: number;
+  function?: {
+    name?: string;
+    arguments?: string;
+  };
+}
+
+interface CollectedToolCall {
+  id?: string;
+  function: {
+    name: string;
+    arguments: string;
+  };
 }
 
 const SCENE_PROMPTS: Record<ScenarioType, ScenePromptConfig> = {
@@ -353,7 +372,7 @@ export async function streamChat(
     const decoder = new TextDecoder();
     let buffer = '';
     let fullMessage = '';
-    const toolCalls: any[] = [];
+    const toolCalls: CollectedToolCall[] = [];
 
     while (true) {
       const { done, value } = await reader.read();
@@ -377,7 +396,7 @@ export async function streamChat(
           }
           // 收集 tool_calls（流式分片）
           if (delta?.tool_calls) {
-            for (const tc of delta.tool_calls) {
+            for (const tc of delta.tool_calls as StreamToolCall[]) {
               const idx = tc.index || 0;
               if (!toolCalls[idx]) {
                 toolCalls[idx] = { id: tc.id, function: { name: '', arguments: '' } };
@@ -417,10 +436,10 @@ export async function streamChat(
     }
 
     return { message: fullMessage || '(执行场景操作)', actions: actions.length > 0 ? actions : undefined };
-  } catch (err: any) {
-    if (err.name === 'AbortError') throw err;
+  } catch (err: unknown) {
+    if (err instanceof DOMException && err.name === 'AbortError') throw err;
     // API 失败 → 降级到 mock
-    console.warn('[AI] LLM API failed, falling back to mock:', err.message);
+    console.warn('[AI] LLM API failed, falling back to mock:', err instanceof Error ? err.message : String(err));
     return mockStreamChat(messages, onToken, signal, sceneContext);
   }
 }
@@ -475,24 +494,29 @@ function snapToFracture(pos: [number, number, number]): [number, number, number]
 }
 
 /** Mock 模式下直接执行场景动作 */
-function executeMockAction(action: any) {
+function executeMockAction(action: SceneAction) {
   const store = useSceneStore.getState();
   switch (action.type) {
     case 'flyTo':
-      store.flyTo({ position: snapToFracture(action.position), region: action.region, zoom: 'close' });
+      if (action.position) {
+        store.flyTo({ position: snapToFracture(action.position), region: action.region, zoom: 'close' });
+      }
       // 不再创建高亮球体
       break;
     case 'markPoints':
       if (action.points?.length) {
-        store.addAIMarkers(action.points.map((p: any, i: number) => ({
+        const createdAt = Date.now();
+        const markers: AIMarker[] = action.points.map((p, i) => ({
           id: `ai-marker-${Date.now()}-${i}`,
           position: snapToFracture(p.position),
           label: p.label,
           level: p.level || 'info',
-          createdAt: Date.now(),
+          createdAt,
           detail: p.detail,
           source: p.source,
-        })));
+        }));
+        store.addAIMarkers(markers);
+        markers.forEach((marker) => store.addFinding(createFindingFromAIMarker(marker, createdAt)));
       }
       break;
     case 'clearMarkers':
@@ -507,7 +531,9 @@ function executeMockAction(action: any) {
       }
       break;
     case 'activateTool':
-      store.setActiveTool(action.tool);
+      if (action.tool) {
+        store.setActiveTool(action.tool);
+      }
       break;
     case 'selectFracture':
       if (action.fractureId) {

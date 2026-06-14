@@ -12,27 +12,16 @@
 import type { Fracture, ScenarioType } from '../types';
 import { isMockMode } from './config';
 import { httpClient } from './httpClient';
+import { normalizeFractureRecord } from './normalizers';
 
 // Mock 实现：延迟导入，仅 mock 模式加载
 async function getMockFractures(scenario: ScenarioType): Promise<Fracture[]> {
-  if (scenario === 'pipeline') {
-    const { generatePipelineNetwork } = await import('../data/pipelineDataGenerator');
-    return generatePipelineNetwork();
-  }
-  if (scenario === 'nuclear') {
-    const { generateNuclearNetwork } = await import('../data/nuclearDataGenerator');
-    return generateNuclearNetwork();
-  }
-  if (scenario === 'refinery') {
-    const { generateRefineryNetwork } = await import('../data/refineryDataGenerator');
-    return generateRefineryNetwork();
-  }
-  if (scenario === 'underground') {
-    const { generateUndergroundNetwork } = await import('../data/undergroundDataGenerator');
-    return generateUndergroundNetwork();
-  }
-  const { generateFractureNetwork } = await import('../data/fractureDataGenerator');
-  return generateFractureNetwork(scenario);
+  const { buildSceneDataset } = await import('../domain/sceneDataset');
+  const dataSource =
+    scenario === 'pipeline' || scenario === 'nuclear' || scenario === 'refinery' || scenario === 'underground'
+      ? scenario
+      : 'fracture';
+  return buildSceneDataset(dataSource, scenario).fractures;
 }
 
 /**
@@ -46,7 +35,8 @@ export async function fetchFractures(
   if (isMockMode) {
     return getMockFractures(scenario);
   }
-  return httpClient.get<Fracture[]>(`/fractures?scenario=${scenario}`, { signal });
+  const raw = await httpClient.get<Record<string, unknown>[]>(`/fractures?scenario=${scenario}`, { signal });
+  return raw.map(normalizeFractureRecord);
 }
 
 /**
@@ -61,5 +51,6 @@ export async function fetchFractureById(
     const fractures = await getMockFractures('coal');
     return fractures.find((f) => f.id === id);
   }
-  return httpClient.get<Fracture>(`/fractures/${id}`, { signal });
+  const raw = await httpClient.get<Record<string, unknown>>(`/fractures/${id}`, { signal });
+  return normalizeFractureRecord(raw);
 }

@@ -158,11 +158,12 @@ async def get_robot_stats():
     robots = generate_robots()
     return {
         "total": len(robots),
-        "active": sum(1 for r in robots if r["status"] == "active"),
-        "idle": sum(1 for r in robots if r["status"] == "idle"),
-        "charging": sum(1 for r in robots if r["status"] == "charging"),
-        "warning": sum(1 for r in robots if r["status"] == "warning"),
+        "online": sum(1 for r in robots if r["status"] == "online"),
+        "offline": sum(1 for r in robots if r["status"] == "offline"),
+        "lowBattery": sum(1 for r in robots if r["status"] == "low_battery"),
         "error": sum(1 for r in robots if r["status"] == "error"),
+        "maintenance": sum(1 for r in robots if r["status"] == "maintenance"),
+        "meshConnected": sum(1 for r in robots if r["meshConnected"]),
         "avgBattery": round(sum(r["battery"] for r in robots) / len(robots), 1),
     }
 

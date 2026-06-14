@@ -149,6 +149,8 @@ def generate_fractures(scenario: str = "coal") -> list:
                 "id": f"{fid}-N{k+1:03d}",
                 "position": pos,
                 "sensors": _sensor_reading(scenario),
+                "timestamp": int(time.time() * 1000) - random.randint(0, 300000),
+                "robotId": None,
             })
 
         fractures.append({
@@ -164,7 +166,7 @@ def generate_fractures(scenario: str = "coal") -> list:
             "dip_angle": round(_rand(10, 80), 1),
             "azimuth_angle": round(_rand(0, 360), 1),
             "roughness_coeff": round(_rand(0.05, 0.5), 3),
-            "connectivity": random.choice(["high", "medium", "low"]),
+            "connectivity": random.randint(3, 8),
             "sensorReading": _sensor_reading(scenario),
             "nodes": nodes,
             "parentFractureId": None,
@@ -189,6 +191,8 @@ def generate_fractures(scenario: str = "coal") -> list:
                         "id": f"{bfid}-N{k+1:03d}",
                         "position": pos,
                         "sensors": _sensor_reading(scenario),
+                        "timestamp": int(time.time() * 1000) - random.randint(0, 300000),
+                        "robotId": None,
                     })
 
                 blen = sum(
@@ -213,7 +217,7 @@ def generate_fractures(scenario: str = "coal") -> list:
                     "dip_angle": round(_rand(5, 60), 1),
                     "azimuth_angle": round(_rand(0, 360), 1),
                     "roughness_coeff": round(_rand(0.03, 0.4), 3),
-                    "connectivity": random.choice(["medium", "low"]),
+                    "connectivity": random.randint(1, 5),
                     "sensorReading": _sensor_reading(scenario),
                     "nodes": branch_nodes,
                     "parentFractureId": fid,
@@ -289,31 +293,38 @@ def generate_robots(count: int = 200) -> list:
     """生成机器人集群数据"""
     random.seed(99)
     robots = []
-    models = ["snake-v1", "snake-v2", "crawler-v1", "hover-v1"]
-    statuses = ["active", "idle", "charging", "warning", "error"]
-    mesh_roles = ["leader", "relay", "leaf"]
-    status_weights = [0.45, 0.25, 0.15, 0.1, 0.05]
+    models = ["snake", "tracked", "wheeled", "climbing", "aerial", "spider"]
+    statuses = ["online", "offline", "low_battery", "error", "maintenance"]
+    mesh_roles = ["gateway", "relay", "edge", "leaf"]
+    status_weights = [0.68, 0.08, 0.12, 0.05, 0.07]
+    tasks = ["裂缝巡检", "气体采样", "Mesh 中继", "点云扫描", "回充待命", "异常复核"]
 
     for i in range(count):
-        rid = f"RB-{i+1:03d}"
+        rid = f"R-{i+1:03d}"
+        status = random.choices(statuses, weights=status_weights)[0]
+        battery = random.randint(8, 100)
+        if battery < 20 and status == "online":
+            status = "low_battery"
+        mesh_connected = random.random() > 0.08 and status != "offline"
         robots.append({
             "id": rid,
-            "model": random.choices(models, weights=[0.4, 0.25, 0.2, 0.15])[0],
-            "status": random.choices(statuses, weights=status_weights)[0],
-            "meshRole": random.choices(mesh_roles, weights=[0.1, 0.3, 0.6])[0],
+            "model": random.choices(models, weights=[0.32, 0.2, 0.12, 0.12, 0.08, 0.16])[0],
+            "status": status,
+            "meshRole": random.choices(mesh_roles, weights=[0.08, 0.28, 0.34, 0.3])[0],
+            "meshConnected": mesh_connected,
             "position": [
                 round(random.uniform(-90, 90), 2),
                 round(random.uniform(-20, 18), 2),
                 round(random.uniform(-40, 40), 2),
             ],
-            "battery": random.randint(15, 100),
-            "signal": random.randint(30, 100),
+            "battery": battery,
+            "signalStrength": random.randint(-92, -45),
+            "task": random.choice(tasks),
             "depth": round(random.uniform(5, 40), 1),
-            "temperature": round(random.uniform(15, 45), 1),
             "sensors": {
-                "ch4_pct": round(random.uniform(0, 4), 2),
-                "co_ppm": round(random.uniform(0, 60), 1),
-                "h2s_ppm": round(random.uniform(0, 10), 1),
+                "ch4": round(random.uniform(0, 4), 2),
+                "temperature": round(random.uniform(15, 45), 1),
+                "humidity": round(random.uniform(45, 96), 1),
             },
             "lastUpdate": int(time.time() * 1000) - random.randint(0, 30000),
         })
@@ -372,7 +383,7 @@ def generate_alerts() -> list:
     robots = generate_robots()
     random.seed(123)
     alerts = []
-    levels = ["critical", "warning", "info"]
+    levels = ["danger", "warning", "info"]
     level_weights = [0.15, 0.45, 0.4]
     sources = ["gas", "seismic", "structural", "thermal", "displacement"]
     descs = {
@@ -391,13 +402,14 @@ def generate_alerts() -> list:
             "id": f"ALT-{i+1:04d}",
             "robotId": robot["id"],
             "level": level,
-            "source": source,
+            "type": "gas_overload" if source == "gas" else "temp_anomaly" if source == "thermal" else "system",
             "title": descs[source],
             "description": f"{robot['id']} 在 [{robot['position'][0]:.1f}, {robot['position'][1]:.1f}] 报告{descs[source]}",
             "value": round(random.uniform(0.5, 5.0), 2),
             "threshold": round(random.uniform(1.0, 3.0), 2),
             "position": robot["position"],
             "timestamp": int(time.time() * 1000) - random.randint(0, 3600000),
+            "acknowledged": False,
         })
 
     alerts.sort(key=lambda a: a["timestamp"], reverse=True)
@@ -408,9 +420,9 @@ def get_scene_stats(scenario: str = "coal") -> dict:
     """场景统计"""
     fractures = generate_fractures(scenario)
     robots = generate_robots()
-    active_robots = sum(1 for r in robots if r["status"] == "active")
+    active_robots = sum(1 for r in robots if r["status"] == "online")
     alerts = generate_alerts()
-    critical = sum(1 for a in alerts if a["level"] == "critical")
+    critical = sum(1 for a in alerts if a["level"] == "danger")
 
     return {
         "fractureCount": len(fractures),

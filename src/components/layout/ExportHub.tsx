@@ -1,20 +1,121 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useSceneStore } from '../../store/useSceneStore';
-import { exportPDF } from '../../lib/pdfExport';
-import { exportLAS, getLASStats } from '../../lib/exportLAS';
-import { exportOBJ, getOBJStats } from '../../lib/exportOBJ';
-import { exportCSV, getCSVStats } from '../../lib/exportCSV';
 import { useAllRobots, useRobotStats } from '../../hooks/useRobots';
 import { useAlerts } from '../../hooks/useAlerts';
 import { useSceneStats } from '../../hooks/useSceneStats';
 import { usePOIs } from '../../hooks/usePOIs';
+import { buildExportPreflight, type ExportFormat as PreflightFormat } from '../../domain/exportPreflight';
+import { createExportHistoryEntry } from '../../domain/exportHistory';
+import { getSceneSemantics } from '../../lib/sceneSemantics';
+import { t, type Locale } from '../../domain/i18nCatalog';
 
 type ExportFormat = 'pdf' | 'las' | 'obj' | 'csv' | null;
+
+function exportCopy(locale: Locale, semantics: ReturnType<typeof getSceneSemantics>) {
+  if (locale === 'zh-CN') {
+    return {
+      pdf: {
+        title: '管理层汇报材料',
+        subtitle: 'PDF 安全评估报告',
+        badge: '已就绪',
+        description: `附带 3D 场景截图、AI 分析结论、告警列表、机器人状态、${semantics.networkLabel}分析与完整性哈希。适合${semantics.export.reportAudience}阅览。`,
+        stats: [
+          { label: '内容', value: '9 章节' },
+          { label: '格式', value: 'A4 PDF' },
+          { label: '合规', value: 'SHA-256' },
+        ],
+      },
+      las: {
+        title: '测绘后处理点云',
+        subtitle: 'LAS 1.4 / .las 文件',
+        badge: 'ASPRS 标准',
+        description: '全量激光雷达点云，含 XYZ 坐标、反射强度、RGB 着色。可直接拖入 Trimble Business Center、AutoCAD Civil 3D、CloudCompare、ArcGIS Pro 进行测绘级后处理。',
+        stats: [
+          { label: '点数', value: '' },
+          { label: '大小', value: '' },
+          { label: '分类', value: 'ASPRS' },
+        ],
+      },
+      obj: {
+        title: '3D 实体空间网格',
+        subtitle: 'OBJ + MTL 模型文件',
+        badge: 'Wavefront',
+        description: `${semantics.export.objectDescription}可导入 Blender、3ds Max、AutoCAD 或工程仿真工具进行后处理。`,
+        stats: [
+          { label: '网格', value: '' },
+          { label: '顶点', value: '' },
+          { label: '大小', value: '' },
+        ],
+      },
+      csv: {
+        title: '原始传感器矩阵',
+        subtitle: 'CSV 数据表',
+        badge: 'RFC 4180',
+        description: `${semantics.export.sensorMatrixDescription} UTF-8 BOM 编码，Excel 可直接打开，可导入 SCADA、GIS 或工程数据平台。`,
+        stats: [
+          { label: '传感器', value: '' },
+          { label: '机器人', value: '' },
+          { label: '告警', value: '' },
+        ],
+      },
+      footer: '所有导出文件均包含数据完整性校验 · 导出数据仅供工程参考',
+    };
+  }
+
+  return {
+    pdf: {
+      title: 'Executive Briefing Pack',
+      subtitle: 'PDF Safety Assessment',
+      badge: 'Ready',
+      description: `Includes 3D screenshots, AI findings, alert lists, robot status, ${semantics.networkLabel.toLowerCase()} analysis, and integrity hashes. Intended for ${semantics.export.reportAudience}.`,
+      stats: [
+        { label: 'Sections', value: '9' },
+        { label: 'Format', value: 'A4 PDF' },
+        { label: 'Integrity', value: 'SHA-256' },
+      ],
+    },
+    las: {
+      title: 'Survey Point Cloud',
+      subtitle: 'LAS 1.4 / .las',
+      badge: 'ASPRS',
+      description: 'Full lidar point cloud with XYZ coordinates, intensity, and RGB coloring. Ready for Trimble Business Center, AutoCAD Civil 3D, CloudCompare, or ArcGIS Pro workflows.',
+      stats: [
+        { label: 'Points', value: '' },
+        { label: 'Size', value: '' },
+        { label: 'Class', value: 'ASPRS' },
+      ],
+    },
+    obj: {
+      title: '3D Spatial Mesh',
+      subtitle: 'OBJ + MTL',
+      badge: 'Wavefront',
+      description: `${semantics.export.objectDescription} Ready for Blender, 3ds Max, AutoCAD, or downstream engineering simulation tools.`,
+      stats: [
+        { label: 'Meshes', value: '' },
+        { label: 'Vertices', value: '' },
+        { label: 'Size', value: '' },
+      ],
+    },
+    csv: {
+      title: 'Raw Sensor Matrix',
+      subtitle: 'CSV Dataset',
+      badge: 'RFC 4180',
+      description: `${semantics.export.sensorMatrixDescription} UTF-8 BOM encoded, ready for Excel, SCADA, GIS, and engineering data platforms.`,
+      stats: [
+        { label: 'Sensors', value: '' },
+        { label: 'Robots', value: '' },
+        { label: 'Alerts', value: '' },
+      ],
+    },
+    footer: 'All exports include integrity verification. Exported data is for engineering reference only.',
+  };
+}
 
 export function ExportHub({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [activeFormat, setActiveFormat] = useState<ExportFormat>(null);
   const [progress, setProgress] = useState('');
   const [done, setDone] = useState<string | null>(null);
+  const [includeAIInferred, setIncludeAIInferred] = useState(true);
 
   const captureScreenshot = useSceneStore((s) => s.captureScreenshot);
   const gasThreshold = useSceneStore((s) => s.gasThreshold);
@@ -22,20 +123,56 @@ export function ExportHub({ open, onClose }: { open: boolean; onClose: () => voi
   const layers = useSceneStore((s) => s.layers);
   const scenario = useSceneStore((s) => s.scenario);
   const dataSource = useSceneStore((s) => s.dataSource);
+  const locale = useSceneStore((s) => s.locale);
   const fractures = useSceneStore((s) => s.fractures);
   const annotations = useSceneStore((s) => s.annotations);
+  const findings = useSceneStore((s) => s.findings);
   const messages = useSceneStore((s) => s.messages);
   const cameraInfo = useSceneStore((s) => s.cameraInfo);
+  const exportHistory = useSceneStore((s) => s.exportHistory);
+  const addExportHistory = useSceneStore((s) => s.addExportHistory);
 
-  const { data: robots } = useAllRobots();
-  const { data: robotStats } = useRobotStats();
-  const { data: alerts } = useAlerts(dataSource);
+  const { data: robots } = useAllRobots(dataSource, scenario);
+  const { data: robotStats } = useRobotStats(dataSource, scenario);
+  const { data: alerts } = useAlerts(dataSource, scenario);
   const { data: stats } = useSceneStats();
   const { data: pois } = usePOIs();
+  const semantics = getSceneSemantics(scenario);
+  const copy = exportCopy(locale, semantics);
 
-  const lasStats = useMemo(() => getLASStats(fractures, robots ?? null), [fractures, robots]);
-  const objStats = useMemo(() => getOBJStats(fractures, robots ?? null), [fractures, robots]);
-  const csvStats = useMemo(() => getCSVStats(fractures, robots ?? null, alerts ?? null), [fractures, robots, alerts]);
+  const exportStats = useMemo(() => {
+    const fractureNodeRows = fractures.reduce((sum, fracture) => sum + fracture.nodes.length, 0);
+    const robotRows = robots?.length ?? 0;
+    const alertRows = alerts?.length ?? 0;
+    const pointRows = fractureNodeRows + robotRows + 12_000;
+    const meshCount = fractures.length + (robotRows > 0 ? robotRows : 0) + 1;
+    const estimatedVertices = fractures.reduce((sum, fracture) => sum + Math.max(8, fracture.path.length * 16), 0) + robotRows * 6 + 12_000;
+
+    return {
+      las: {
+        totalPoints: pointRows,
+        estimatedSizeMB: Math.max(1, Number((pointRows * 34 / 1024 / 1024).toFixed(1))),
+      },
+      obj: {
+        meshCount,
+        estimatedVertices,
+        estimatedSizeMB: Math.max(1, Number((estimatedVertices * 48 / 1024 / 1024).toFixed(1))),
+      },
+      csv: {
+        sensorRows: fractureNodeRows,
+        robotRows,
+        alertRows,
+      },
+    };
+  }, [alerts, fractures, robots]);
+
+  const preflight = useMemo(() => buildExportPreflight({
+    format: (activeFormat || 'pdf') as PreflightFormat,
+    pointCount: exportStats.las.totalPoints,
+    findingCount: findings.length,
+    findings,
+    includeAIInferred,
+  }), [activeFormat, exportStats.las.totalPoints, findings, includeAIInferred]);
 
   // M5: ESC 键关闭（导出进行中时禁止关闭）
   useEffect(() => {
@@ -50,42 +187,68 @@ export function ExportHub({ open, onClose }: { open: boolean; onClose: () => voi
   if (!open) return null;
 
   const handleExport = async (format: ExportFormat) => {
+    if (!format) return;
     setActiveFormat(format);
-    setProgress('准备数据中...');
+    setProgress(t('export.preparing', locale));
     setDone(null);
     try {
       switch (format) {
         case 'pdf':
-          setProgress('生成 PDF 安全评估报告...');
+          setProgress(locale === 'zh-CN' ? '生成 PDF 安全评估报告...' : 'Generating PDF safety report...');
+          {
+            const { exportPDF } = await import('../../lib/pdfExport');
           await exportPDF(captureScreenshot, {
             gasThreshold, confidenceFilter, layers, scenario,
-            stats, robots, robotStats, alerts, fractures, pois, annotations, messages, cameraInfo,
+            stats, robots, robotStats, alerts, fractures, pois, annotations, findings, messages, cameraInfo,
           });
+          }
           break;
         case 'las':
-          setProgress(`生成 LAS 1.4 点云文件 (${lasStats.totalPoints.toLocaleString()} 点)...`);
+          setProgress(locale === 'zh-CN'
+            ? `生成 LAS 1.4 点云文件 (${exportStats.las.totalPoints.toLocaleString()} 点)...`
+            : `Generating LAS 1.4 point cloud (${exportStats.las.totalPoints.toLocaleString()} points)...`);
+          {
+            const { exportLAS } = await import('../../lib/exportLAS');
           exportLAS(fractures, robots ?? null, scenario);
+          }
           break;
         case 'obj':
-          setProgress('生成 OBJ 3D 网格模型...');
+          setProgress(locale === 'zh-CN' ? '生成 OBJ 3D 网格模型...' : 'Generating OBJ 3D mesh...');
+          {
+            const { exportOBJ } = await import('../../lib/exportOBJ');
           exportOBJ(fractures, robots ?? null, scenario);
+          }
           break;
         case 'csv':
-          setProgress(`生成 CSV 传感器矩阵 (${csvStats.sensorRows + csvStats.robotRows} 行)...`);
+          setProgress(locale === 'zh-CN'
+            ? `生成 CSV 传感器矩阵 (${exportStats.csv.sensorRows + exportStats.csv.robotRows} 行)...`
+            : `Generating CSV sensor matrix (${exportStats.csv.sensorRows + exportStats.csv.robotRows} rows)...`);
+          {
+            const { exportCSV } = await import('../../lib/exportCSV');
           exportCSV(fractures, robots ?? null, alerts ?? null, scenario);
+          }
           break;
       }
-      const labels: Record<string, string> = {
-        pdf: 'PDF 安全评估报告',
-        las: 'LAS 点云文件',
-        obj: 'OBJ 3D 网格模型',
-        csv: 'CSV 传感器数据表',
-      };
-      setDone(labels[format!] ?? '');
+      const entry = createExportHistoryEntry({
+        format,
+        status: 'success',
+        preflightStatus: preflight.status,
+        findingCount: findings.length,
+        includeAIInferred,
+      });
+      addExportHistory(entry);
+      setDone(entry.label);
     } catch (e) {
-      console.error('Export failed:', e);
+      addExportHistory(createExportHistoryEntry({
+        format,
+        status: 'failed',
+        preflightStatus: preflight.status,
+        findingCount: findings.length,
+        includeAIInferred,
+        errorMessage: (e as Error).message,
+      }));
       setDone(null);
-      setProgress(`导出失败: ${(e as Error).message}`);
+      setProgress(`${t('export.error', locale)}: ${(e as Error).message}`);
     } finally {
       setActiveFormat(null);
     }
@@ -105,29 +268,29 @@ export function ExportHub({ open, onClose }: { open: boolean; onClose: () => voi
 
   return (
     <div
-      className="fixed inset-0 z-[500] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      className="fixed inset-0 z-[500] flex items-center justify-center bg-[#101820]/45 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
-        className="w-[680px] max-h-[85vh] overflow-y-auto glass-panel rounded-xl border border-primary-yellow/20 shadow-2xl"
+        className="w-[680px] max-h-[85vh] overflow-y-auto rounded-xl border border-[#D9E1EA] bg-white shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#D9E1EA]">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-primary-yellow/15 flex items-center justify-center">
-              <svg className="w-5 h-5 text-primary-yellow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <div className="w-9 h-9 rounded-lg bg-[#1F2937] flex items-center justify-center">
+              <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
               </svg>
             </div>
             <div>
-              <div className="text-base font-bold text-text">数据导出 / 交付中心</div>
-              <div className="text-[10px] text-text-muted/60 tracking-wide">EXPORT HUB · 兼容 Trimble / AutoCAD / ArcGIS / Excel</div>
+              <div className="text-base font-bold text-text">{t('export.title', locale)}</div>
+              <div className="text-[10px] text-text-muted/60 tracking-wide">{t('export.subtitle', locale)}</div>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-7 h-7 rounded-md hover:bg-white/10 flex items-center justify-center text-text-muted hover:text-text transition-colors"
+            className="w-7 h-7 rounded-md hover:bg-[#EEF2F6] flex items-center justify-center text-text-muted hover:text-text transition-colors"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M18 6L6 18M6 6l12 12" />
@@ -137,116 +300,171 @@ export function ExportHub({ open, onClose }: { open: boolean; onClose: () => voi
 
         {/* Export Cards */}
         <div className="p-6 space-y-3">
+          <div className="rounded-lg border border-[#D9E1EA] bg-[#F8FAFC] px-4 py-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-xs font-semibold text-text">{t('export.preflight', locale)}</div>
+                <div className="mt-0.5 text-[10px] text-text-muted/70">
+                  {t('export.preflightStatus', locale)}: {preflight.status === 'blocked' ? t('export.statusBlocked', locale) : preflight.status === 'warning' ? t('export.statusWarning', locale) : t('export.statusReady', locale)}
+                </div>
+              </div>
+              <label className="flex items-center gap-2 text-[10px] text-text-muted">
+                <input
+                  type="checkbox"
+                  checked={includeAIInferred}
+                  onChange={(e) => setIncludeAIInferred(e.target.checked)}
+                />
+                {t('export.includeAi', locale)}
+              </label>
+            </div>
+            <div className="mt-2 grid grid-cols-2 gap-1">
+              {preflight.checks.map((check) => (
+                <div key={check.id} className="rounded border border-[#D9E1EA] bg-white px-2 py-1">
+                  <div className={`text-[9px] ${check.level === 'blocked' ? 'text-[#B42318]' : check.level === 'warning' ? 'text-[#9A6700]' : 'text-[#087443]'}`}>
+                    {check.label}
+                  </div>
+                  <div className="mt-0.5 line-clamp-2 text-[9px] leading-tight text-text-muted/70">
+                    {check.message}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {exportHistory.length > 0 && (
+            <div className="rounded-lg border border-[#D9E1EA] bg-[#F8FAFC] px-4 py-3">
+              <div className="flex items-center justify-between">
+                <div className="text-xs font-semibold text-text">{t('export.recent', locale)}</div>
+                <div className="text-[9px] font-mono text-text-muted/60">{exportHistory.length}</div>
+              </div>
+              <div className="mt-2 grid grid-cols-2 gap-1">
+                {exportHistory.slice(0, 4).map((entry) => (
+                  <div key={entry.id} className="rounded border border-[#D9E1EA] bg-white px-2 py-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="truncate text-[9px] text-text">{entry.label}</span>
+                      <span className={`text-[9px] ${entry.status === 'success' ? 'text-[#087443]' : 'text-[#B42318]'}`}>
+                        {entry.status === 'success' ? t('export.success', locale) : t('export.failed', locale)}
+                      </span>
+                    </div>
+                    <div className="mt-0.5 text-[9px] text-text-muted/60">
+                      {locale === 'zh-CN'
+                        ? `${entry.findingCount} 项发现 · ${entry.requiresBoundaryNotice ? t('export.boundaryNotice', locale) : t('export.preflightPassed', locale)}`
+                        : `${entry.findingCount} findings · ${entry.requiresBoundaryNotice ? t('export.boundaryNotice', locale) : t('export.preflightPassed', locale)}`}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Progress / Status */}
           {(isExporting || progress || done) && (
             <div className={`px-4 py-2.5 rounded-lg text-[11px] font-medium flex items-center gap-2 ${
-              done ? 'bg-green-500/10 text-green-400 border border-green-500/20'
-              : progress.startsWith('导出失败') ? 'bg-red-500/10 text-red-400 border border-red-500/20'
-              : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+              done ? 'bg-[#E7F7EF] text-[#087443] border border-[#B7E4CB]'
+              : progress.startsWith(t('export.error', locale)) ? 'bg-[#FFF7F5] text-[#B42318] border border-[#F3B8B0]'
+              : 'bg-[#F2F5F9] text-[#344054] border border-[#D9E1EA]'
             }`}>
               {isExporting && (
                 <svg className="w-3.5 h-3.5 animate-spin shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M21 12a9 9 0 1 1-6.219-8.56" />
                 </svg>
               )}
-              {done ? `已导出: ${done}` : progress}
+              {done ? `${t('export.done', locale)}: ${done}` : progress}
             </div>
           )}
 
           {/* Card 1: PDF Report */}
           <ExportCard
             icon="report"
-            title="管理层汇报材料"
-            subtitle="PDF 安全评估报告"
-            badge="已就绪"
+            title={copy.pdf.title}
+            subtitle={copy.pdf.subtitle}
+            badge={copy.pdf.badge}
             badgeColor="green"
-            description="附带 3D 场景截图、LLM 分析结论、告警列表、机器人状态、裂缝分析、完整性哈希。适合矿长/安监局/投资人阅览。"
+            description={copy.pdf.description}
             stats={[
-              { label: '内容', value: '9 章节' },
-              { label: '格式', value: 'A4 PDF' },
-              { label: '合规', value: 'SHA-256' },
+              ...copy.pdf.stats,
             ]}
             onClick={() => handleExport('pdf')}
-            disabled={isExporting}
+            disabled={isExporting || preflight.status === 'blocked'}
             active={activeFormat === 'pdf'}
           />
 
           {/* Card 2: LAS Point Cloud */}
           <ExportCard
             icon="cloud"
-            title="测绘后处理点云"
-            subtitle="LAS 1.4 / .las 文件"
-            badge="ASPRS 标准"
+            title={copy.las.title}
+            subtitle={copy.las.subtitle}
+            badge={copy.las.badge}
             badgeColor="blue"
-            description="全量激光雷达点云，含 XYZ 坐标、反射强度、RGB 着色。可直接拖入 Trimble Business Center、AutoCAD Civil 3D、CloudCompare、ArcGIS Pro 进行测绘级后处理。"
+            description={copy.las.description}
             stats={[
-              { label: '点数', value: lasStats.totalPoints.toLocaleString() },
-              { label: '大小', value: `~${lasStats.estimatedSizeMB} MB` },
-              { label: '分类', value: 'ASPRS' },
+              { ...copy.las.stats[0], value: exportStats.las.totalPoints.toLocaleString() },
+              { ...copy.las.stats[1], value: `~${exportStats.las.estimatedSizeMB} MB` },
+              copy.las.stats[2],
             ]}
             onClick={() => handleExport('las')}
-            disabled={isExporting}
+            disabled={isExporting || preflight.status === 'blocked'}
             active={activeFormat === 'las'}
           />
 
           {/* Card 3: OBJ Mesh */}
           <ExportCard
             icon="cube"
-            title="3D 实体空间网格"
-            subtitle="OBJ + MTL 模型文件"
-            badge="Wavefront"
+            title={copy.obj.title}
+            subtitle={copy.obj.subtitle}
+            badge={copy.obj.badge}
             badgeColor="orange"
-            description="裂缝管道 + 体素表面 + 机器人的 3D 三角网格模型。可导入 Blender、3ds Max、AutoCAD，或直接送入 3D 打印机制作矿洞物理沙盘。"
+            description={copy.obj.description}
             stats={[
-              { label: '网格', value: `${objStats.meshCount} 个` },
-              { label: '顶点', value: objStats.estimatedVertices.toLocaleString() },
-              { label: '大小', value: `~${objStats.estimatedSizeMB} MB` },
+              { ...copy.obj.stats[0], value: locale === 'zh-CN' ? `${exportStats.obj.meshCount} 个` : `${exportStats.obj.meshCount}` },
+              { ...copy.obj.stats[1], value: exportStats.obj.estimatedVertices.toLocaleString() },
+              { ...copy.obj.stats[2], value: `~${exportStats.obj.estimatedSizeMB} MB` },
             ]}
             onClick={() => handleExport('obj')}
-            disabled={isExporting}
+            disabled={isExporting || preflight.status === 'blocked'}
             active={activeFormat === 'obj'}
           />
 
           {/* Card 4: CSV Data */}
           <ExportCard
             icon="table"
-            title="原始传感器矩阵"
-            subtitle="CSV 数据表"
-            badge="RFC 4180"
+            title={copy.csv.title}
+            subtitle={copy.csv.subtitle}
+            badge={copy.csv.badge}
             badgeColor="cyan"
-            description="裂缝节点全量传感器 (19 项物理量) + 机器人状态 + 告警事件 + 裂缝几何参数。UTF-8 BOM 编码，Excel 直接打开，可导入矿企 ERP / SCADA 系统。"
+            description={copy.csv.description}
             stats={[
-              { label: '传感器', value: `${csvStats.sensorRows} 行` },
-              { label: '机器人', value: `${csvStats.robotRows} 行` },
-              { label: '告警', value: `${csvStats.alertRows} 条` },
+              { ...copy.csv.stats[0], value: locale === 'zh-CN' ? `${exportStats.csv.sensorRows} 行` : `${exportStats.csv.sensorRows}` },
+              { ...copy.csv.stats[1], value: locale === 'zh-CN' ? `${exportStats.csv.robotRows} 行` : `${exportStats.csv.robotRows}` },
+              { ...copy.csv.stats[2], value: locale === 'zh-CN' ? `${exportStats.csv.alertRows} 条` : `${exportStats.csv.alertRows}` },
             ]}
             onClick={() => handleExport('csv')}
-            disabled={isExporting}
+            disabled={isExporting || preflight.status === 'blocked'}
             active={activeFormat === 'csv'}
           />
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3 border-t border-white/10 flex items-center justify-between">
+        <div className="px-6 py-3 border-t border-[#D9E1EA] flex items-center justify-between">
           <div className="text-[9px] text-text-muted/50">
-            所有导出文件均包含数据完整性校验 · 导出数据仅供工程参考
+            {copy.footer}
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={handleExportAll}
-              disabled={isExporting}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-yellow/15 text-primary-yellow border border-primary-yellow/30 rounded-md text-[11px] font-medium hover:bg-primary-yellow/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isExporting || preflight.status === 'blocked'}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1F2937] text-white border border-[#1F2937] rounded-md text-[11px] font-medium hover:bg-[#111827] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
               </svg>
-              一键全部导出
+              {t('export.bulk', locale)}
             </button>
             <button
               onClick={onClose}
-              className="px-4 py-1.5 bg-white/5 border border-white/10 rounded-md text-xs text-text hover:bg-white/10 transition-colors"
+              className="px-4 py-1.5 bg-[#F8FAFC] border border-[#D9E1EA] rounded-md text-xs text-text hover:bg-[#EEF2F6] transition-colors"
             >
-              关闭
+              {t('export.close', locale)}
             </button>
           </div>
         </div>
@@ -283,20 +501,20 @@ function ExportCard({
   active: boolean;
 }) {
   const badgeColors: Record<BadgeColor, string> = {
-    green: 'bg-green-500/15 text-green-400 border-green-500/30',
-    blue: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
-    orange: 'bg-orange-500/15 text-orange-400 border-orange-500/30',
-    cyan: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30',
+    green: 'bg-[#E7F7EF] text-[#087443] border-[#B7E4CB]',
+    blue: 'bg-[#F2F5F9] text-[#344054] border-[#B7C3D0]',
+    orange: 'bg-[#FFFAF0] text-[#9A6700] border-[#EFD39B]',
+    cyan: 'bg-[#F2F5F9] text-[#344054] border-[#B7C3D0]',
   };
 
   return (
     <div className={`group relative rounded-lg border transition-all ${
-      active ? 'border-primary-yellow/50 bg-primary-yellow/5' : 'border-white/8 bg-white/[0.02] hover:border-white/15 hover:bg-white/[0.04]'
+      active ? 'border-[#1F2937] bg-[#F8FAFC]' : 'border-[#D9E1EA] bg-white hover:border-[#B7C3D0] hover:bg-[#F8FAFC]'
     } ${disabled && !active ? 'opacity-50' : ''}`}>
       <div className="flex items-start gap-4 p-4">
         {/* Icon */}
         <div className={`w-11 h-11 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
-          active ? 'bg-primary-yellow/20' : 'bg-white/5 group-hover:bg-white/8'
+          active ? 'bg-[#1F2937]' : 'bg-[#F8FAFC] group-hover:bg-[#EEF2F6]'
         }`}>
           <ExportIcon icon={icon} active={active} />
         </div>
@@ -329,10 +547,10 @@ function ExportCard({
           disabled={disabled}
           className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-md text-[11px] font-medium transition-all ${
             active
-              ? 'bg-primary-yellow text-background'
+              ? 'bg-[#1F2937] text-white'
               : disabled
-              ? 'bg-white/5 text-text-muted cursor-not-allowed'
-              : 'bg-primary-yellow/10 text-primary-yellow border border-primary-yellow/30 hover:bg-primary-yellow/20'
+              ? 'bg-[#F8FAFC] text-text-muted cursor-not-allowed'
+              : 'bg-white text-[#1F2937] border border-[#D9E1EA] hover:bg-[#EEF2F6]'
           }`}
         >
           {active ? (
@@ -340,14 +558,14 @@ function ExportCard({
               <svg className="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <path d="M21 12a9 9 0 1 1-6.219-8.56" />
               </svg>
-              导出中
+              {useSceneStore.getState().locale === 'zh-CN' ? '导出中' : 'Exporting'}
             </>
           ) : (
             <>
               <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
               </svg>
-              导出
+              {useSceneStore.getState().locale === 'zh-CN' ? '导出' : 'Export'}
             </>
           )}
         </button>
@@ -359,7 +577,7 @@ function ExportCard({
 // ── Icons ──
 
 function ExportIcon({ icon, active }: { icon: string; active: boolean }) {
-  const color = active ? 'text-primary-yellow' : 'text-text-muted group-hover:text-text';
+  const color = active ? 'text-white' : 'text-text-muted group-hover:text-text';
   const stroke = 'currentColor';
 
   switch (icon) {

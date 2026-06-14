@@ -66,7 +66,13 @@ export interface SceneAction {
   fractureId?: string;
   threshold?: number;
   scenario?: ScenarioType;
-  points?: { position: [number, number, number]; label: string; level?: 'danger' | 'warning' | 'info' }[];
+  points?: {
+    position: [number, number, number];
+    label: string;
+    level?: 'danger' | 'warning' | 'info';
+    detail?: string;
+    source?: string;
+  }[];
   radius?: number;
   mode?: 'gas' | 'permeability' | 'stress';
 }

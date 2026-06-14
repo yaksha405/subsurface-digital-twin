@@ -11,6 +11,7 @@
 import type { POI } from '../types';
 import { isMockMode } from './config';
 import { httpClient } from './httpClient';
+import { normalizePOIRecord } from './normalizers';
 
 /**
  * 获取全部 POI 标记点
@@ -21,5 +22,6 @@ export async function fetchPOIs(signal?: AbortSignal): Promise<POI[]> {
     const { poiData } = await import('../data/poiData');
     return poiData;
   }
-  return httpClient.get<POI[]>('/pois', { signal });
+  const raw = await httpClient.get<Record<string, unknown>[]>('/pois', { signal });
+  return raw.map(normalizePOIRecord);
 }

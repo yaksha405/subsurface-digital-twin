@@ -1,17 +1,18 @@
 /**
  * CSV 传感器数据导出器
- * 兼容 Excel / WPS / 矿企 ERP / SCADA 系统
+ * 兼容 Excel / WPS / SCADA / GIS / 工程数据平台
  *
  * 导出内容:
- * 1. 传感器矩阵: 每行 = [时间戳, 节点ID, X, Y, Z, CH4, 温度, 压力, ...19项传感器]
- * 2. 机器人状态: 每行 = [机器人ID, 型号, 状态, X, Y, Z, 电量, CH4, 温度, ...]
+ * 1. 传感器矩阵: 每行 = [时间戳, 对象ID, 节点ID, X, Y, Z, 当前场景主指标, 温度, 辅助指标, ...]
+ * 2. 机器人状态: 每行 = [机器人ID, 型号, 状态, X, Y, Z, 电量, 场景主指标, 温度, 辅助指标, ...]
  * 3. 告警事件: 每行 = [时间, 级别, 标题, 描述]
  *
  * 遵循 RFC 4180 标准 (逗号分隔, 双引号转义, UTF-8 BOM 兼容中文)
  */
 
-import type { Fracture, Robot } from '../types';
+import type { Fracture, Robot, SensorReading } from '../types';
 import type { AlertEvent } from '../data/alertDataGenerator';
+import { getSceneSemantics } from './sceneSemantics';
 
 /**
  * CSV 字段转义 (RFC 4180)
@@ -39,12 +40,18 @@ export function exportCSV(
   scenario: string,
 ): void {
   const sections: string[] = [];
+  const semantics = getSceneSemantics(scenario);
+  const primary = semantics.trend.primary;
+  const temp = semantics.trend.temperature;
+  const aux = semantics.trend.aux;
+  const robotTelemetry = semantics.robotTelemetry;
+  const metric = (reading: SensorReading, key: keyof SensorReading) => reading[key];
 
-  // === Section 1: 裂缝节点传感器矩阵 ===
-  sections.push('# === 裂缝节点传感器矩阵 / Fracture Node Sensor Matrix ===');
+  // === Section 1: 场景测点传感器矩阵 ===
+  sections.push(`# === ${semantics.nodeLabel}传感器矩阵 / Scene Node Sensor Matrix ===`);
   sections.push(`# 导出时间: ${new Date().toISOString()}`);
   sections.push(`# 场景: ${scenario}`);
-  sections.push(`# 格式: 时间戳,裂缝ID,节点ID,节点类型,X,Y,Z,CH4(%),CO(ppm),H2S(ppm),温度(°C),应力(MPa),Sigma1,Sigma2,Sigma3,渗透率(mD),水压(MPa),微震次数,声发射(mV),湿度(%),裂缝开面(μm),位移(mm),岩石强度(MPa),孔隙压力(MPa),孔隙度(%),流体pH,含水饱和度(%)`);
+  sections.push(`# 格式: 时间戳,${semantics.objectLabel}ID,节点ID,节点类型,X,Y,Z,${primary.label}(${primary.unit}),${temp.label}(${temp.unit}),${aux.label}(${aux.unit}),H2S(ppm),应力(MPa),水压(MPa),微震次数,声发射(mV),湿度(%),开度/管径(μm),位移(mm),岩石强度/壁厚损失,孔隙压力(MPa),孔隙度/管径,流体pH,含水饱和度(%)`);
   sections.push('');
 
   for (const frac of fractures) {
@@ -57,10 +64,12 @@ export function exportCSV(
         node.id,
         frac.type,
         x.toFixed(3), y.toFixed(3), z.toFixed(3),
-        s.ch4_pct, s.co_ppm, s.h2s_ppm,
-        s.temperature_c,
-        s.stress_mpa, s.stress_sigma1, s.stress_sigma2, s.stress_sigma3,
-        s.permeability_md, s.water_pressure_mpa,
+        metric(s, primary.key),
+        metric(s, temp.key),
+        metric(s, aux.key),
+        s.h2s_ppm,
+        s.stress_mpa,
+        s.water_pressure_mpa,
         s.microseismic_count, s.acoustic_emission_mv,
         s.humidity_pct, s.fracture_aperture_um,
         s.displacement_mm, s.rock_strength_mpa,
@@ -74,7 +83,7 @@ export function exportCSV(
   // === Section 2: 机器人状态矩阵 ===
   if (robots && robots.length > 0) {
     sections.push('# === 机器人状态矩阵 / Robot Status Matrix ===');
-    sections.push('# 格式: 机器人ID,型号,状态,X,Y,Z,深度(m),电量(%),Mesh角色,Mesh连接,信号强度(dBm),CH4(%),温度(°C),湿度(%),最后回传,当前任务');
+    sections.push(`# 格式: 机器人ID,型号,状态,X,Y,Z,深度(m),电量(%),Mesh角色,Mesh连接,信号强度(dBm),${robotTelemetry.primary.label}(${robotTelemetry.primary.unit}),${robotTelemetry.temperature.label}(${robotTelemetry.temperature.unit}),${robotTelemetry.aux.label}(${robotTelemetry.aux.unit}),最后回传,当前任务`);
     sections.push('');
 
     for (const r of robots) {
@@ -112,9 +121,9 @@ export function exportCSV(
     sections.push('');
   }
 
-  // === Section 4: 裂缝几何参数 ===
-  sections.push('# === 裂缝几何参数 / Fracture Geometry Parameters ===');
-  sections.push('# 格式: 裂缝ID,名称,类型,长度(m),开面(μm),孔隙度,分形维数,曲折度,倾角(°),方位角(°),粗糙度系数,连通性,父裂缝ID');
+  // === Section 4: 场景对象几何参数 ===
+  sections.push(`# === ${semantics.objectLabel}几何参数 / Scene Object Geometry Parameters ===`);
+  sections.push(`# 格式: ${semantics.objectLabel}ID,名称,类型,长度(m),开度/管径(μm),孔隙度/管径,分形维数,曲折度,倾角(°),方位角(°),粗糙度系数,连通性,父级${semantics.objectLabel}ID`);
   sections.push('');
 
   for (const frac of fractures) {

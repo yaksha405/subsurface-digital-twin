@@ -41,6 +41,17 @@ export interface SceneMeasureConfig {
   slopeAngleLabel: string;  // "坡角" / "倾斜角"
 }
 
+export interface LocalizedSceneMeasureCopy {
+  areaTitle: string;
+  profileTitle: string;
+  pointLabel: string;
+  densityLabel: string;
+  primaryLabel: string;
+  secondaryLabel: string;
+  tempLabel: string;
+  slopeAngleLabel: string;
+}
+
 export const SCENE_MEASURE_CONFIG: Record<MeasureScenarioType, SceneMeasureConfig> = {
   coal: {
     areaTitle: '区域地质分析',
@@ -166,4 +177,99 @@ export function getMeasureConfig(scenario: string, gasThreshold: number): SceneM
         ? cfg.primaryThreshold(gasThreshold)
         : cfg.primaryThreshold,
   };
+}
+
+const ENGLISH_MEASURE_COPY: Record<MeasureScenarioType, LocalizedSceneMeasureCopy> = {
+  coal: {
+    areaTitle: 'Regional geological analysis',
+    profileTitle: 'Cross-section profile',
+    pointLabel: 'fracture points',
+    densityLabel: 'fracture density',
+    primaryLabel: 'CH4',
+    secondaryLabel: 'avg permeability',
+    tempLabel: 'avg temperature',
+    slopeAngleLabel: 'slope angle',
+  },
+  gold: {
+    areaTitle: 'Regional stress analysis',
+    profileTitle: 'Cross-section profile',
+    pointLabel: 'fracture points',
+    densityLabel: 'fracture density',
+    primaryLabel: 'stress',
+    secondaryLabel: 'avg microseismic rate',
+    tempLabel: 'avg rock temperature',
+    slopeAngleLabel: 'slope angle',
+  },
+  oil: {
+    areaTitle: 'Reservoir zone analysis',
+    profileTitle: 'Cross-section profile',
+    pointLabel: 'fracture points',
+    densityLabel: 'fracture density',
+    primaryLabel: 'pore pressure',
+    secondaryLabel: 'avg permeability',
+    tempLabel: 'avg formation temperature',
+    slopeAngleLabel: 'slope angle',
+  },
+  pipeline: {
+    areaTitle: 'Pipeline segment analysis',
+    profileTitle: 'Segment cross-section',
+    pointLabel: 'segment checkpoints',
+    densityLabel: 'segment density',
+    primaryLabel: 'gas leak level',
+    secondaryLabel: 'avg wall-loss',
+    tempLabel: 'avg internal temperature',
+    slopeAngleLabel: 'inclination',
+  },
+  nuclear: {
+    areaTitle: 'Radiation zone analysis',
+    profileTitle: 'Pipe cross-section',
+    pointLabel: 'pipe checkpoints',
+    densityLabel: 'pipe density',
+    primaryLabel: 'dose rate',
+    secondaryLabel: 'avg FAC rate',
+    tempLabel: 'avg coolant temperature',
+    slopeAngleLabel: 'inclination',
+  },
+  refinery: {
+    areaTitle: 'Equipment zone analysis',
+    profileTitle: 'Passage cross-section',
+    pointLabel: 'equipment checkpoints',
+    densityLabel: 'passage density',
+    primaryLabel: 'wall-thinning',
+    secondaryLabel: 'avg corrosion rate',
+    tempLabel: 'avg operating temperature',
+    slopeAngleLabel: 'inclination',
+  },
+  underground: {
+    areaTitle: 'Underground-flow zone analysis',
+    profileTitle: 'Channel cross-section',
+    pointLabel: 'channel checkpoints',
+    densityLabel: 'channel density',
+    primaryLabel: 'avg permeability',
+    secondaryLabel: 'avg ground temperature',
+    tempLabel: 'avg ground temperature',
+    slopeAngleLabel: 'channel dip',
+  },
+};
+
+export function getLocalizedMeasureCopy(
+  scenario: string,
+  locale: 'zh-CN' | 'en-US',
+  gasThreshold: number,
+): LocalizedSceneMeasureCopy {
+  const cfg = getMeasureConfig(scenario, gasThreshold);
+  if (locale === 'zh-CN') {
+    return {
+      areaTitle: cfg.areaTitle,
+      profileTitle: cfg.profileTitle,
+      pointLabel: cfg.pointLabel,
+      densityLabel: cfg.densityLabel,
+      primaryLabel: cfg.primaryLabel,
+      secondaryLabel: cfg.secondaryLabel,
+      tempLabel: cfg.tempLabel,
+      slopeAngleLabel: cfg.slopeAngleLabel,
+    };
+  }
+
+  return ENGLISH_MEASURE_COPY[scenario as MeasureScenarioType] ?? ENGLISH_MEASURE_COPY.coal;
 }

@@ -10,13 +10,13 @@
  * 机器人类型：蛇形（多关节柔性体，穿越狭窄管内通道）
  */
 
-import type { Fracture, FractureNode, SensorReading } from '../types';
+import type { Fracture, SensorReading } from '../types';
 
 let _seed = 99;
 function sr(): number { _seed = (_seed * 16807) % 2147483647; return _seed / 2147483647; }
 function rand(min: number, max: number): number { return min + sr() * (max - min); }
+function randRange(range: readonly [number, number]): number { return rand(range[0], range[1]); }
 function randInt(min: number, max: number): number { return Math.floor(rand(min, max + 1)); }
-function pick<T>(arr: T[]): T { return arr[Math.floor(sr() * arr.length)]; }
 function r1(v: number): number { return Math.round(v * 10) / 10; }
 
 const CHANNEL_SPECS = {
@@ -30,11 +30,11 @@ type ChannelClass = keyof typeof CHANNEL_SPECS;
 
 function genRefinerySensorReading(cc: ChannelClass): SensorReading {
   const s = CHANNEL_SPECS[cc];
-  const wt = +rand(...s.wall_thickness_mm).toFixed(1);
-  const temp = +rand(...s.operating_temp_c).toFixed(1);
-  const pres = +rand(...s.operating_pressure_mpa).toFixed(2);
-  const corr = +rand(...s.corrosion_rate_mmyear).toFixed(3);
-  const dtemp = +rand(...s.design_temp_c).toFixed(0);
+  const wt = +randRange(s.wall_thickness_mm).toFixed(1);
+  const temp = +randRange(s.operating_temp_c).toFixed(1);
+  const pres = +randRange(s.operating_pressure_mpa).toFixed(2);
+  const corr = +randRange(s.corrosion_rate_mmyear).toFixed(3);
+  const dtemp = +randRange(s.design_temp_c).toFixed(0);
   const thinning = +(corr * rand(3, 15)).toFixed(1);
   const creep = cc === 'heater_tube' ? +rand(500, 12000).toFixed(0) : +rand(0, 200).toFixed(0);
   const scale = (cc === 'exchanger_tube' || cc === 'exchanger_shell') ? +rand(0.1, 4.5).toFixed(2) : +rand(0, 0.8).toFixed(2);
@@ -82,7 +82,7 @@ function pathLen(p:[number,number,number][]):number{let l=0;for(let i=1;i<p.leng
 
 let _id = 0;
 function buildChannel(path: [number,number,number][], cc: ChannelClass, isMain: boolean, name: string): Fracture {
-  const s = CHANNEL_SPECS[cc]; const id = _id++; const dia = Math.round(rand(...s.diameter_mm)); const wt = +rand(...s.wall_thickness_mm).toFixed(1);
+  const s = CHANNEL_SPECS[cc]; const id = _id++; const dia = Math.round(randRange(s.diameter_mm)); const wt = +randRange(s.wall_thickness_mm).toFixed(1);
   const f: Fracture = {
     id: `R-${String(id).padStart(3,'0')}`, name, type: isMain?'main':'branch', path, length:+pathLen(path).toFixed(1),
     aperture_um: Math.round(wt*1000), porosity: +(dia/1000).toFixed(3), fractal_dim:+(rand(2.01,2.30)).toFixed(4),

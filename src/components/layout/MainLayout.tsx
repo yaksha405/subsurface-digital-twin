@@ -2,6 +2,8 @@ import { TopBar } from './TopBar';
 import { ComplianceBar } from './ComplianceBar';
 import { FractureDetailPanel } from '../control-panel/FractureDetailPanel';
 import { useSceneStore } from '../../store/useSceneStore';
+import { getLocalizedSceneObjectLabel, getSceneSemantics } from '../../lib/sceneSemantics';
+import { t } from '../../domain/i18nCatalog';
 
 interface MainLayoutProps {
   controlPanel: React.ReactNode;
@@ -14,6 +16,10 @@ export function MainLayout({ controlPanel, scene3D, chatPanel, watermark }: Main
   const cameraInfo = useSceneStore((s) => s.cameraInfo);
   const scenario = useSceneStore((s) => s.scenario);
   const dataSource = useSceneStore((s) => s.dataSource);
+  const locale = useSceneStore((s) => s.locale);
+  const selectedRobot = useSceneStore((s) => s.selectedRobot);
+  const selectedFracture = useSceneStore((s) => s.selectedFracture);
+  const semantics = getSceneSemantics(scenario);
 
   // M3: 根据相机方位角旋转指南针
   // cameraInfo.x/z 可用于估算方位角（atan2）
@@ -31,6 +37,16 @@ export function MainLayout({ controlPanel, scene3D, chatPanel, watermark }: Main
   };
   const ds = dataSource === 'fracture' ? scenario : dataSource;
   const sceneLabel = sceneLabels[ds] || sceneLabels.coal;
+  const detailTitle = locale === 'zh-CN'
+    ? `${semantics.objectLabel}${t('panel.objectDetails', locale)}`
+    : `${getLocalizedSceneObjectLabel(scenario, locale)} Details`;
+  const detailSubtitle = selectedRobot
+    ? selectedRobot.id
+    : selectedFracture
+      ? selectedFracture.name
+      : locale === 'zh-CN'
+        ? `等待选择${semantics.objectLabel}`
+        : `Waiting for ${getLocalizedSceneObjectLabel(scenario, locale).toLowerCase()} selection`;
 
   return (
     <div className="w-full h-full flex flex-col bg-background overflow-hidden">
@@ -39,7 +55,7 @@ export function MainLayout({ controlPanel, scene3D, chatPanel, watermark }: Main
       {/* Three-column layout */}
       <div className="flex-1 flex overflow-hidden min-h-0">
         {/* Left panel - 控制台 */}
-        <div className="w-[18%] min-w-[240px] max-w-[320px] flex-shrink-0 border-r border-white/5">
+        <div className="w-[18%] min-w-[240px] max-w-[320px] flex-shrink-0 border-r border-[#D9E1EA] bg-[#F8FAFC]">
           {controlPanel}
         </div>
 
@@ -62,7 +78,7 @@ export function MainLayout({ controlPanel, scene3D, chatPanel, watermark }: Main
                   />
                 </div>
                 <div>
-                  <div className="text-[9px] text-primary-yellow font-semibold">{sceneLabel.name}</div>
+                  <div className="text-[9px] text-primary-yellow font-semibold">{locale === 'zh-CN' ? sceneLabel.name : sceneLabel.en}</div>
                   <div className="text-[9px] text-text-muted">{sceneLabel.en}</div>
                 </div>
               </div>
@@ -72,18 +88,23 @@ export function MainLayout({ controlPanel, scene3D, chatPanel, watermark }: Main
           </div>
 
           {/* Bottom: Chat panel - 30% height */}
-          <div className="flex-[3] border-t border-white/5 overflow-hidden min-h-[120px]">
+          <div className="flex-[3] border-t border-[#D9E1EA] overflow-hidden min-h-[120px] bg-white">
             {chatPanel}
           </div>
         </div>
 
-        {/* Right panel - 裂缝详情 */}
-        <div className="w-[20%] min-w-[260px] max-w-[360px] flex-shrink-0 border-l border-white/5 bg-[#121218]/90">
-          <div className="p-2 border-b border-white/5 flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-[#44AAFF] animate-pulse" />
-            <span className="text-xs font-semibold text-[#E0E0E8]">
-              {dataSource === 'fracture' ? '裂缝详情' : '元素详情'}
-            </span>
+        {/* Right panel - scene object detail */}
+        <div className="w-[20%] min-w-[260px] max-w-[360px] flex-shrink-0 border-l border-[#D9E1EA] bg-[#F8FAFC]">
+          <div data-testid="detail-panel-header" className="p-3 border-b border-[#D9E1EA] bg-white">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-[#087443] animate-pulse" />
+              <span data-testid="detail-panel-title" className="text-xs font-semibold text-[#182230] tracking-normal">
+                {detailTitle}
+              </span>
+            </div>
+            <div data-testid="detail-panel-subtitle" className="mt-1 pl-4 text-[10px] leading-4 text-[#667085] truncate">
+              {detailSubtitle}
+            </div>
           </div>
           <FractureDetailPanel />
         </div>

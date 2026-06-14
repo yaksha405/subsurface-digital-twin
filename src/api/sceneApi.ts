@@ -10,13 +10,34 @@
  *   GET /scene/stats     → SceneStats
  */
 
-import type { SceneNode } from '../types';
+import type { DataSourceType, ScenarioType, SceneNode } from '../types';
 import type { SceneStats, FlatGeometryData } from '../types/api';
 import { isMockMode } from './config';
 import { httpClient, ApiError } from './httpClient';
+import { normalizeFlatGeometryRecord, normalizeSceneNodeRecord, normalizeSceneStatsRecord } from './normalizers';
 
 // Mock 实现延迟导入，仅在 mock 模式下加载
-async function getMockNodes(): Promise<SceneNode[]> {
+async function getMockNodes(dataSource: DataSourceType = 'fracture', scenario: ScenarioType = 'coal'): Promise<SceneNode[]> {
+  if (dataSource !== 'fracture') {
+    const { buildSceneDataset } = await import('../domain/sceneDataset');
+    return buildSceneDataset(dataSource, scenario).fractures.flatMap((fracture) =>
+      fracture.nodes.map((node) => ({
+        node_id: node.id,
+        timestamp: node.timestamp,
+        confidence_score: 0.6,
+        geometry: {
+          center: { x: node.position[0], y: node.position[1], z: node.position[2] },
+          mesh_vertices: [],
+          raw_points: [],
+        },
+        sensors: {
+          ch4_concentration_pct: node.sensors.ch4_pct,
+          temperature_celsius: node.sensors.temperature_c,
+          pressure_kpa: node.sensors.water_pressure_mpa * 1000,
+        },
+      })),
+    );
+  }
   const { generateMockNodes } = await import('../data/mockDataGenerator');
   return generateMockNodes();
 }
@@ -26,20 +47,25 @@ async function getMockFlatGeometry(): Promise<FlatGeometryData> {
   return getFlatGeometryData();
 }
 
-async function getMockStats(): Promise<SceneStats> {
-  const { getStats } = await import('../data/mockDataGenerator');
-  return getStats();
+async function getMockStats(dataSource: DataSourceType = 'fracture', scenario: ScenarioType = 'coal'): Promise<SceneStats> {
+  const { buildSceneDataset } = await import('../domain/sceneDataset');
+  return buildSceneDataset(dataSource, scenario).summary.scene;
 }
 
 /**
  * 获取全部场景节点
  * GET /scene/nodes
  */
-export async function fetchSceneNodes(signal?: AbortSignal): Promise<SceneNode[]> {
+export async function fetchSceneNodes(
+  signal?: AbortSignal,
+  dataSource: DataSourceType = 'fracture',
+  scenario: ScenarioType = 'coal',
+): Promise<SceneNode[]> {
   if (isMockMode) {
-    return getMockNodes();
+    return getMockNodes(dataSource, scenario);
   }
-  return httpClient.get<SceneNode[]>('/scene/nodes', { signal });
+  const raw = await httpClient.get<Record<string, unknown>[]>('/scene/nodes', { signal });
+  return raw.map(normalizeSceneNodeRecord);
 }
 
 /**
@@ -55,33 +81,25 @@ export async function fetchFlatGeometry(signal?: AbortSignal): Promise<FlatGeome
 
   // 后端返回 JSON 格式（Float32Array 无法直接 JSON 序列化）
   const raw = await httpClient.get<{
-    positions: number[];
-    confidences: number[];
-    gasValues: number[];
-    tempValues: number[];
-    intensities: number[];
-    count: number;
+    [key: string]: unknown;
   }>('/scene/geometry', { signal });
-
-  return {
-    positions: new Float32Array(raw.positions),
-    confidences: new Float32Array(raw.confidences),
-    gasValues: new Float32Array(raw.gasValues),
-    tempValues: new Float32Array(raw.tempValues),
-    intensities: new Float32Array(raw.intensities),
-    count: raw.count,
-  };
+  return normalizeFlatGeometryRecord(raw);
 }
 
 /**
  * 获取场景统计信息
  * GET /scene/stats
  */
-export async function fetchSceneStats(signal?: AbortSignal): Promise<SceneStats> {
+export async function fetchSceneStats(
+  signal?: AbortSignal,
+  dataSource: DataSourceType = 'fracture',
+  scenario: ScenarioType = 'coal',
+): Promise<SceneStats> {
   if (isMockMode) {
-    return getMockStats();
+    return getMockStats(dataSource, scenario);
   }
-  return httpClient.get<SceneStats>('/scene/stats', { signal });
+  const raw = await httpClient.get<Record<string, unknown>>('/scene/stats', { signal });
+  return normalizeSceneStatsRecord(raw);
 }
 
 export { ApiError };

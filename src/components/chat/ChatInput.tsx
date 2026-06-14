@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Button } from '../ui/button';
 import { Send } from 'lucide-react';
+import { useSceneStore } from '../../store/useSceneStore';
+import { t } from '../../domain/i18nCatalog';
 
 interface ChatInputProps {
   onSend: (text: string) => void;
@@ -8,6 +10,7 @@ interface ChatInputProps {
 
 export function ChatInput({ onSend }: ChatInputProps) {
   const [input, setInput] = useState('');
+  const locale = useSceneStore((s) => s.locale);
 
   const handleSubmit = () => {
     if (input.trim()) {
@@ -17,15 +20,16 @@ export function ChatInput({ onSend }: ChatInputProps) {
   };
 
   return (
-    <div className="p-3 border-t border-white/5">
+    <div className="p-3 border-t border-[#D9E1EA]">
       <div className="flex gap-2 items-end">
         <input
+          data-testid="chat-command-input"
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-          placeholder="输入指令..."
-          className="flex-1 bg-[#2A2D3A] border border-white/5 rounded-lg px-3 py-2 text-xs text-[#E0E0E8] placeholder:text-[#A0A0B0]/40 focus:outline-none focus:border-[#FFE600]/30 transition-colors"
+          placeholder={t('chat.placeholder', locale)}
+          className="flex-1 bg-[#F8FAFC] border border-[#D9E1EA] rounded-lg px-3 py-2 text-xs text-[#182230] placeholder:text-[#98A2B3] focus:outline-none focus:border-[#1F2937]/40 transition-colors"
         />
         <Button
           size="icon"

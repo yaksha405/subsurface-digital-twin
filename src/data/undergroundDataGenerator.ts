@@ -22,13 +22,12 @@
  * - 广西地下暗河数字化分布图 (2025)
  */
 
-import type { Fracture, FractureNode, SensorReading } from '../types';
+import type { Fracture, SensorReading } from '../types';
 
 let _seed = 5555;
 function srnd(): number { _seed = (_seed * 16807) % 2147483647; return _seed / 2147483647; }
 function rand(min: number, max: number): number { return min + srnd() * (max - min); }
 function randInt(min: number, max: number): number { return Math.floor(rand(min, max + 1)); }
-function pick<T>(arr: T[]): T { return arr[Math.floor(srnd() * arr.length)]; }
 function r1(v: number): number { return Math.round(v * 10) / 10; }
 
 // ==================== 通道物理参数 ====================
@@ -93,12 +92,18 @@ function genUndergroundSensorReading(ct: ChannelType): SensorReading {
   const s = CHANNEL_SPECS[ct];
   const dia = +rand(...s.diameter_m).toFixed(2);
   const vel = +rand(...s.flow_velocity_ms).toFixed(3);
-  const re = randInt(...s.reynolds);
   const temp = +rand(...s.temperature_c).toFixed(1);
-  const fluid = pick(s.fluid_type);
 
-  // 渗透率 — 与管径^2 成正比（立方定律 Q ∝ b³）
-  const perm = +(dia * dia * rand(0.5, 5.0)).toFixed(2);
+  // 等效渗透率 — 岩溶暗河/承压含水层通道显著高于普通岩石裂隙
+  // 与通道直径呈强相关：开阔溶洞、主干暗河可进入 5000mD 以上高渗透预警区。
+  const permScaleByType: Record<ChannelType, [number, number]> = {
+    trunk: [12000, 26000],
+    tributary: [8000, 18000],
+    constriction: [20000, 60000],
+    chamber: [14000, 32000],
+    blind_end: [3000, 9000],
+  };
+  const perm = +(dia * dia * rand(...permScaleByType[ct])).toFixed(2);
   // 水压 — 深度梯度 ~10MPa/km + 动压
   const depth_m = rand(200, 800);
   const waterP = +(depth_m * 0.01 + 0.5 * vel * vel).toFixed(2);
@@ -110,7 +115,6 @@ function genUndergroundSensorReading(ct: ChannelType): SensorReading {
   // pH
   const ph = +rand(5.0, 8.5).toFixed(1);
   // 矿化度 (TDS)
-  const tds = randInt(3000, 120000);
   // 微地震 — 构造活动区偏高
   const micro = ct === 'constriction' ? randInt(5, 30) : randInt(0, 8);
   // 声发射
@@ -120,11 +124,6 @@ function genUndergroundSensorReading(ct: ChannelType): SensorReading {
   // 开度(µm) = 管径 × 1000
   const aperture = Math.round(dia * 1000);
   // 粗糙度
-  const rough = +rand(0.15, 0.85).toFixed(2);
-  // 迂曲度
-  const tort = +rand(1.1, 2.5).toFixed(3);
-  // 分形维数
-  const fracDim = +rand(2.05, 2.45).toFixed(4);
   // CH₄ — 地下水微量甲烷（地下有机物厌氧分解）
   const ch4 = +rand(0, 0.3).toFixed(2);
   // H₂S — 地下水微量（硫酸盐还原菌活动）
@@ -178,7 +177,8 @@ function conduitPath(
   // 总方向
   const dx = ex - sx, dy = ey - sy, dz = ez - sz;
   const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-  const [ux, uy, uz] = [dx / dist, dy / dist, dz / dist];
+  const ux = dx / dist;
+  const uz = dz / dist;
   // 垂直方向（用于蜿蜒摆动）
   const perpX = -uz, perpZ = ux;
   const perpMag = Math.sqrt(perpX * perpX + perpZ * perpZ) || 1;

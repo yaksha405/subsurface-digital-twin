@@ -3,11 +3,34 @@
 declare global {
   interface Window {
     Potree?: PotreeNamespace;
+    jQuery?: unknown;
+    proj4?: unknown;
+    BinaryHeap?: typeof BinaryHeap;
+    TWEEN?: PotreeTweenNamespace;
   }
 }
 
+export interface PotreeTweenNamespace {
+  Tween: new (target: Record<string, number> | THREE.Vector3) => PotreeTweenInstance;
+  Easing: {
+    Linear: { None: (k: number) => number };
+    Quartic: { Out: (k: number) => number };
+  };
+  update: (time?: number) => boolean;
+  remove: (tween: PotreeTweenInstance) => void;
+}
+
+export interface PotreeTweenInstance {
+  to: (target: Record<string, number> | THREE.Vector3, duration?: number) => PotreeTweenInstance;
+  easing: (fn: (k: number) => number) => PotreeTweenInstance;
+  onUpdate: (fn: () => void) => PotreeTweenInstance;
+  onComplete: (fn: () => void) => PotreeTweenInstance;
+  start: (time?: number) => PotreeTweenInstance;
+  stop: () => PotreeTweenInstance;
+}
+
 /** Potree 命名空间（部分类型，按需扩展） */
-interface PotreeNamespace {
+export interface PotreeNamespace {
   Viewer: new (container: HTMLElement) => PotreeViewerInstance;
   loadPointCloud: (
     url: string,
@@ -17,17 +40,17 @@ interface PotreeNamespace {
   ClipTask: { SHOW_INSIDE: number; SHOW_OUTSIDE: number; HIGHLIGHT_INSIDE: number };
   PointSizeType: { ADAPTIVE: number; FIXED: number };
   PointShape: { CIRCLE: number; SQUARE: number };
-  OrbitControls: any;
+  OrbitControls: unknown;
 }
 
-interface PotreeViewerInstance {
+export interface PotreeViewerInstance {
   scene: {
-    pointclouds: any[];
+    pointclouds: PotreePointCloud[];
     view: PotreeView;
-    addPointCloud: (pc: any) => void;
+    addPointCloud: (pc: PotreePointCloud) => void;
     removeAllPointClouds: () => void;
   };
-  inputHandler: { setEnabled: (enabled: boolean) => void };
+  inputHandler?: { setEnabled?: (enabled: boolean) => void; enabled?: boolean };
   setEDLEnabled: (enabled: boolean) => void;
   setEDLOpacity: (opacity: number) => void;
   setEDLRadius: (radius: number) => void;
@@ -36,15 +59,15 @@ interface PotreeViewerInstance {
   setPointBudget: (budget: number) => void;
   setFOV: (fov: number) => void;
   setClipTask: (task: number) => void;
-  setNavigationMode: (mode: any) => void;
+  setNavigationMode: (mode: unknown) => void;
   setDirty: () => void;
   fitToScreen: () => void;
   toggleSidebar?: () => void;
-  setTools?: (tools: any[]) => void;
+  setTools?: (tools: unknown[]) => void;
   onBeforeRender: (() => void) | null;
 }
 
-interface PotreeView {
+export interface PotreeView {
   position: THREE.Vector3;
   yaw: number;
   pitch: number;
@@ -52,16 +75,18 @@ interface PotreeView {
   lookAt: (point: THREE.Vector3) => void;
 }
 
-interface PotreeLoadEvent {
+export interface PotreeLoadEvent {
   type: string;
-  pointcloud: {
-    pcoGeometry: { numPoints: number };
-    material: {
-      size: number;
-      pointSizeType: number;
-      shape: number;
-      activeAttributeName: string;
-    };
+  pointcloud: PotreePointCloud;
+}
+
+export interface PotreePointCloud {
+  pcoGeometry: { numPoints: number };
+  material: {
+    size: number;
+    pointSizeType: number;
+    shape: number;
+    activeAttributeName: string;
   };
 }
 

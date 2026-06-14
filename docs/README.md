@@ -39,6 +39,9 @@
 | R1 | [UI_ITERATION_REPORT.md](./UI_ITERATION_REPORT.md) | UI 迭代分析报告 (对标 Cesium/Palantir/DJI) | 2026-06-12 |
 | R2 | [DATA_FORMAT.md](./DATA_FORMAT.md) | 数据格式说明 (Mock/真实数据切换) | 2026-06-12 |
 | R3 | [UX_AUDIT_REPORT.md](./UX_AUDIT_REPORT.md) | 全量 UX 审计报告 (3角色视角, 45项问题) | 2026-06-13 |
+| R4 | [COMPETITIVE_RESEARCH.md](./COMPETITIVE_RESEARCH.md) | 同类产品与商业化面板资料库 (Flyability/DroneDeploy/NavVis/PIX4D/GroundHog) | 2026-06-13 |
+| R5 | [PRODUCT_ROADMAP_90.md](./PRODUCT_ROADMAP_90.md) | 90分国际化产品路线图 (竞品融合/阶段计划/模块复用扫描规则) | 2026-06-13 |
+| R6 | [MODULE_REUSE_SCAN.md](./MODULE_REUSE_SCAN.md) | 模块复用扫描记录 (Build/Buy/Open-source Scan) | 2026-06-13 |
 
 ---
 
@@ -49,6 +52,15 @@
 | # | 文档 | 主题 | 日期 |
 |---|------|------|------|
 | P1 | [superpowers/specs/2026-06-12-fracture-digital-twin-v2-design.md](./superpowers/specs/2026-06-12-fracture-digital-twin-v2-design.md) | v2 数字孪生整体架构设计 | 2026-06-12 |
+| P2 | [superpowers/specs/2026-06-14-hive-90-data-pipeline-design.md](./superpowers/specs/2026-06-14-hive-90-data-pipeline-design.md) | 90+ 升级设计：统一数据底座、接口容错扩展、场景语义与验收标准 | 2026-06-14 |
+
+## 四、实施计划 (Implementation Plans)
+
+| # | 文档 | 主题 | 日期 |
+|---|------|------|------|
+| I1 | [superpowers/plans/2026-06-13-phase1-finding-evidence-plan.md](./superpowers/plans/2026-06-13-phase1-finding-evidence-plan.md) | Phase 1 风险发现与证据链实施计划 | 2026-06-13 |
+| I2 | [superpowers/plans/2026-06-14-a2-light-graphite-ui-plan.md](./superpowers/plans/2026-06-14-a2-light-graphite-ui-plan.md) | A2 Light Graphite UI 改造实施计划 | 2026-06-14 |
+| I3 | [superpowers/plans/2026-06-14-hive-90-data-pipeline-plan.md](./superpowers/plans/2026-06-14-hive-90-data-pipeline-plan.md) | 90+ 数据底座与接口容错实施计划 | 2026-06-14 |
 
 ---
 

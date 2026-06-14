@@ -1,13 +1,17 @@
 import jsPDF from 'jspdf';
-import type { Robot, Fracture, POI, Annotation, ChatMessage } from '../types';
+import type { Robot, Fracture, POI, Annotation, ChatMessage, LayerState, ScenarioType } from '../types';
 import type { SceneStats, RobotFleetStats } from '../types/api';
 import type { AlertEvent } from '../data/alertDataGenerator';
+import type { Finding } from '../domain/findingTypes';
+import { TRUTH_BOUNDARY_LABELS } from '../domain/findingTypes';
+import { getSceneSemantics } from './sceneSemantics';
+import { buildSceneMetricSummary } from '../domain/sceneMetricSummary';
 
 export interface ReportData {
   gasThreshold: number;
   confidenceFilter: number;
-  layers: Record<string, boolean>;
-  scenario: string;
+  layers: LayerState;
+  scenario: ScenarioType;
   stats: SceneStats | null;
   robots: Robot[] | null;
   robotStats: RobotFleetStats | null;
@@ -15,6 +19,7 @@ export interface ReportData {
   fractures: Fracture[];
   pois: POI[];
   annotations: Annotation[];
+  findings: Finding[];
   messages: ChatMessage[];
   cameraInfo: { x: number; y: number; z: number; dist: number };
 }
@@ -23,16 +28,26 @@ export interface ReportData {
 const PW = 210, PH = 297, MG = 15, CW = PW - MG * 2, BTM = 25;
 
 // ── 颜色 ──
-const C = {
+type RGB = [number, number, number];
+
+const C: Record<string, RGB> = {
   bg: [8, 8, 18], panel: [20, 20, 32], yellow: [255, 230, 0], orange: [255, 165, 0],
   red: [255, 51, 51], green: [0, 255, 102], blue: [77, 166, 255],
   text: [224, 224, 232], muted: [160, 160, 176], dim: [100, 100, 120], line: [40, 40, 55],
 };
-const SC = { online: C.green, offline: C.dim, low_battery: C.orange, error: C.red, maintenance: C.blue };
+const SC: Record<Robot['status'], RGB> = { online: C.green, offline: C.dim, low_battery: C.orange, error: C.red, maintenance: C.blue };
 const SL = { online: '在线', offline: '离线', low_battery: '低电量', error: '故障', maintenance: '维护中' };
 const ML = { tracked: '履带', wheeled: '轮式', climbing: '攀爬', snake: '蛇形', aerial: '飞行', spider: '蛛型', floatwalker: '浮走' };
 const MS = { gateway: '网关', relay: '中继', edge: '边缘', leaf: '叶节点' };
-const SG = { coal: '煤矿', gold: '金矿', oil: '油气' };
+const SG: Record<ScenarioType, string> = {
+  coal: '煤矿',
+  gold: '金矿',
+  oil: '油气',
+  pipeline: '油气管线',
+  nuclear: '核反应堆',
+  refinery: '炼油化工',
+  underground: '地下暗流',
+};
 
 // ── 图片压缩 PNG → JPEG ──
 async function compressImg(dataUrl: string, maxW = 1600, q = 0.6): Promise<string> {
@@ -60,8 +75,8 @@ async function sha256(data: string): Promise<string> {
 }
 
 // ── 绘制辅助 ──
-function fillR(p: jsPDF, x: number, y: number, w: number, h: number, c: number[]) { p.setFillColor(...c); p.rect(x, y, w, h, 'F'); }
-function line(p: jsPDF, x1: number, y1: number, x2: number, y2: number, c: number[]) { p.setDrawColor(...c); p.setLineWidth(0.2); p.line(x1, y1, x2, y2); }
+function fillR(p: jsPDF, x: number, y: number, w: number, h: number, c: RGB) { p.setFillColor(...c); p.rect(x, y, w, h, 'F'); }
+function line(p: jsPDF, x1: number, y1: number, x2: number, y2: number, c: RGB) { p.setDrawColor(...c); p.setLineWidth(0.2); p.line(x1, y1, x2, y2); }
 
 class PDFDoc {
   p: jsPDF; y: number;
@@ -74,7 +89,7 @@ class PDFDoc {
     this.p.setTextColor(...C.yellow); this.p.setFontSize(11); this.p.setFont('helvetica', 'bold');
     this.p.text(title, MG, this.y + 5); this.y += 9;
   }
-  kv(label: string, val: string, vc?: number[]) {
+  kv(label: string, val: string, vc?: RGB) {
     this.ensure(8);
     this.p.setFontSize(9); this.p.setFont('helvetica', 'normal'); this.p.setTextColor(...C.muted);
     this.p.text(label, MG + 2, this.y);
@@ -89,7 +104,7 @@ class PDFDoc {
     for (const c of cols) { this.p.text(c.t, x, this.y); x += c.w; }
     this.y += 6;
   }
-  row(cols: { t: string; w: number; c?: number[]; b?: boolean }[], bg?: number[]) {
+  row(cols: { t: string; w: number; c?: RGB; b?: boolean }[], bg?: RGB) {
     this.ensure(7);
     if (bg) fillR(this.p, MG, this.y - 4, CW, 6, bg);
     let x = MG + 2; this.p.setFontSize(8);
@@ -105,6 +120,9 @@ class PDFDoc {
 export async function exportPDF(screenshotFn: (() => string | null) | null, d: ReportData) {
   const doc = new PDFDoc();
   const p = doc.p;
+  const semantics = getSceneSemantics(d.scenario);
+  const robotTelemetry = semantics.robotTelemetry;
+  const metricSummary = buildSceneMetricSummary(d.fractures, d.scenario, d.gasThreshold);
 
   // ── 封面 ──
   fillR(p, 0, 0, PW, PH, C.bg);
@@ -160,10 +178,10 @@ export async function exportPDF(screenshotFn: (() => string | null) | null, d: R
     fillR(p, MG, doc.y, CW, 26, C.panel);
     const cw = CW / 4;
     const cards = [
-      { l: '总节点', v: String(st.totalNodes), c: C.text },
-      { l: '平均瓦斯', v: `${st.avgGas.toFixed(2)}%`, c: st.avgGas > d.gasThreshold ? C.red : C.text },
-      { l: '平均温度', v: `${st.avgTemp.toFixed(1)}°C`, c: st.avgTemp > 35 ? C.orange : C.text },
-      { l: '超限区域', v: String(st.overThreshold), c: st.overThreshold > 0 ? C.red : C.green },
+      { l: '总节点', v: String(metricSummary.totalNodes || st.totalNodes), c: C.text },
+      { l: `平均${metricSummary.primaryLabel}`, v: `${metricSummary.avgPrimary}${metricSummary.primaryUnit}`, c: metricSummary.avgPrimary > d.gasThreshold ? C.red : C.text },
+      { l: '平均温度', v: `${metricSummary.avgTemperature}°C`, c: metricSummary.avgTemperature > 35 ? C.orange : C.text },
+      { l: semantics.status.overThresholdLabel, v: String(metricSummary.overThreshold), c: metricSummary.overThreshold > 0 ? C.red : C.green },
     ];
     cards.forEach((card, i) => {
       const cx = MG + i * cw;
@@ -172,7 +190,7 @@ export async function exportPDF(screenshotFn: (() => string | null) | null, d: R
       if (i < 3) line(p, cx + cw - 2, doc.y + 3, cx + cw - 2, doc.y + 23, C.line);
     });
     doc.y += 30;
-    doc.kv('平均置信度', `${(st.avgConf * 100).toFixed(1)}%`);
+    doc.kv('平均置信度', `${st.avgConf.toFixed(1)}%`);
     if (st.onlineSensors != null) doc.kv('在线传感器', String(st.onlineSensors));
     doc.kv('相机位置', `X=${d.cameraInfo.x.toFixed(1)}, Y=${d.cameraInfo.y.toFixed(1)}, Z=${d.cameraInfo.z.toFixed(1)}`);
   }
@@ -192,7 +210,7 @@ export async function exportPDF(screenshotFn: (() => string | null) | null, d: R
   if (robots && robots.length > 0) {
     doc.tableHeader([
       { t: '编号', w: 22 }, { t: '型号', w: 18 }, { t: '状态', w: 18 }, { t: 'Mesh', w: 18 },
-      { t: '电量', w: 18 }, { t: 'CH4%', w: 16 }, { t: '深度', w: 16 }, { t: '任务', w: 36 },
+      { t: '电量', w: 18 }, { t: robotTelemetry.primary.label, w: 16 }, { t: '深度', w: 16 }, { t: '任务', w: 36 },
     ]);
     for (let i = 0; i < Math.min(robots.length, 30); i++) {
       const r = robots[i];
@@ -226,7 +244,7 @@ export async function exportPDF(screenshotFn: (() => string | null) | null, d: R
       const lc = a.level === 'danger' ? C.red : a.level === 'warning' ? C.orange : C.blue;
       const ll = a.level === 'danger' ? '紧急' : a.level === 'warning' ? '警告' : '通知';
       const ts = new Date(a.timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
-      const desc = (p.splitTextToSize(a.description || '-', 68)[0] as string);
+      const desc = p.splitTextToSize(a.description || '-', 68)[0] as string;
       doc.row([
         { t: ll, w: 16, c: lc, b: true },
         { t: (a.title || '').slice(0, 26), w: 52 },
@@ -238,12 +256,12 @@ export async function exportPDF(screenshotFn: (() => string | null) | null, d: R
     doc.ensure(6); p.setTextColor(...C.green); p.setFontSize(9); p.setFont('helvetica', 'bold'); p.text('当前无告警', MG, doc.y); doc.y += 6;
   }
 
-  // ── 裂缝 ──
+  // ── 场景对象网络 ──
   if (d.fractures.length > 0) {
-    doc.section('裂缝网络分析');
+    doc.section(`${semantics.networkLabel}分析`);
     const fr = d.fractures;
-    doc.kv('裂缝总数', String(fr.length));
-    doc.kv('主缝/分支', `${fr.filter((f) => f.type === 'main').length} / ${fr.filter((f) => f.type !== 'main').length}`);
+    doc.kv(`${semantics.objectLabel}总数`, String(fr.length));
+    doc.kv('主干/分支', `${fr.filter((f) => f.type === 'main').length} / ${fr.filter((f) => f.type !== 'main').length}`);
     doc.tableHeader([
       { t: '编号', w: 22 }, { t: '名称', w: 35 }, { t: '类型', w: 16 }, { t: '长度m', w: 22 },
       { t: '开面μm', w: 24 }, { t: '倾角°', w: 20 }, { t: '连通性', w: 20 },
@@ -253,11 +271,37 @@ export async function exportPDF(screenshotFn: (() => string | null) | null, d: R
       doc.row([
         { t: f.id, w: 22 },
         { t: (f.name || '-').slice(0, 18), w: 35, c: C.muted },
-        { t: f.type === 'main' ? '主缝' : '分支', w: 16, c: f.type === 'main' ? C.orange : C.muted },
+        { t: f.type === 'main' ? '主干' : '分支', w: 16, c: f.type === 'main' ? C.orange : C.muted },
         { t: f.length.toFixed(1), w: 22 },
         { t: f.aperture_um.toFixed(0), w: 24 },
         { t: f.dip_angle.toFixed(0), w: 20 },
         { t: f.connectivity.toFixed(2), w: 20, c: f.connectivity > 0.7 ? C.orange : C.text },
+      ], i % 2 === 0 ? [16, 16, 24] : undefined);
+    }
+  }
+
+  // ── 风险发现 ──
+  if (d.findings.length > 0) {
+    doc.section('风险发现与可信边界');
+    const findings = d.findings.slice(0, 12);
+    const measured = findings.filter((finding) => finding.truthBoundary === 'measured').length;
+    const inferred = findings.filter((finding) => finding.truthBoundary === 'ai_inferred').length;
+    const verified = findings.filter((finding) => finding.truthBoundary === 'human_verified').length;
+    doc.kv('发现总数', String(d.findings.length));
+    doc.kv('实测/AI/人工确认', `${measured} / ${inferred} / ${verified}`);
+    doc.tableHeader([
+      { t: '边界', w: 20 }, { t: '级别', w: 14 }, { t: '标题', w: 48 }, { t: '描述', w: 70 }, { t: '证据', w: 18 },
+    ]);
+    for (let i = 0; i < findings.length; i++) {
+      const finding = findings[i];
+      const level = finding.level === 'danger' ? '高危' : finding.level === 'warning' ? '警告' : '信息';
+      const desc = p.splitTextToSize(finding.description || '-', 60)[0] as string;
+      doc.row([
+        { t: TRUTH_BOUNDARY_LABELS[finding.truthBoundary], w: 20, c: finding.truthBoundary === 'ai_inferred' ? C.yellow : finding.truthBoundary === 'measured' ? C.green : C.text },
+        { t: level, w: 14, c: finding.level === 'danger' ? C.red : finding.level === 'warning' ? C.orange : C.blue, b: true },
+        { t: finding.title.slice(0, 18), w: 48 },
+        { t: desc, w: 70, c: C.muted },
+        { t: String(finding.evidence.length), w: 18, c: C.dim },
       ], i % 2 === 0 ? [16, 16, 24] : undefined);
     }
   }
@@ -267,7 +311,7 @@ export async function exportPDF(screenshotFn: (() => string | null) | null, d: R
     doc.section('兴趣点 (POI)');
     doc.kv('POI 总数', String(d.pois.length));
     const tl: Record<string, string> = { crack: '裂缝', gas: '瓦斯', collapse: '坍塌', sensor: '传感器' };
-    const tc: Record<string, number[]> = { crack: C.orange, gas: C.red, collapse: C.red, sensor: C.blue };
+    const tc: Record<string, RGB> = { crack: C.orange, gas: C.red, collapse: C.red, sensor: C.blue };
     for (let i = 0; i < Math.min(d.pois.length, 10); i++) {
       const poi = d.pois[i];
       doc.ensure(7); fillR(p, MG, doc.y - 4, CW, 6, i % 2 === 0 ? [16, 16, 24] : C.panel);
@@ -300,10 +344,10 @@ export async function exportPDF(screenshotFn: (() => string | null) | null, d: R
 
   // ── 参数 & 完整性 ──
   doc.section('系统参数与数据完整性');
-  doc.kv('瓦斯报警阈值', `${d.gasThreshold.toFixed(1)}%`);
+  doc.kv(semantics.threshold.label, `${d.gasThreshold.toFixed(semantics.threshold.precision)}${semantics.threshold.unit}`);
   doc.kv('置信度过滤', `${d.confidenceFilter}%`);
   doc.ensure(8);
-  const ll: Record<string, string> = { mesh: '网格', pointCloud: '点云', gasHeatmap: '瓦斯热力图', tempHeatmap: '温度热力图', robots: '机器人', fractures: '裂缝', rockMass: '岩体', poi: '兴趣点' };
+  const ll: Record<string, string> = { mesh: '网格', pointCloud: '点云', gasHeatmap: `${semantics.trend.primary.label}热力图`, tempHeatmap: '温度热力图', robots: '机器人', fractures: semantics.objectLabel, rockMass: '结构/围岩', poi: '兴趣点' };
   let lx = MG + 2, ly2 = doc.y;
   for (const [k, v] of Object.entries(d.layers)) {
     if (lx > PW - MG - 40) { lx = MG + 2; ly2 += 5; }

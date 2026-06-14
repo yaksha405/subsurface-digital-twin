@@ -1,12 +1,29 @@
 import { create } from 'zustand';
-import type { LayerState, CameraTarget, HighlightRegion, ChatMessage, SceneAction, Robot, ScenarioType, DataSourceType, AnnotationTool, Annotation, Fracture, AIMarker } from '../types';
+import type { LayerState, CameraTarget, HighlightRegion, ChatMessage, Robot, ScenarioType, DataSourceType, AnnotationTool, Annotation, Fracture, AIMarker } from '../types';
+import type { Finding, FindingStatus } from '../domain/findingTypes';
+import type { AIActionAuditEntry } from '../domain/aiActionPolicy';
+import type { ExportHistoryEntry } from '../domain/exportHistory';
+import type { Locale } from '../domain/i18nCatalog';
+import { getSceneSemantics } from '../lib/sceneSemantics';
 
 // 模块级高亮计时器 — 统一管理，避免多组件 setTimeout 竞态
 let _highlightTimer: ReturnType<typeof setTimeout> | null = null;
 
+const DATA_SOURCE_SCENARIO: Record<Exclude<DataSourceType, 'fracture'>, ScenarioType> = {
+  pipeline: 'pipeline',
+  nuclear: 'nuclear',
+  refinery: 'refinery',
+  underground: 'underground',
+};
+
+function isFractureScenario(scenario: ScenarioType): scenario is 'coal' | 'gold' | 'oil' {
+  return scenario === 'coal' || scenario === 'gold' || scenario === 'oil';
+}
+
 interface SceneStore {
   // Layer visibility
   layers: LayerState;
+  locale: Locale;
   // Parameters
   gasThreshold: number;
   confidenceFilter: number;
@@ -47,6 +64,7 @@ interface SceneStore {
 
   // Actions
   setLayer: (key: keyof LayerState, value: boolean) => void;
+  setLocale: (locale: Locale) => void;
   setGasThreshold: (value: number) => void;
   setConfidenceFilter: (value: number) => void;
   setPhysicalTruthMode: (value: boolean) => void;
@@ -66,6 +84,7 @@ interface SceneStore {
   setCameraInfo: (info: { x: number; y: number; z: number; dist: number }) => void;
   openRobotDetail: (robot: Robot) => void;
   closeRobotDetail: () => void;
+  clearSelection: () => void;
   // v2 actions
   setDataSource: (d: DataSourceType) => void;
   setScenario: (s: ScenarioType) => void;
@@ -82,6 +101,23 @@ interface SceneStore {
   setAIMarkers: (markers: AIMarker[]) => void;
   addAIMarkers: (markers: AIMarker[]) => void;
   clearAIMarkers: () => void;
+
+  // === Phase 1: 风险发现 / 证据链 ===
+  findings: Finding[];
+  addFinding: (finding: Finding) => void;
+  updateFindingStatus: (id: string, status: FindingStatus) => void;
+  clearFindings: () => void;
+
+  // === Phase 3: AI action audit ===
+  aiActionAudit: AIActionAuditEntry[];
+  addAIActionAudit: (entry: AIActionAuditEntry) => void;
+  markAIActionUndone: (id: string) => void;
+  clearAIActionAudit: () => void;
+
+  // === Phase 4: export history ===
+  exportHistory: ExportHistoryEntry[];
+  addExportHistory: (entry: ExportHistoryEntry) => void;
+  clearExportHistory: () => void;
 
   // === C1: 告警确认 ===
   acknowledgedAlertIds: string[];
@@ -106,7 +142,7 @@ interface SceneStore {
   stopPlayback: () => void;
 }
 
-export const useSceneStore = create<SceneStore>((set, get) => ({
+export const useSceneStore = create<SceneStore>((set) => ({
   layers: {
     mesh: false,
     pointCloud: true,
@@ -117,6 +153,7 @@ export const useSceneStore = create<SceneStore>((set, get) => ({
     rockMass: true,
     poi: true,
   },
+  locale: 'zh-CN',
   gasThreshold: 1.5,
   confidenceFilter: 0,
   physicalTruthMode: false,
@@ -153,6 +190,8 @@ export const useSceneStore = create<SceneStore>((set, get) => ({
     set((state) => ({
       layers: { ...state.layers, [key]: value },
     })),
+
+  setLocale: (locale) => set({ locale }),
 
   setGasThreshold: (value) => set({ gasThreshold: value }),
 
@@ -197,6 +236,8 @@ export const useSceneStore = create<SceneStore>((set, get) => ({
       highlightedFractureIds: null,
       aiMarkers: [],
       fractureColorMode: 'gas' as const,
+      selectedRobot: null,
+      robotDetailOpen: false,
       focusedRobotId: null,
     }));
   },
@@ -210,14 +251,69 @@ export const useSceneStore = create<SceneStore>((set, get) => ({
 
   setCameraInfo: (info) => set({ cameraInfo: info }),
 
-  openRobotDetail: (robot) => set({ selectedRobot: robot, robotDetailOpen: true, focusedRobotId: robot.id }),
+  openRobotDetail: (robot) => set({
+    selectedRobot: robot,
+    robotDetailOpen: true,
+    focusedRobotId: robot.id,
+    selectedFracture: null,
+    selectedFractureNode: null,
+  }),
   closeRobotDetail: () => set({ robotDetailOpen: false, selectedRobot: null, focusedRobotId: null }),
+  clearSelection: () => set({
+    selectedRobot: null,
+    robotDetailOpen: false,
+    focusedRobotId: null,
+    selectedFracture: null,
+    selectedFractureNode: null,
+    highlightedFractureIds: null,
+  }),
 
   // v2 actions
-  setDataSource: (d) => set({ dataSource: d }),
-  setScenario: (s) => set({ scenario: s }),
+  setDataSource: (d) => set((state) => {
+    const nextScenario =
+      d === 'fracture'
+        ? isFractureScenario(state.scenario) ? state.scenario : 'coal'
+        : DATA_SOURCE_SCENARIO[d];
+    return {
+      dataSource: d,
+      scenario: nextScenario,
+      gasThreshold: getSceneSemantics(nextScenario).threshold.defaultValue,
+      selectedFracture: null,
+      selectedFractureNode: null,
+      highlightedFractureIds: null,
+      selectedRobot: null,
+      robotDetailOpen: false,
+      focusedRobotId: null,
+      fractureColorMode: 'gas' as const,
+      activeTool: 'none' as const,
+      playbackActive: false,
+      isPlaying: false,
+      playbackProgress: 1,
+      cameraTarget: { position: [0, 0, 0] },
+    };
+  }),
+  setScenario: (s) => set({
+    scenario: s,
+    selectedFracture: null,
+    selectedFractureNode: null,
+    highlightedFractureIds: null,
+    selectedRobot: null,
+    robotDetailOpen: false,
+    focusedRobotId: null,
+    activeTool: 'none',
+    playbackActive: false,
+    isPlaying: false,
+    playbackProgress: 1,
+    cameraTarget: { position: [0, 0, 0] },
+  }),
   setFractures: (f) => set({ fractures: f }),
-  selectFracture: (f) => set({ selectedFracture: f, selectedFractureNode: null }),
+  selectFracture: (f) => set({
+    selectedFracture: f,
+    selectedFractureNode: null,
+    ...(f
+      ? { selectedRobot: null, robotDetailOpen: false, focusedRobotId: null }
+      : {}),
+  }),
   selectFractureNode: (id) => set({ selectedFractureNode: id }),
   setHighlightedFractureIds: (ids) => set({ highlightedFractureIds: ids }),
   setActiveTool: (t) => set({ activeTool: t }),
@@ -230,6 +326,41 @@ export const useSceneStore = create<SceneStore>((set, get) => ({
   setAIMarkers: (markers) => set({ aiMarkers: markers }),
   addAIMarkers: (markers) => set((state) => ({ aiMarkers: [...state.aiMarkers, ...markers] })),
   clearAIMarkers: () => set({ aiMarkers: [] }),
+
+  // Phase 1: 风险发现 / 证据链
+  findings: [],
+  addFinding: (finding) => set((state) => ({
+    findings: state.findings.some((f) => f.id === finding.id)
+      ? state.findings
+      : [finding, ...state.findings],
+  })),
+  updateFindingStatus: (id, status) => set((state) => ({
+    findings: state.findings.map((finding) =>
+      finding.id === id
+        ? { ...finding, status, updatedAt: Date.now() }
+        : finding
+    ),
+  })),
+  clearFindings: () => set({ findings: [] }),
+
+  // Phase 3: AI action audit
+  aiActionAudit: [],
+  addAIActionAudit: (entry) => set((state) => ({
+    aiActionAudit: [entry, ...state.aiActionAudit].slice(0, 50),
+  })),
+  markAIActionUndone: (id) => set((state) => ({
+    aiActionAudit: state.aiActionAudit.map((entry) =>
+      entry.id === id ? { ...entry, undoneAt: Date.now(), undoable: false } : entry
+    ),
+  })),
+  clearAIActionAudit: () => set({ aiActionAudit: [] }),
+
+  // Phase 4: export history
+  exportHistory: [],
+  addExportHistory: (entry) => set((state) => ({
+    exportHistory: [entry, ...state.exportHistory].slice(0, 20),
+  })),
+  clearExportHistory: () => set({ exportHistory: [] }),
 
   // C1: 告警确认
   acknowledgedAlertIds: [],

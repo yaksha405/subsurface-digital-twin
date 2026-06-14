@@ -1,24 +1,55 @@
 import { useSceneStore } from '../../store/useSceneStore';
 import type { ScenarioType, DataSourceType } from '../../types';
 import { fetchFractures } from '../../api/fractureApi';
-import { useEffect, useState, useRef } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
+import { getSceneSemantics } from '../../lib/sceneSemantics';
+import { clearRobotCache } from '../../hooks/useRobots';
+import { clearAlertCache } from '../../hooks/useAlerts';
+import type { Locale } from '../../domain/i18nCatalog';
+import { getDataSourceCopy, getFractureScenarioLabel } from '../../lib/scenarioSelectorCopy';
+
+function getWelcomeMessage(mode: ScenarioType, locale: Locale) {
+  const welcomeMap: Record<Locale, Record<string, string>> = {
+    'zh-CN': {
+      coal: '## 系统就绪\n\n地质裂缝分析AI助手已上线。\n\n可使用快捷指令分析瓦斯、应力、渗透率、突水等数据。',
+      gold: '## 系统就绪\n\n金矿安全AI助手已上线。\n\n当前监测金矿井下裂缝网络，可使用快捷指令分析微震、岩爆风险、应力集中等数据。',
+      oil: '## 系统就绪\n\n油气储层AI助手已上线。\n\n当前监测油气储层裂缝网络，可使用快捷指令分析孔隙压力、渗透率、含油饱和度等数据。',
+      pipeline: '## 系统就绪\n\n管线巡检AI助手已上线。\n\n当前监测油气输送管网，可使用快捷指令分析泄漏、壁厚、腐蚀、H₂S等数据。',
+      nuclear: '## 系统就绪\n\n核反应堆检修AI助手已上线。\n\n当前监测压水堆(PWR)管道系统，可使用快捷指令分析剂量率、疲劳、FAC、振动等数据。',
+      underground: '## 系统就绪\n\n地下暗流探测AI助手已上线。\n\n当前监测地下岩溶暗河/承压含水层通道网络，浮走式(章鱼)机器人协同探测。可使用快捷指令分析水流流速、渗透率、矿化度、地温梯度等数据。',
+      refinery: '## 系统就绪\n\n炼油化工设备内检AI助手已上线。\n\n当前监测炼油厂核心设备（换热器、加热炉、蒸馏塔）内部通道，蛇形机器人已深入内部回传数据。\n\n可使用快捷指令分析壁厚减薄、结垢、蠕变、裂纹、振动等数据。',
+    },
+    'en-US': {
+      coal: '## System Ready\n\nThe Geological Fracture Analysis AI is online.\n\nUse quick commands to analyze CH4, stress, permeability, and inrush-water risk.',
+      gold: '## System Ready\n\nThe Gold Mine Safety AI is online.\n\nThe current view monitors the underground fracture network in the gold mine. Use quick commands for microseismic, burst risk, and stress concentration analysis.',
+      oil: '## System Ready\n\nThe Reservoir Analysis AI is online.\n\nThe current view monitors the reservoir fracture network. Use quick commands for pore pressure, permeability, and saturation analysis.',
+      pipeline: '## System Ready\n\nThe Pipeline Inspection AI is online.\n\nThe current view monitors the oil and gas transmission network. Use quick commands for leak, wall-loss, corrosion, and H2S analysis.',
+      nuclear: '## System Ready\n\nThe Reactor Maintenance AI is online.\n\nThe current view monitors the PWR piping system. Use quick commands for dose rate, fatigue usage, FAC, and vibration analysis.',
+      underground: '## System Ready\n\nThe Underground Flow Detection AI is online.\n\nThe current view monitors karst channels and confined aquifer passages. Floatwalker robots are surveying flow velocity, permeability, salinity, and geothermal gradients.',
+      refinery: '## System Ready\n\nThe Refinery Internal Inspection AI is online.\n\nThe current view monitors internal passages inside heat exchangers, furnaces, and towers. Snake robots are already returning wall-loss, fouling, creep, crack, and vibration data.',
+    },
+  };
+
+  return welcomeMap[locale][mode] || welcomeMap[locale].coal;
+}
 
 /** 切换数据源时重置聊天消息 */
-function updateWelcomeMessage(mode: ScenarioType) {
-  const welcomeMap: Record<string, string> = {
-    coal: '## 系统就绪\n\n地质裂缝分析AI助手已上线。\n\n可使用快捷指令分析瓦斯、应力、渗透率、突水等数据。',
-    gold: '## 系统就绪\n\n金矿裂缝分析AI助手已上线。\n\n当前监测金矿井下裂缝网络，可使用快捷指令分析微震、岩爆风险、应力集中等数据。',
-    oil: '## 系统就绪\n\n油气裂缝分析AI助手已上线。\n\n当前监测油气储层裂缝网络，可使用快捷指令分析孔隙压力、渗透率、含油饱和度等数据。',
-    pipeline: '## 系统就绪\n\n管线巡检AI助手已上线。\n\n当前监测油气输送管网，可使用快捷指令分析泄漏、壁厚、腐蚀、H₂S等数据。',
-    nuclear: '## 系统就绪\n\n核反应堆检修AI助手已上线。\n\n当前监测压水堆(PWR)管道系统，可使用快捷指令分析剂量率、疲劳、FAC、振动等数据。',
-    underground: '## 系统就绪\n\n地下暗流探测AI助手已上线。\n\n当前监测地下岩溶暗河/承压含水层通道网络，浮走式(章鱼)机器人协同探测。可使用快捷指令分析水流流速、渗透率、矿化度、地温梯度等数据。',
-    refinery: '## 系统就绪\n\n炼油化工设备内检AI助手已上线。\n\n当前监测炼油厂核心设备（换热器、加热炉、蒸馏塔）内部通道，蛇形机器人已深入内部回传数据。\n\n可使用快捷指令分析壁厚减薄、结垢、蠕变、裂纹、振动等数据。',
-  };
+function updateWelcomeMessage(mode: ScenarioType, locale: Locale) {
+  const nextContent = getWelcomeMessage(mode, locale);
+  const currentMessages = useSceneStore.getState().messages;
+  if (
+    currentMessages.length === 1 &&
+    currentMessages[0]?.role === 'assistant' &&
+    currentMessages[0]?.content === nextContent
+  ) {
+    return;
+  }
+
   useSceneStore.setState({
     messages: [{
       id: `msg-${Date.now()}`,
       role: 'assistant' as const,
-      content: welcomeMap[mode] || welcomeMap.coal,
+      content: nextContent,
       timestamp: Date.now(),
     }],
   });
@@ -26,10 +57,10 @@ function updateWelcomeMessage(mode: ScenarioType) {
   useSceneStore.getState().clearAIMarkers();
 }
 
-const SCENARIOS_FRACTURE: { key: ScenarioType; label: string; icon: string }[] = [
-  { key: 'coal', label: '煤矿', icon: '⛏' },
-  { key: 'gold', label: '金矿', icon: '🪨' },
-  { key: 'oil', label: '油气', icon: '🛢' },
+const SCENARIOS_FRACTURE: { key: ScenarioType; icon: string }[] = [
+  { key: 'coal', icon: '⛏' },
+  { key: 'gold', icon: '🪨' },
+  { key: 'oil', icon: '🛢' },
 ];
 
 interface DataSourceOption {
@@ -52,12 +83,23 @@ const DATA_SOURCES: DataSourceOption[] = [
 export function ScenarioSelector() {
   const scenario = useSceneStore((s) => s.scenario);
   const setScenario = useSceneStore((s) => s.setScenario);
+  const setGasThreshold = useSceneStore((s) => s.setGasThreshold);
   const setFractures = useSceneStore((s) => s.setFractures);
   const dataSource = useSceneStore((s) => s.dataSource);
   const setDataSource = useSceneStore((s) => s.setDataSource);
+  const locale = useSceneStore((s) => s.locale);
+  const messages = useSceneStore((s) => s.messages);
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const requestIdRef = useRef(0);
+
+  const loadScenarioFractures = useCallback(async (nextScenario: ScenarioType) => {
+    const requestId = ++requestIdRef.current;
+    const fractures = await fetchFractures(nextScenario);
+    if (requestId !== requestIdRef.current) return;
+    setFractures(fractures);
+  }, [setFractures]);
 
   // 点击外部关闭下拉
   useEffect(() => {
@@ -71,41 +113,55 @@ export function ScenarioSelector() {
   }, []);
 
   const handleSwitch = async (key: ScenarioType) => {
+    clearRobotCache('fracture');
+    clearAlertCache('fracture', key);
     setScenario(key);
-    const fractures = await fetchFractures(key);
-    setFractures(fractures);
-    updateWelcomeMessage(key);
+    setGasThreshold(getSceneSemantics(key).threshold.defaultValue);
+    await loadScenarioFractures(key);
+    updateWelcomeMessage(key, locale);
   };
 
   const handleSwitchDataSource = async (ds: DataSourceType) => {
     setDropdownOpen(false);
     const option = DATA_SOURCES.find((d) => d.key === ds);
     if (!option) return;
+    clearRobotCache(ds);
+    clearAlertCache(ds, option.scenario);
     setDataSource(ds);
 
     if (ds === 'fracture') {
       if (scenario === 'pipeline' || scenario === 'nuclear' || scenario === 'refinery' || scenario === 'underground') {
-        handleSwitch('coal');
+        await handleSwitch('coal');
+      } else {
+        setScenario('coal');
+        setGasThreshold(getSceneSemantics('coal').threshold.defaultValue);
+        await loadScenarioFractures('coal');
+        updateWelcomeMessage('coal', locale);
       }
-      updateWelcomeMessage('coal');
     } else {
       setScenario(option.scenario);
-      const fractures = await fetchFractures(option.scenario);
-      setFractures(fractures);
-      updateWelcomeMessage(option.scenario);
+      setGasThreshold(getSceneSemantics(option.scenario).threshold.defaultValue);
+      await loadScenarioFractures(option.scenario);
+      updateWelcomeMessage(option.scenario, locale);
     }
   };
 
   // 初始化时通过 API 加载数据
   useEffect(() => {
-    (async () => {
-      const fractures = await fetchFractures(scenario);
-      setFractures(fractures);
-    })();
-  }, []);
+    loadScenarioFractures(scenario);
+  }, [loadScenarioFractures, scenario]);
+
+  useEffect(() => {
+    if (messages.length === 1 && messages[0]?.role === 'assistant') {
+      const nextContent = getWelcomeMessage(scenario, locale);
+      if (messages[0].content !== nextContent) {
+        updateWelcomeMessage(scenario, locale);
+      }
+    }
+  }, [locale, messages, scenario]);
 
   const isPipelineMode = dataSource !== 'fracture';
-  const currentSource = DATA_SOURCES.find((d) => d.key === dataSource) || DATA_SOURCES[0];
+  const currentSource = getDataSourceCopy(DATA_SOURCES.find((d) => d.key === dataSource) || DATA_SOURCES[0], locale);
 
   return (
     <div className="flex items-center gap-2">
@@ -113,7 +169,7 @@ export function ScenarioSelector() {
       <div className="relative" ref={dropdownRef}>
         <button
           onClick={() => setDropdownOpen((v) => !v)}
-          className="flex items-center gap-2 px-3 py-1.5 rounded text-[11px] font-medium transition-all whitespace-nowrap bg-[#00D4FF]/20 text-[#00D4FF] border border-[#00D4FF]/40 hover:bg-[#00D4FF]/30"
+          className="flex items-center gap-2 px-3 py-1.5 rounded-md text-[11px] font-semibold transition-all whitespace-nowrap bg-[#E7F7EF] text-[#087443] border border-[#B7E4CB] hover:bg-[#DDF3E8]"
         >
           <span className="text-sm">{currentSource.icon}</span>
           <span>{currentSource.label}</span>
@@ -127,47 +183,50 @@ export function ScenarioSelector() {
 
         {/* 下拉面板 */}
         {dropdownOpen && (
-          <div className="absolute top-full left-0 mt-1 w-72 rounded-lg border border-white/15 bg-[#0A0E17]/95 backdrop-blur-xl shadow-2xl z-50 overflow-hidden">
-            {DATA_SOURCES.map((ds) => (
+          <div className="absolute top-full left-0 mt-1 w-72 rounded-lg border border-[#D9E1EA] bg-white/95 backdrop-blur-xl shadow-2xl z-50 overflow-hidden">
+            {DATA_SOURCES.map((ds) => {
+              const localizedSource = getDataSourceCopy(ds, locale);
+              return (
               <button
                 key={ds.key}
                 onClick={() => handleSwitchDataSource(ds.key)}
-                className={`w-full flex items-start gap-3 px-4 py-2.5 text-left transition-all border-b border-white/5 last:border-b-0 ${
+                className={`w-full flex items-start gap-3 px-4 py-2.5 text-left transition-all border-b border-[#EEF2F6] last:border-b-0 ${
                   dataSource === ds.key
-                    ? 'bg-[#00D4FF]/15 text-[#00D4FF]'
-                    : 'text-[#A0A0B0] hover:bg-white/5 hover:text-[#E0E0E8]'
+                    ? 'bg-[#E7F7EF] text-[#087443]'
+                    : 'text-[#667085] hover:bg-[#F8FAFC] hover:text-[#182230]'
                 }`}
               >
                 <span className="text-base mt-0.5">{ds.icon}</span>
                 <div className="flex-1 min-w-0">
-                  <div className="text-[11px] font-semibold whitespace-nowrap">{ds.label}</div>
-                  <div className="text-[9px] text-[#606070] mt-0.5">{ds.desc}</div>
+                  <div className="text-[11px] font-semibold whitespace-nowrap">{localizedSource.label}</div>
+                  <div className="text-[9px] text-[#667085] mt-0.5">{localizedSource.desc}</div>
                 </div>
                 {dataSource === ds.key && (
-                  <span className="text-[#00D4FF] text-xs mt-0.5">✓</span>
+                  <span className="text-[#087443] text-xs mt-0.5">✓</span>
                 )}
               </button>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
 
       {/* 分隔线 */}
-      <div className="w-px h-4 bg-white/10" />
+      <div className="w-px h-4 bg-[#D9E1EA]" />
 
       {/* 子场景（仅裂缝模式显示煤矿/金矿/油气） */}
-      {!isPipelineMode && SCENARIOS_FRACTURE.map(({ key, label, icon }) => (
+      {!isPipelineMode && SCENARIOS_FRACTURE.map(({ key, icon }) => (
         <button
           key={key}
           onClick={() => handleSwitch(key)}
           className={`flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-medium transition-all ${
             scenario === key
-              ? 'bg-[#FFE600]/20 text-[#FFE600] border border-[#FFE600]/40'
-              : 'text-[#A0A0B0] border border-transparent hover:bg-white/5 hover:text-[#E0E0E8]'
+              ? 'bg-[#1F2937] text-white border border-[#1F2937]'
+              : 'text-[#667085] border border-transparent hover:bg-[#EEF2F6] hover:text-[#182230]'
           }`}
         >
           <span className="text-xs">{icon}</span>
-          {label}
+          {getFractureScenarioLabel(key, locale)}
         </button>
       ))}
     </div>

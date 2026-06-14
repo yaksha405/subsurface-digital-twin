@@ -2,8 +2,10 @@ import { useRef } from 'react';
 import { useSceneStore } from '../../store/useSceneStore';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
-import { Box, Eye, Ruler, Type, PenLine } from 'lucide-react';
+import { Box, Eye, Ruler, Type, PenLine, type LucideIcon } from 'lucide-react';
 import type { AnnotationTool } from '../../types';
+import { getPhysicalTruthCopy } from '../../lib/sceneControlCopy';
+import { t } from '../../domain/i18nCatalog';
 
 export function ToolActions() {
   const activeTool = useSceneStore((s) => s.activeTool);
@@ -15,6 +17,8 @@ export function ToolActions() {
   const setLayer = useSceneStore((s) => s.setLayer);
   const layers = useSceneStore((s) => s.layers);
   const clearAIMarkers = useSceneStore((s) => s.clearAIMarkers);
+  const scenario = useSceneStore((s) => s.scenario);
+  const locale = useSceneStore((s) => s.locale);
 
   // 保存进入物理真实模式前的图层状态
   const prevLayersRef = useRef<typeof layers | null>(null);
@@ -46,24 +50,24 @@ export function ToolActions() {
     setPhysicalTruthMode(enable);
   };
 
-  const tools: { key: AnnotationTool; label: string; Icon: any; shortcut: string }[] = [
-    { key: 'profile', label: '剖面线', Icon: Ruler, shortcut: 'F1' },
-    { key: 'area', label: '区域框选', Icon: Box, shortcut: 'F2' },
-    { key: 'text', label: '文字标注', Icon: Type, shortcut: 'F3' },
-    { key: 'distance', label: '测距', Icon: PenLine, shortcut: 'F4' },
+  const tools: { key: AnnotationTool; label: string; Icon: LucideIcon; shortcut: string }[] = [
+    { key: 'profile', label: t('tool.profile', locale), Icon: Ruler, shortcut: 'F1' },
+    { key: 'area', label: t('tool.area', locale), Icon: Box, shortcut: 'F2' },
+    { key: 'text', label: t('tool.text', locale), Icon: Type, shortcut: 'F3' },
+    { key: 'distance', label: t('tool.distance', locale), Icon: PenLine, shortcut: 'F4' },
   ];
 
   return (
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle>测量标注工具</CardTitle>
+          <CardTitle>{t('panel.measureTools', locale)}</CardTitle>
           {annotations.length > 0 && (
             <button
               onClick={clearAnnotations}
-              className="text-[9px] text-[#FF6644] hover:underline"
+              className="text-[9px] text-[#B42318] hover:underline"
             >
-              清除({annotations.length})
+              {t('tool.clear', locale)}({annotations.length})
             </button>
           )}
         </div>
@@ -78,11 +82,11 @@ export function ToolActions() {
           >
             <Icon className="w-3.5 h-3.5" />
             <span className="flex-1 text-left">{label}</span>
-            <kbd className="text-[9px] px-1 py-0.5 rounded bg-white/5 text-[#A0A0B0] border border-white/10">{shortcut}</kbd>
+            <kbd className="text-[9px] px-1 py-0.5 rounded bg-[#F8FAFC] text-[#667085] border border-[#D9E1EA]">{shortcut}</kbd>
           </Button>
         ))}
 
-        <div className="pt-2 border-t border-white/5">
+        <div className="pt-2 border-t border-[#D9E1EA]">
           <Button
             variant={isPhysicalTruth ? 'destructive' : 'outline'}
             className="w-full justify-start"
@@ -90,15 +94,17 @@ export function ToolActions() {
           >
             <Eye className="w-3.5 h-3.5" />
             <span className="flex-1 text-left">
-              {isPhysicalTruth ? '退出物理真实模式' : '还原物理真实面貌'}
+              {locale === 'zh-CN'
+                ? (isPhysicalTruth ? '退出物理真实模式' : '还原物理真实面貌')
+                : (isPhysicalTruth ? 'Exit physical-truth mode' : 'Reveal physical reality')}
             </span>
           </Button>
         </div>
 
         {isPhysicalTruth && (
-          <div className="text-[9px] text-[#FF6644]/80 flex items-start gap-1 animate-fade-in pt-1">
-            <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#FF6644] animate-pulse mt-0.5 flex-shrink-0" />
-            合规审计模式：已关闭AI解译图层，仅显示原始点云+岩体+机器人
+          <div className="text-[9px] text-[#B42318]/80 flex items-start gap-1 animate-fade-in pt-1">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#B42318] animate-pulse mt-0.5 flex-shrink-0" />
+            {getPhysicalTruthCopy(scenario, locale)}
           </div>
         )}
       </CardContent>

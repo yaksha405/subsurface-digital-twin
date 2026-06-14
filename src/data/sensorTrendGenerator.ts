@@ -6,6 +6,7 @@
  */
 
 import type { Fracture, ScenarioType } from '../types';
+import { getSceneSemantics, type SceneMetricConfig } from '../lib/sceneSemantics';
 
 export interface RegionTrend {
   regionId: string;
@@ -35,56 +36,17 @@ export interface SensorTrend {
   source: string;
 }
 
-/** 场景特定的趋势配置 — 三条曲线的含义随场景变化 */
-interface TrendScenarioConfig {
-  /** 区域命名前缀 */
-  regionPrefix: string;
-  /** 主指标(ch4字段) */
-  primaryLabel: string; primaryUnit: string; primaryBase: number[]; primaryThreshold: number;
-  /** 温度 */
-  tempLabel: string; tempBase: number[];
-  /** 辅助指标(pressure字段) */
-  auxLabel: string; auxUnit: string; auxBase: number[];
+interface RegionConfig {
+  id: string;
+  name: string;
+  center: [number, number, number];
+  radius: number;
+  basePrimary: number;
+  baseTemp: number;
+  baseAux: number;
+  nodeRatio: number;
+  fractureIds: string[];
 }
-
-const TREND_CONFIG: Record<string, TrendScenarioConfig> = {
-  coal: {
-    regionPrefix: '裂缝带',
-    primaryLabel: 'CH₄ 浓度', primaryUnit: '%', primaryBase: [1.8, 2.6, 0.6, 1.2], primaryThreshold: 1.5,
-    tempLabel: '环境温度', tempBase: [35, 40, 28, 32],
-    auxLabel: '大气压力', auxUnit: 'kPa', auxBase: [108, 112, 103, 106],
-  },
-  gold: {
-    regionPrefix: '采区',
-    primaryLabel: '微震频率', primaryUnit: '次/h', primaryBase: [8, 16, 4, 10], primaryThreshold: 15,
-    tempLabel: '岩温', tempBase: [32, 38, 26, 30],
-    auxLabel: '应力', auxUnit: 'MPa', auxBase: [12, 18, 8, 14],
-  },
-  oil: {
-    regionPrefix: '储层',
-    primaryLabel: '孔隙压力', primaryUnit: 'MPa', primaryBase: [18, 28, 12, 22], primaryThreshold: 30,
-    tempLabel: '地层温度', tempBase: [65, 80, 50, 70],
-    auxLabel: '渗透率', auxUnit: 'mD', auxBase: [1.2, 2.8, 0.5, 1.8],
-  },
-  pipeline: {
-    regionPrefix: '站场',
-    primaryLabel: '天然气泄漏', primaryUnit: '%LEL', primaryBase: [3, 18, 1, 8], primaryThreshold: 20,
-    tempLabel: '管道温度', tempBase: [15, 35, 8, 22],
-    auxLabel: '运行压力', auxUnit: 'MPa', auxBase: [6.5, 8.2, 4.0, 7.0],
-  },
-  nuclear: {
-    regionPrefix: '环路',
-    primaryLabel: '剂量率', primaryUnit: 'mSv/h', primaryBase: [0.8, 12, 0.2, 3.5], primaryThreshold: 25,
-    tempLabel: '冷却剂温度', tempBase: [293, 327, 280, 305],
-    auxLabel: '运行压力', auxUnit: 'MPa', auxBase: [15.5, 15.5, 12, 15.5],
-  },
-  refinery: {
-    regionPrefix: '设备区',
-    primaryLabel: '壁厚减薄', primaryUnit: '%', primaryBase: [1.2, 4.5, 0.5, 2.8], primaryThreshold: 3,
-    tempLabel: '操作温度', tempBase: [180, 650, 80, 350],
-    auxLabel: '腐蚀速率', auxUnit: 'mm/yr', auxBase: [0.08, 0.45, 0.03, 0.22],
-  },
-};
 
 const REGION_DIRS = ['north', 'central', 'south', 'east'];
 const REGION_NAMES = ['北部', '中央', '南部', '东部'];
@@ -117,15 +79,32 @@ function computeFractureCluster(
 }
 
 /** 按象限将裂缝分为4个区域，每个区域计算实际中心 + 记录裂缝ID */
-function divideFracturesIntoRegions(fractures: Fracture[], cfg: TrendScenarioConfig) {
+function averageMetric(fractures: Fracture[], metric: SceneMetricConfig, fallback: number): number {
+  const readings = fractures.flatMap((fracture) => [
+    fracture.sensorReading,
+    ...fracture.nodes.map((node) => node.sensors),
+  ]);
+  const values = readings
+    .map((reading) => reading[metric.key])
+    .filter((value) => Number.isFinite(value));
+
+  if (values.length === 0) return fallback;
+  const avg = values.reduce((sum, value) => sum + value, 0) / values.length;
+  return Math.round(avg * 100) / 100;
+}
+
+/** 按象限将通道对象分为4个区域，每个区域计算实际中心 + 记录对象ID */
+function divideFracturesIntoRegions(fractures: Fracture[], scenario: ScenarioType): RegionConfig[] {
+  const semantics = getSceneSemantics(scenario);
+  const trend = semantics.trend;
   if (fractures.length === 0) {
     // 无数据时用默认坐标
     return REGION_DIRS.map((id, i) => ({
       id,
-      name: `${REGION_NAMES[i]}${cfg.regionPrefix}`,
-      baseCh4: cfg.primaryBase[i],
-      baseTemp: cfg.tempBase[i],
-      basePressure: cfg.auxBase[i],
+      name: `${REGION_NAMES[i]}${semantics.regionPrefix}`,
+      basePrimary: trend.primary.fallbackBase[i],
+      baseTemp: trend.temperature.fallbackBase[i],
+      baseAux: trend.aux.fallbackBase[i],
       nodeRatio: [0.3, 0.25, 0.25, 0.2][i],
       center: [[-25, 0, -25], [0, 0, 0], [25, -10, 25], [35, 0, -10]][i] as [number, number, number],
       radius: 15,
@@ -165,13 +144,14 @@ function divideFracturesIntoRegions(fractures: Fracture[], cfg: TrendScenarioCon
   }
 
   return REGION_DIRS.map((id, i) => {
-    const cluster = computeFractureCluster(groups[i].fractures);
+    const groupFractures = groups[i].fractures;
+    const cluster = computeFractureCluster(groupFractures);
     return {
       id,
-      name: `${REGION_NAMES[i]}${cfg.regionPrefix}`,
-      baseCh4: cfg.primaryBase[i],
-      baseTemp: cfg.tempBase[i],
-      basePressure: cfg.auxBase[i],
+      name: `${REGION_NAMES[i]}${semantics.regionPrefix}`,
+      basePrimary: averageMetric(groupFractures, trend.primary, trend.primary.fallbackBase[i]),
+      baseTemp: averageMetric(groupFractures, trend.temperature, trend.temperature.fallbackBase[i]),
+      baseAux: averageMetric(groupFractures, trend.aux, trend.aux.fallbackBase[i]),
       nodeRatio: [0.3, 0.25, 0.25, 0.2][i],
       ...cluster,
       fractureIds: groups[i].ids,
@@ -180,7 +160,8 @@ function divideFracturesIntoRegions(fractures: Fracture[], cfg: TrendScenarioCon
 }
 
 export function generateMockSensorTrend(totalNodes: number = 100, fractures?: Fracture[], scenario: ScenarioType = 'coal'): SensorTrend {
-  const cfg = TREND_CONFIG[scenario] || TREND_CONFIG.coal;
+  const semantics = getSceneSemantics(scenario);
+  const trend = semantics.trend;
 
   const now = Date.now();
   const timestamps: number[] = [];
@@ -191,22 +172,22 @@ export function generateMockSensorTrend(totalNodes: number = 100, fractures?: Fr
   }
 
   // 动态计算区域边界
-  const regionConfigs = divideFracturesIntoRegions(fractures || [], cfg);
+  const regionConfigs = divideFracturesIntoRegions(fractures || [], scenario);
 
   // 为每个区域生成趋势
-  const regions: RegionTrend[] = regionConfigs.map((cfg_r: any) => {
+  const regions: RegionTrend[] = regionConfigs.map((cfg_r) => {
     const rCh4: number[] = [];
     const rTemp: number[] = [];
     const rPressure: number[] = [];
 
     for (let i = 29; i >= 0; i--) {
       const phase = i * 0.3;
-      const spike = cfg_r.baseCh4 > cfg.primaryThreshold * 0.6 && i > 18 && i < 24 ? cfg_r.baseCh4 * 0.5 : 0;
-      rCh4.push(Math.max(0.01, Math.round((cfg_r.baseCh4 + Math.sin(phase) * cfg_r.baseCh4 * 0.15 + spike + (Math.random() - 0.5) * cfg_r.baseCh4 * 0.1) * 100) / 100));
+      const spike = cfg_r.basePrimary > trend.primary.threshold * 0.6 && i > 18 && i < 24 ? cfg_r.basePrimary * 0.5 : 0;
+      rCh4.push(Math.max(0.01, Math.round((cfg_r.basePrimary + Math.sin(phase) * cfg_r.basePrimary * 0.15 + spike + (Math.random() - 0.5) * cfg_r.basePrimary * 0.1) * 100) / 100));
 
       rTemp.push(Math.round((cfg_r.baseTemp + (29 - i) * 0.2 + Math.sin(i * 0.5) * cfg_r.baseTemp * 0.03 + (Math.random() - 0.5) * 0.8) * 10) / 10);
 
-      rPressure.push(Math.round((cfg_r.basePressure + Math.sin(i * 0.4) * cfg_r.basePressure * 0.02 + (Math.random() - 0.5) * 0.8) * 10) / 10);
+      rPressure.push(Math.round((cfg_r.baseAux + Math.sin(i * 0.4) * cfg_r.baseAux * 0.02 + (Math.random() - 0.5) * cfg_r.baseAux * 0.08) * 10) / 10);
     }
 
     return {
@@ -216,12 +197,18 @@ export function generateMockSensorTrend(totalNodes: number = 100, fractures?: Fr
       ch4: rCh4,
       temperature: rTemp,
       pressure: rPressure,
-      nodeCount: Math.round(totalNodes * cfg_r.nodeRatio),
+      nodeCount: 0,
       center: cfg_r.center,
       radius: cfg_r.radius,
       fractureIds: cfg_r.fractureIds,
     };
   });
+
+  for (let i = 0; i < regions.length - 1; i++) {
+    regions[i].nodeCount = Math.max(0, Math.floor(totalNodes * regionConfigs[i].nodeRatio));
+  }
+  const remainder = Math.max(0, totalNodes - regions.slice(0, -1).reduce((sum, region) => sum + region.nodeCount, 0));
+  regions[regions.length - 1].nodeCount = remainder;
 
   // 加权聚合为全局趋势
   const aggCh4: number[] = [];
@@ -237,9 +224,15 @@ export function generateMockSensorTrend(totalNodes: number = 100, fractures?: Fr
       weightedPressure += r.pressure[i] * w;
       totalWeight += w;
     }
-    aggCh4.push(Math.round((weightedCh4 / totalWeight) * 100) / 100);
-    aggTemp.push(Math.round((weightedTemp / totalWeight) * 10) / 10);
-    aggPressure.push(Math.round((weightedPressure / totalWeight) * 10) / 10);
+    if (totalWeight === 0) {
+      aggCh4.push(0);
+      aggTemp.push(0);
+      aggPressure.push(0);
+    } else {
+      aggCh4.push(Math.round((weightedCh4 / totalWeight) * 100) / 100);
+      aggTemp.push(Math.round((weightedTemp / totalWeight) * 10) / 10);
+      aggPressure.push(Math.round((weightedPressure / totalWeight) * 10) / 10);
+    }
   }
 
   return {
@@ -248,6 +241,6 @@ export function generateMockSensorTrend(totalNodes: number = 100, fractures?: Fr
     temperature: aggTemp,
     pressure: aggPressure,
     regions,
-    source: `${totalNodes} 个节点加权聚合 · 4 个${cfg.regionPrefix}`,
+    source: `${totalNodes} 个${semantics.nodeLabel}加权聚合 · 4 个${semantics.regionPrefix}`,
   };
 }

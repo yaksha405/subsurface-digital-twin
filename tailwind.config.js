@@ -9,30 +9,31 @@ export default {
     extend: {
       colors: {
         background: {
-          DEFAULT: "#0A0A0F",
-          secondary: "#121218",
-          tertiary: "#1A1D2A",
-          panel: "#2A2D3A",
+          DEFAULT: "#EEF2F6",
+          secondary: "#F8FAFC",
+          tertiary: "#FFFFFF",
+          panel: "#E5EAF1",
+          scene: "#101820",
         },
         primary: {
-          yellow: "#FFE600",
-          red: "#FF3333",
-          blue: "#1E3A5F",
-          orange: "#FF8800",
+          yellow: "#C99A2E",
+          red: "#B42318",
+          blue: "#1F2937",
+          orange: "#B54708",
         },
         text: {
-          DEFAULT: "#E0E0E8",
-          muted: "#A0A0B0",
-          yellow: "#FFE600",
+          DEFAULT: "#182230",
+          muted: "#667085",
+          yellow: "#9A6700",
         },
         accent: {
-          safe: "#2D6A4F",
-          danger: "#FF3333",
-          warn: "#FF8800",
+          safe: "#087443",
+          danger: "#B42318",
+          warn: "#9A6700",
         },
       },
       fontFamily: {
-        sans: ['Oswald', 'Inter', 'system-ui', 'sans-serif'],
+        sans: ['Inter', 'Noto Sans SC', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'Consolas', 'monospace'],
       },
       animation: {

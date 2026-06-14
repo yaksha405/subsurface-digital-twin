@@ -2,9 +2,11 @@ import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { useSceneStore } from '../../store/useSceneStore';
-import { useCanvasInteraction } from './useCanvasInteraction';
+import { useCanvasInteraction, type CanvasInteractionPoint } from './useCanvasInteraction';
 import { getMeasureConfig } from '../../lib/sceneMeasureConfig';
-import type { Annotation, FractureNode } from '../../types';
+import { MeasurementSnapIndicator } from './MeasurementSnapIndicator';
+import type { MeasurementSnapResult } from '../../lib/measurementPicking';
+import type { Annotation } from '../../types';
 
 const SCENE_Y_MIN = -20;
 const SCENE_Y_MAX = 20;
@@ -29,6 +31,7 @@ export function ProfileLineTool() {
 
   const [points, setPoints] = useState<THREE.Vector3[]>([]);
   const [previewPoint, setPreviewPoint] = useState<THREE.Vector3 | null>(null);
+  const [snap, setSnap] = useState<MeasurementSnapResult | null>(null);
 
   const pointsRef = useRef<THREE.Vector3[]>([]);
 
@@ -37,6 +40,7 @@ export function ProfileLineTool() {
       pointsRef.current = [];
       setPoints([]);
       setPreviewPoint(null);
+      setSnap(null);
     }
   }, [isActive]);
 
@@ -47,6 +51,7 @@ export function ProfileLineTool() {
         pointsRef.current = [];
         setPoints([]);
         setPreviewPoint(null);
+        setSnap(null);
         setActiveTool('none');
       }
     };
@@ -70,6 +75,12 @@ export function ProfileLineTool() {
     onPointerMove: useCallback((pt: THREE.Vector3) => {
       if (pointsRef.current.length === 1) {
         setPreviewPoint(pt);
+      }
+    }, []),
+    onPointerMoveDetail: useCallback((detail: CanvasInteractionPoint) => {
+      setSnap(detail.snap);
+      if (pointsRef.current.length === 0) {
+        setPreviewPoint(detail.point);
       }
     }, []),
   });
@@ -96,6 +107,7 @@ export function ProfileLineTool() {
     pointsRef.current = [];
     setPoints([]);
     setPreviewPoint(null);
+    setSnap(null);
     setActiveTool('none');
   }, [points, addAnnotation, setActiveTool]);
 
@@ -103,9 +115,15 @@ export function ProfileLineTool() {
     pointsRef.current = [];
     setPoints([]);
     setPreviewPoint(null);
+    setSnap(null);
   }, []);
 
   if (!isActive && points.length === 0) return null;
+
+  const scenario = useSceneStore.getState().scenario;
+  const gasThreshold = useSceneStore.getState().gasThreshold;
+  const locale = useSceneStore.getState().locale;
+  const measureCfg = getMeasureConfig(scenario, gasThreshold);
 
   const linePoints: THREE.Vector3[] = [];
   if (points.length >= 1) linePoints.push(points[0]);
@@ -115,6 +133,7 @@ export function ProfileLineTool() {
   return (
     <>
       {/* 剖面线 */}
+      {isActive && points.length < 2 && <MeasurementSnapIndicator point={previewPoint} snap={snap} locale={locale} />}
       {linePoints.length === 2 && (
         <group>
           {(() => {
@@ -130,11 +149,11 @@ export function ProfileLineTool() {
             return (
               <>
                 <mesh position={mid} quaternion={quat} userData={{ noRaycast: true }}>
-                  <cylinderGeometry args={[0.2, 0.2, len, 8]} />
+                  <cylinderGeometry args={[0.07, 0.07, len, 8]} />
                   <meshBasicMaterial color="#FF8800" transparent opacity={0.95} />
                 </mesh>
                 <mesh position={mid} quaternion={quat} userData={{ noRaycast: true }}>
-                  <cylinderGeometry args={[0.45, 0.45, len, 8]} />
+                  <cylinderGeometry args={[0.2, 0.2, len, 8]} />
                   <meshBasicMaterial color="#FF8800" transparent opacity={0.12} depthWrite={false} />
                 </mesh>
               </>
@@ -150,7 +169,7 @@ export function ProfileLineTool() {
           {linePoints.map((p, i) => (
             <group key={i} position={p}>
               <mesh userData={{ noRaycast: true }}>
-                <sphereGeometry args={[0.5, 16, 16]} />
+                <sphereGeometry args={[0.2, 16, 16]} />
                 <meshBasicMaterial color={i === 0 ? '#00FF88' : '#FF4400'} />
               </mesh>
             </group>
@@ -172,14 +191,16 @@ export function ProfileLineTool() {
       {isActive && points.length === 0 && (
         <Html position={[0, 0, 0]} center>
           <div className="glass-panel px-3 py-2 text-[10px] text-[#FF8800] animate-pulse whitespace-nowrap" style={{ pointerEvents: 'none' }}>
-            F1 剖面线 · 点击两点定义切面 · 查看截面裂缝分布（右键旋转·ESC取消）
+            {locale === 'zh-CN'
+              ? `F1 ${measureCfg.profileTitle} · 点击两点定义切面 · 查看截面${measureCfg.pointLabel}分布（右键旋转·ESC取消）`
+              : `F1 ${measureCfg.profileTitle} · click two points to define the section · inspect ${measureCfg.pointLabel} across the slice (right-drag to orbit · ESC to cancel)`}
           </div>
         </Html>
       )}
       {isActive && points.length === 1 && (
         <Html position={[0, 5, 0]} center>
           <div className="glass-panel px-3 py-2 text-[10px] text-[#FF8800] animate-pulse whitespace-nowrap" style={{ pointerEvents: 'none' }}>
-            移动鼠标预览 → 点击设置终点 → 生成截面图
+            {locale === 'zh-CN' ? '移动鼠标预览 → 点击设置终点 → 生成截面图' : 'Move to preview → click to set the end point → generate the section view'}
           </div>
         </Html>
       )}
@@ -237,6 +258,7 @@ function ProfileCrossSection({
   const fractures = useSceneStore((s) => s.fractures);
   const scenario = useSceneStore((s) => s.scenario);
   const gasThreshold = useSceneStore((s) => s.gasThreshold);
+  const locale = useSceneStore((s) => s.locale);
   const measureCfg = getMeasureConfig(scenario, gasThreshold);
   const profileLen = p0.distanceTo(p1);
 
@@ -246,17 +268,28 @@ function ProfileCrossSection({
   const thresholdVal = measureCfg.primaryThreshold as number;
 
   // 投影裂缝节点到剖面平面 + 分段密度 + RQD
-  const { projected, maxVal, dangerous, segmentDensity, rqd, avgVal } = useMemo(() => {
+  const { projected, maxVal, dangerous, segmentDensity, rqd, avgVal, avgSecondaryVal } = useMemo(() => {
     const lineDir = new THREE.Vector3().subVectors(p1, p0);
     const lineLen = lineDir.length();
-    if (lineLen < 0.01) return { projected: [], maxVal: 1, dangerous: 0, segmentDensity: [] as number[], rqd: 100, avgVal: 0 };
+    if (lineLen < 0.01) {
+      return {
+        projected: [],
+        maxVal: 1,
+        dangerous: 0,
+        segmentDensity: [] as number[],
+        rqd: 100,
+        avgVal: 0,
+        avgSecondaryVal: 0,
+      };
+    }
     lineDir.normalize();
 
     const normal = new THREE.Vector3(-lineDir.z, 0, lineDir.x);
 
-    const pts: { x: number; y: number; val: number; nodeId: string; fractureName: string }[] = [];
+    const pts: { x: number; y: number; val: number; nodeId: string; fractureName: string; secondaryVal: number }[] = [];
     let mx = 0.01;
     let sumVal = 0;
+    let sumSecondary = 0;
     let dCount = 0;
 
     // 分段密度统计
@@ -272,14 +305,23 @@ function ProfileCrossSection({
         const lateral = Math.abs(toNode.dot(normal));
         if (lateral > SLICE_WIDTH) continue;
 
-        const val = (n.sensors as Record<string, number>)[sensorKey] || 0;
+        const val = (n.sensors as unknown as Record<string, number>)[sensorKey] || 0;
         mx = Math.max(mx, val);
         sumVal += val;
 
         const isDangerous = val > thresholdVal;
         if (isDangerous) dCount++;
 
-        pts.push({ x: Math.max(0, Math.min(lineLen, along)), y: n.position[1], val, nodeId: n.id, fractureName: f.name });
+        const secondaryVal = (n.sensors as unknown as Record<string, number>)[measureCfg.secondaryKey] || 0;
+        sumSecondary += secondaryVal;
+        pts.push({
+          x: Math.max(0, Math.min(lineLen, along)),
+          y: n.position[1],
+          val,
+          nodeId: n.id,
+          fractureName: f.name,
+          secondaryVal,
+        });
 
         const segIdx = Math.min(SEGMENTS - 1, Math.floor((along / lineLen) * SEGMENTS));
         if (segIdx >= 0) segCounts[segIdx]++;
@@ -294,8 +336,16 @@ function ProfileCrossSection({
     }
     const rqdVal = sorted.length > 0 ? Math.min(100, (intactCount / sorted.length) * 100) : 100;
 
-    return { projected: pts, maxVal: mx, dangerous: dCount, segmentDensity: segCounts, rqd: rqdVal, avgVal: pts.length > 0 ? sumVal / pts.length : 0 };
-  }, [fractures, p0, p1, sensorKey, scenario, gasThreshold]);
+    return {
+      projected: pts,
+      maxVal: mx,
+      dangerous: dCount,
+      segmentDensity: segCounts,
+      rqd: rqdVal,
+      avgVal: pts.length > 0 ? sumVal / pts.length : 0,
+      avgSecondaryVal: pts.length > 0 ? sumSecondary / pts.length : 0,
+    };
+  }, [fractures, measureCfg.secondaryKey, p0, p1, sensorKey, thresholdVal]);
 
   const lineLen = profileLen;
 
@@ -320,6 +370,10 @@ function ProfileCrossSection({
     return '#FF4422';
   };
 
+  const topHotspots = [...projected]
+    .sort((a, b) => b.val - a.val)
+    .slice(0, 3);
+
   // 阈值线 Y 像素位置 — 已从 measureCfg 获取 thresholdVal
 
   return (
@@ -327,7 +381,7 @@ function ProfileCrossSection({
       position={[(p0.x + p1.x) / 2, SCENE_Y_MAX + 5, (p0.z + p1.z) / 2]}
       center
     >
-      <div className="glass-panel p-3 min-w-[320px]" style={{ pointerEvents: 'auto' }}>
+      <div data-testid="profile-cross-section-panel" className="glass-panel p-3 min-w-[320px]" style={{ pointerEvents: 'auto' }}>
         {/* 标题栏 + 风险等级 */}
         <div className="flex items-center justify-between mb-2">
           <span className="text-[#FF8800] font-bold text-[11px]">{measureCfg.profileTitle}</span>
@@ -335,7 +389,9 @@ function ProfileCrossSection({
             background: `${dangerous === 0 ? '#00CC66' : dangerous <= projected.length * 0.2 ? '#FFCC00' : dangerous <= projected.length * 0.5 ? '#FF8800' : '#FF3333'}20`,
             color: dangerous === 0 ? '#00CC66' : dangerous <= projected.length * 0.2 ? '#FFCC00' : dangerous <= projected.length * 0.5 ? '#FF8800' : '#FF3333'
           }}>
-            {dangerous === 0 ? '安全' : dangerous <= projected.length * 0.2 ? '低风险' : dangerous <= projected.length * 0.5 ? '中风险' : '高风险'}
+            {locale === 'zh-CN'
+              ? (dangerous === 0 ? '安全' : dangerous <= projected.length * 0.2 ? '低风险' : dangerous <= projected.length * 0.5 ? '中风险' : '高风险')
+              : (dangerous === 0 ? 'Safe' : dangerous <= projected.length * 0.2 ? 'Low Risk' : dangerous <= projected.length * 0.5 ? 'Medium Risk' : 'High Risk')}
           </span>
         </div>
 
@@ -358,7 +414,9 @@ function ProfileCrossSection({
           ))}
 
           {/* 底部分段密度热力带 */}
-          <text x={padL - 4} y={svgH - padB + 8} fill="#808890" fontSize={6} textAnchor="end">密度</text>
+          <text x={padL - 4} y={svgH - padB + 8} fill="#808890" fontSize={6} textAnchor="end">
+            {locale === 'zh-CN' ? '密度' : 'Density'}
+          </text>
           {segmentDensity.length > 0 && (() => {
             const maxSeg = Math.max(1, ...segmentDensity);
             return segmentDensity.map((count, i) => {
@@ -366,14 +424,14 @@ function ProfileCrossSection({
               const segX = padL + i * segW;
               const t = count / maxSeg;
               const color = t < 0.25 ? 'rgba(0,204,170,0.5)' : t < 0.5 ? 'rgba(255,204,0,0.6)' : t < 0.75 ? 'rgba(255,136,0,0.7)' : 'rgba(255,68,34,0.8)';
-              return <rect key={i} x={segX} y={svgH - padB + 2} width={segW - 0.5} height={densityBandH - 2} fill={color} rx={1}><title>{`段${i + 1}: ${count}个`}</title></rect>;
+              return <rect key={i} x={segX} y={svgH - padB + 2} width={segW - 0.5} height={densityBandH - 2} fill={color} rx={1}><title>{locale === 'zh-CN' ? `段${i + 1}: ${count}个` : `Segment ${i + 1}: ${count}`}</title></rect>;
             });
           })()}
 
           {/* 阈值线 */}
           {thresholdVal <= maxVal && (
             <text x={svgW - padR - 2} y={padT + 8} fill="#FF4422" fontSize={6.5} textAnchor="end">
-              ⚠ 阈值 {thresholdVal}
+              {locale === 'zh-CN' ? `⚠ 阈值 ${thresholdVal}` : `⚠ Threshold ${thresholdVal}`}
             </text>
           )}
 
@@ -390,18 +448,29 @@ function ProfileCrossSection({
                 )}
                 <circle
                   cx={xScale(p.x)} cy={yScale(p.y)}
-                  r={isDangerous ? 3 : 2}
+                  r={isDangerous ? 4.5 : 3.2}
                   fill={color}
-                  opacity={0.85}
+                  stroke={isDangerous ? '#FFFFFF' : '#0A0C14'}
+                  strokeWidth={isDangerous ? 0.9 : 0.5}
+                  opacity={0.95}
                 />
+                <title>
+                  {locale === 'zh-CN'
+                    ? `${p.fractureName} · ${p.nodeId} · ${measureCfg.primaryLabel} ${p.val.toFixed(2)}${measureCfg.primaryUnit}`
+                    : `${p.fractureName} · ${p.nodeId} · ${measureCfg.primaryLabel} ${p.val.toFixed(2)} ${measureCfg.primaryUnit}`}
+                </title>
               </g>
             );
           })}
 
           {/* 轴标签 */}
-          <text x={padL + plotW / 2} y={svgH - 4} fill="#808090" fontSize={7} textAnchor="middle">沿线距离 (m)</text>
+          <text x={padL + plotW / 2} y={svgH - 4} fill="#808090" fontSize={7} textAnchor="middle">
+            {locale === 'zh-CN' ? '沿线距离 (m)' : 'Distance Along Line (m)'}
+          </text>
           <text x={8} y={padT + plotH / 2} fill="#808090" fontSize={7} textAnchor="middle"
-            transform={`rotate(-90, 8, ${padT + plotH / 2})`}>深度 (m)</text>
+            transform={`rotate(-90, 8, ${padT + plotH / 2})`}>
+            {locale === 'zh-CN' ? '深度 (m)' : 'Depth (m)'}
+          </text>
         </svg>
 
         {/* 统计栏 — 场景化6列 */}
@@ -411,15 +480,15 @@ function ProfileCrossSection({
             <div className="text-[#E0E0E8] font-mono font-bold">{projected.length}</div>
           </div>
           <div className="text-center px-0.5 py-1 bg-[#0F0F16]/60 rounded">
-            <div className="text-[#A0A0B0]">超阈值</div>
+            <div className="text-[#A0A0B0]">{locale === 'zh-CN' ? '超阈值' : 'Over Limit'}</div>
             <div className={`font-mono font-bold ${dangerous > 0 ? 'text-[#FF4422]' : 'text-[#00CCAA]'}`}>{dangerous}</div>
           </div>
           <div className="text-center px-0.5 py-1 bg-[#0F0F16]/60 rounded">
-            <div className="text-[#A0A0B0]">峰值</div>
+            <div className="text-[#A0A0B0]">{locale === 'zh-CN' ? '峰值' : 'Peak'}</div>
             <div className="text-[#FFCC00] font-mono font-bold">{maxVal.toFixed(1)}</div>
           </div>
           <div className="text-center px-0.5 py-1 bg-[#0F0F16]/60 rounded">
-            <div className="text-[#A0A0B0]">均值</div>
+            <div className="text-[#A0A0B0]">{locale === 'zh-CN' ? '均值' : 'Average'}</div>
             <div className="text-[#88AAFF] font-mono font-bold">{avgVal.toFixed(1)}</div>
           </div>
           {measureCfg.showRockGrade ? (
@@ -429,9 +498,11 @@ function ProfileCrossSection({
                 <div className="font-mono font-bold" style={{ color: rqd > 75 ? '#00CC66' : rqd > 50 ? '#88CC00' : rqd > 25 ? '#FFA500' : '#FF3333' }}>{rqd.toFixed(0)}</div>
               </div>
               <div className="text-center px-0.5 py-1 bg-[#0F0F16]/60 rounded">
-                <div className="text-[#A0A0B0]">岩质</div>
+                <div className="text-[#A0A0B0]">{locale === 'zh-CN' ? '岩质' : 'Rock Grade'}</div>
                 <div className="font-mono font-bold" style={{ color: rqd > 75 ? '#00CC66' : rqd > 50 ? '#88CC00' : rqd > 25 ? '#FFA500' : '#FF3333' }}>
-                  {rqd > 75 ? 'Ⅰ优' : rqd > 50 ? 'Ⅱ良' : rqd > 25 ? 'Ⅲ差' : 'Ⅳ劣'}
+                  {locale === 'zh-CN'
+                    ? (rqd > 75 ? 'Ⅰ优' : rqd > 50 ? 'Ⅱ良' : rqd > 25 ? 'Ⅲ差' : 'Ⅳ劣')
+                    : (rqd > 75 ? 'Grade I' : rqd > 50 ? 'Grade II' : rqd > 25 ? 'Grade III' : 'Grade IV')}
                 </div>
               </div>
             </>
@@ -439,35 +510,59 @@ function ProfileCrossSection({
             <>
               <div className="text-center px-0.5 py-1 bg-[#0F0F16]/60 rounded">
                 <div className="text-[#A0A0B0]">{measureCfg.secondaryLabel.replace('(均)', '')}</div>
-                <div className="text-[#E0E0E8] font-mono font-bold">{projected.length > 0 ? (projected.reduce((s, p) => s + (p.val * 0.1), 0) / projected.length).toFixed(2) : '0'}</div>
+                <div className="text-[#E0E0E8] font-mono font-bold">{avgSecondaryVal.toFixed(2)}</div>
               </div>
               <div className="text-center px-0.5 py-1 bg-[#0F0F16]/60 rounded">
-                <div className="text-[#A0A0B0]">评估</div>
+                <div className="text-[#A0A0B0]">{locale === 'zh-CN' ? '评估' : 'Assessment'}</div>
                 <div className="font-mono font-bold" style={{ color: dangerous === 0 ? '#00CC66' : dangerous <= projected.length * 0.2 ? '#FFCC00' : dangerous <= projected.length * 0.5 ? '#FFA500' : '#FF3333' }}>
-                  {dangerous === 0 ? '合格' : dangerous <= projected.length * 0.2 ? '关注' : dangerous <= projected.length * 0.5 ? '超标' : '危险'}
+                  {locale === 'zh-CN'
+                    ? (dangerous === 0 ? '合格' : dangerous <= projected.length * 0.2 ? '关注' : dangerous <= projected.length * 0.5 ? '超标' : '危险')
+                    : (dangerous === 0 ? 'Pass' : dangerous <= projected.length * 0.2 ? 'Watch' : dangerous <= projected.length * 0.5 ? 'Alert' : 'Danger')}
                 </div>
               </div>
             </>
           )}
         </div>
 
+        {topHotspots.length > 0 && (
+          <div className="mt-2 rounded bg-[#0F0F16]/55 px-2.5 py-2 text-[9px]">
+            <div className="mb-1 text-[#A0A0B0] font-semibold">
+              {locale === 'zh-CN' ? '热点测点' : 'Hotspots'}
+            </div>
+            <div className="space-y-1">
+              {topHotspots.map((point) => (
+                <div key={point.nodeId} className="flex items-center justify-between gap-2">
+                  <span className="truncate text-[#E0E0E8]">
+                    {point.fractureName} · {point.nodeId}
+                  </span>
+                  <span className="font-mono text-[#FFCC00]">
+                    {point.val.toFixed(2)} {measureCfg.primaryUnit}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* 色标 */}
         <div className="flex items-center gap-1.5 mt-1.5 text-[7px] text-[#606070]">
-          <span>低</span>
+          <span>{locale === 'zh-CN' ? '低' : 'Low'}</span>
           <div className="flex-1 h-1.5 rounded-full" style={{ background: 'linear-gradient(90deg, #4488FF, #00CCAA, #FFCC00, #FF4422)' }} />
-          <span>高</span>
+          <span>{locale === 'zh-CN' ? '高' : 'High'}</span>
           <span className="ml-1">{sensorLabel}</span>
         </div>
 
         <div className="flex gap-2 mt-2 pt-2 border-t border-white/5">
           <button
+            data-testid="profile-cross-section-confirm"
             className="flex-1 px-2 py-1.5 text-[10px] bg-[#FF8800]/20 text-[#FF8800] rounded hover:bg-[#FF8800]/30 transition-all"
             onClick={onFinish}
-          >确认并保存</button>
+          >{locale === 'zh-CN' ? '确认并保存' : 'Confirm & Save'}</button>
           <button
+            data-testid="profile-cross-section-reset"
             className="px-2 py-1.5 text-[10px] bg-white/5 text-[#A0A0B0] rounded hover:text-[#E0E0E8] hover:bg-white/10 transition-all"
             onClick={onReset}
-          >重选</button>
+          >{locale === 'zh-CN' ? '重选' : 'Reselect'}</button>
         </div>
       </div>
     </Html>

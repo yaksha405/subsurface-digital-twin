@@ -2,8 +2,10 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { useSceneStore } from '../../store/useSceneStore';
-import { useCanvasInteraction } from './useCanvasInteraction';
+import { useCanvasInteraction, type CanvasInteractionPoint } from './useCanvasInteraction';
 import { getMeasureConfig } from '../../lib/sceneMeasureConfig';
+import { MeasurementSnapIndicator } from './MeasurementSnapIndicator';
+import type { MeasurementSnapResult } from '../../lib/measurementPicking';
 import type { Annotation } from '../../types';
 
 /**
@@ -25,6 +27,7 @@ export function DistanceMeasureTool() {
 
   const [points, setPoints] = useState<THREE.Vector3[]>([]);
   const [previewPoint, setPreviewPoint] = useState<THREE.Vector3 | null>(null);
+  const [snap, setSnap] = useState<MeasurementSnapResult | null>(null);
 
   const pointsRef = useRef<THREE.Vector3[]>([]);
 
@@ -33,6 +36,7 @@ export function DistanceMeasureTool() {
       pointsRef.current = [];
       setPoints([]);
       setPreviewPoint(null);
+      setSnap(null);
     }
   }, [isActive]);
 
@@ -43,6 +47,7 @@ export function DistanceMeasureTool() {
         pointsRef.current = [];
         setPoints([]);
         setPreviewPoint(null);
+        setSnap(null);
         setActiveTool('none');
       }
     };
@@ -66,6 +71,12 @@ export function DistanceMeasureTool() {
     onPointerMove: useCallback((pt: THREE.Vector3) => {
       if (pointsRef.current.length === 1) {
         setPreviewPoint(pt);
+      }
+    }, []),
+    onPointerMoveDetail: useCallback((detail: CanvasInteractionPoint) => {
+      setSnap(detail.snap);
+      if (pointsRef.current.length === 0) {
+        setPreviewPoint(detail.point);
       }
     }, []),
   });
@@ -113,6 +124,7 @@ export function DistanceMeasureTool() {
     pointsRef.current = [];
     setPoints([]);
     setPreviewPoint(null);
+    setSnap(null);
     setActiveTool('none');
   }, [points, addAnnotation, setActiveTool]);
 
@@ -120,6 +132,7 @@ export function DistanceMeasureTool() {
     pointsRef.current = [];
     setPoints([]);
     setPreviewPoint(null);
+    setSnap(null);
   }, []);
 
   if (!isActive && points.length === 0) return null;
@@ -133,7 +146,7 @@ export function DistanceMeasureTool() {
     const quat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
     return (
       <mesh position={mid} quaternion={quat} userData={{ noRaycast: true }}>
-        <cylinderGeometry args={[0.2, 0.2, len, 8]} />
+        <cylinderGeometry args={[0.07, 0.07, len, 8]} />
         <meshBasicMaterial color={color} transparent opacity={opacity} />
       </mesh>
     );
@@ -155,15 +168,18 @@ export function DistanceMeasureTool() {
   const scenario = useSceneStore.getState().scenario;
   const gasThreshold = useSceneStore.getState().gasThreshold;
   const measureCfg = getMeasureConfig(scenario, gasThreshold);
+  const locale = useSceneStore.getState().locale;
+  const isZh = locale === 'zh-CN';
 
   return (
     <>
       {previewLine}
       {finalLine}
+      {isActive && points.length < 2 && <MeasurementSnapIndicator point={previewPoint} snap={snap} locale={locale} />}
 
       {points.map((p, i) => (
         <mesh key={i} position={p} userData={{ noRaycast: true }}>
-          <sphereGeometry args={[0.4, 16, 16]} />
+          <sphereGeometry args={[0.18, 16, 16]} />
           <meshBasicMaterial color={i === 0 ? '#00FF88' : '#FF6644'} />
         </mesh>
       ))}
@@ -181,19 +197,19 @@ export function DistanceMeasureTool() {
           position={[(points[0].x + points[1].x) / 2, (points[0].y + points[1].y) / 2 + 2, (points[0].z + points[1].z) / 2]}
           center
         >
-          <div className="glass-panel px-4 py-3 text-xs min-w-[200px]" style={{ pointerEvents: 'auto' }}>
-            <div className="text-[#44AAFF] font-bold mb-1.5 text-[11px]">测量报告</div>
+          <div data-testid="distance-measure-report" className="glass-panel px-4 py-3 text-xs min-w-[200px]" style={{ pointerEvents: 'auto' }}>
+            <div className="text-[#44AAFF] font-bold mb-1.5 text-[11px]">{isZh ? '测量报告' : 'Measurement Report'}</div>
             <div className="space-y-1 text-[10px]">
               <div className="flex justify-between">
-                <span className="text-[#A0A0B0]">3D 斜距</span>
+                <span className="text-[#A0A0B0]">{isZh ? '3D 斜距' : '3D Distance'}</span>
                 <span className="text-[#44AAFF] font-mono font-bold text-[12px]">{m.slope3D.toFixed(2)} m</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-[#A0A0B0]">水平距离</span>
+                <span className="text-[#A0A0B0]">{isZh ? '水平距离' : 'Horizontal'}</span>
                 <span className="text-[#E0E0E8] font-mono">{m.horizontal.toFixed(2)} m</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-[#A0A0B0]">垂直高差</span>
+                <span className="text-[#A0A0B0]">{isZh ? '垂直高差' : 'Vertical Delta'}</span>
                 <span className="font-mono" style={{ color: m.dy >= 0 ? '#00CC66' : '#FF8844' }}>
                   {m.dy >= 0 ? '↑' : '↓'} {Math.abs(m.dy).toFixed(2)} m
                 </span>
@@ -203,13 +219,13 @@ export function DistanceMeasureTool() {
                 <span className="text-[#FFCC00] font-mono">{m.slopeAngle.toFixed(1)}°</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-[#A0A0B0]">方位角</span>
+                <span className="text-[#A0A0B0]">{isZh ? '方位角' : 'Azimuth'}</span>
                 <span className="text-[#E0E0E8] font-mono">{m.azimuth.toFixed(0)}° {m.compass}</span>
               </div>
             </div>
             <div className="flex gap-2 mt-2.5 pt-2 border-t border-white/5">
-              <button className="flex-1 px-2 py-1.5 text-[10px] bg-[#44AAFF]/20 text-[#44AAFF] rounded hover:bg-[#44AAFF]/30 transition-all" onClick={handleFinish}>确认并保存</button>
-              <button className="px-2 py-1.5 text-[10px] bg-white/5 text-[#A0A0B0] rounded hover:text-[#E0E0E8] hover:bg-white/10 transition-all" onClick={handleReset}>重选</button>
+              <button data-testid="distance-measure-confirm" className="flex-1 px-2 py-1.5 text-[10px] bg-[#44AAFF]/20 text-[#44AAFF] rounded hover:bg-[#44AAFF]/30 transition-all" onClick={handleFinish}>{isZh ? '确认并保存' : 'Confirm & Save'}</button>
+              <button data-testid="distance-measure-reset" className="px-2 py-1.5 text-[10px] bg-white/5 text-[#A0A0B0] rounded hover:text-[#E0E0E8] hover:bg-white/10 transition-all" onClick={handleReset}>{isZh ? '重选' : 'Reselect'}</button>
             </div>
           </div>
         </Html>
@@ -218,14 +234,14 @@ export function DistanceMeasureTool() {
       {isActive && points.length === 0 && (
         <Html position={[0, 0, 0]} center>
           <div className="glass-panel px-3 py-2 text-[10px] text-[#44AAFF] animate-pulse whitespace-nowrap" style={{ pointerEvents: 'none' }}>
-            F4 测距 · 点击设置起点 · 右键拖拽可旋转视角（ESC取消）
+            {isZh ? 'F4 测距 · 点击设置起点 · 右键拖拽可旋转视角（ESC取消）' : 'F4 Measure · click to set the start point · right-drag to orbit (ESC to cancel)'}
           </div>
         </Html>
       )}
       {isActive && points.length === 1 && (
         <Html position={[0, 5, 0]} center>
           <div className="glass-panel px-3 py-2 text-[10px] text-[#44AAFF] animate-pulse whitespace-nowrap" style={{ pointerEvents: 'none' }}>
-            移动鼠标预览距离 → 点击设置终点
+            {isZh ? '移动鼠标预览距离 → 点击设置终点' : 'Move to preview distance → click to set the end point'}
           </div>
         </Html>
       )}

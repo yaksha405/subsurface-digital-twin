@@ -1,13 +1,6 @@
 import { useThree, useFrame } from '@react-three/fiber';
 import { useSceneStore } from '../../store/useSceneStore';
 
-interface CameraPos {
-  x: number;
-  y: number;
-  z: number;
-  dist: number;
-}
-
 /**
  * Pure HTML overlay (outside Canvas) that reads camera position from store.
  */
@@ -35,7 +28,7 @@ export function CameraInfo() {
  */
 export function CameraTracker() {
   const setCameraInfo = useSceneStore((s) => s.setCameraInfo);
-  const { camera } = useThree() as any;
+  const { camera } = useThree();
   let lastUpdate = 0;
 
   useFrame(() => {

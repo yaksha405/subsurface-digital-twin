@@ -2,8 +2,10 @@ import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { useSceneStore } from '../../store/useSceneStore';
-import { useCanvasInteraction } from './useCanvasInteraction';
+import { useCanvasInteraction, type CanvasInteractionPoint } from './useCanvasInteraction';
 import { getMeasureConfig } from '../../lib/sceneMeasureConfig';
+import { MeasurementSnapIndicator } from './MeasurementSnapIndicator';
+import type { MeasurementSnapResult } from '../../lib/measurementPicking';
 import type { Annotation, SensorReading } from '../../types';
 
 /** 岩体 Y 范围（RockMass: 100×40×80 居中，Y 从 -20 到 +20） */
@@ -42,6 +44,8 @@ export function VolumeMeasure() {
   const draggingRef = useRef(false);
   const startRef = useRef<THREE.Vector3 | null>(null);
   const [draggingUI, setDraggingUI] = useState(false);
+  const [hoverPoint, setHoverPoint] = useState<THREE.Vector3 | null>(null);
+  const [snap, setSnap] = useState<MeasurementSnapResult | null>(null);
 
   useEffect(() => {
     if (isActive) {
@@ -51,6 +55,8 @@ export function VolumeMeasure() {
       setDraggingUI(false);
       setYCenter(0);
       setYHeight(DEFAULT_HEIGHT);
+      setHoverPoint(null);
+      setSnap(null);
     }
   }, [isActive]);
 
@@ -62,6 +68,8 @@ export function VolumeMeasure() {
         startRef.current = null;
         setXzRange(null);
         setDraggingUI(false);
+        setHoverPoint(null);
+        setSnap(null);
         setActiveTool('none');
       }
     };
@@ -79,6 +87,7 @@ export function VolumeMeasure() {
       setYCenter(pt.y);
     }, []),
     onPointerMove: useCallback((pt: THREE.Vector3) => {
+      setHoverPoint(pt);
       if (!draggingRef.current || !startRef.current) return;
       const sp = startRef.current;
       setXzRange({
@@ -92,14 +101,18 @@ export function VolumeMeasure() {
       draggingRef.current = false;
       setDraggingUI(false);
     }, []),
+    onPointerMoveDetail: useCallback((detail: CanvasInteractionPoint) => {
+      setHoverPoint(detail.point);
+      setSnap(detail.snap);
+    }, []),
   });
 
   // 计算当前 box
   const halfH = yHeight / 2;
-  const box = xzRange ? {
+  const box = useMemo(() => xzRange ? {
     min: [xzRange.minX, Math.max(SCENE_Y_MIN, yCenter - halfH), xzRange.minZ] as [number, number, number],
     max: [xzRange.maxX, Math.min(SCENE_Y_MAX, yCenter + halfH), xzRange.maxZ] as [number, number, number],
-  } : null;
+  } : null, [halfH, xzRange, yCenter]);
 
   const handleFinish = useCallback(() => {
     if (box) {
@@ -120,6 +133,8 @@ export function VolumeMeasure() {
     setXzRange(null);
     startRef.current = null;
     setActiveTool('none');
+    setHoverPoint(null);
+    setSnap(null);
   }, [box, addAnnotation, setActiveTool]);
 
   const handleReset = useCallback(() => {
@@ -128,16 +143,20 @@ export function VolumeMeasure() {
     setDraggingUI(false);
     draggingRef.current = false;
     setYHeight(DEFAULT_HEIGHT);
+    setHoverPoint(null);
+    setSnap(null);
   }, []);
 
   const volume = box
     ? Math.abs((box.max[0] - box.min[0]) * (box.max[1] - box.min[1]) * (box.max[2] - box.min[2]))
     : 0;
 
-  const fractures = useSceneStore.getState().fractures;
-  const scenario = useSceneStore.getState().scenario;
-  const gasThreshold = useSceneStore.getState().gasThreshold;
+  const fractures = useSceneStore((s) => s.fractures);
+  const scenario = useSceneStore((s) => s.scenario);
+  const gasThreshold = useSceneStore((s) => s.gasThreshold);
+  const locale = useSceneStore((s) => s.locale);
   const measureCfg = getMeasureConfig(scenario, gasThreshold);
+  const isZh = locale === 'zh-CN';
 
   // === 区域内测点分析 ===
   const analysis = useMemo(() => {
@@ -161,7 +180,7 @@ export function VolumeMeasure() {
 
     // 主传感器字段（场景化）
     const sensorKey = measureCfg.primaryKey;
-    const vals = inBoxNodes.map(n => (n.sensors as Record<string, number>)[sensorKey] || 0);
+    const vals = inBoxNodes.map(n => (n.sensors as unknown as Record<string, number>)[sensorKey] || 0);
     const maxSensor = vals.length > 0 ? Math.max(...vals) : 0;
     const avgSensor = vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
     const threshold = measureCfg.primaryThreshold as number;
@@ -169,7 +188,7 @@ export function VolumeMeasure() {
 
     // 次传感器均值
     const secKey = measureCfg.secondaryKey;
-    const secVals = inBoxNodes.map(n => (n.sensors as Record<string, number>)[secKey] || 0);
+    const secVals = inBoxNodes.map(n => (n.sensors as unknown as Record<string, number>)[secKey] || 0);
     const avgSecondary = secVals.length > 0 ? secVals.reduce((a, b) => a + b, 0) / secVals.length : 0;
 
     // 温度均值
@@ -181,17 +200,22 @@ export function VolumeMeasure() {
 
     // 风险等级
     const riskPct = nodeCount > 0 ? overThreshold / nodeCount : 0;
-    const riskLevel = overThreshold === 0 ? { label: '安全', color: '#00CC66' } :
-      riskPct <= 0.2 ? { label: '低风险', color: '#FFCC00' } :
-      riskPct <= 0.5 ? { label: '中风险', color: '#FF8800' } :
-      { label: '高风险', color: '#FF3333' };
+    const riskLevel = overThreshold === 0
+      ? { label: isZh ? '安全' : 'Safe', color: '#00CC66' }
+      : riskPct <= 0.2
+        ? { label: isZh ? '低风险' : 'Low Risk', color: '#FFCC00' }
+        : riskPct <= 0.5
+          ? { label: isZh ? '中风险' : 'Medium Risk', color: '#FF8800' }
+          : { label: isZh ? '高风险' : 'High Risk', color: '#FF3333' };
 
     // 岩质等级（仅地质场景）
-    const rockGrade = rqd > 75 ? 'Ⅰ优' : rqd > 50 ? 'Ⅱ良' : rqd > 25 ? 'Ⅲ差' : 'Ⅳ劣';
+    const rockGrade = isZh
+      ? (rqd > 75 ? 'Ⅰ优' : rqd > 50 ? 'Ⅱ良' : rqd > 25 ? 'Ⅲ差' : 'Ⅳ劣')
+      : (rqd > 75 ? 'Grade I' : rqd > 50 ? 'Grade II' : rqd > 25 ? 'Grade III' : 'Grade IV');
     const rockColor = rqd > 75 ? '#00CC66' : rqd > 50 ? '#88CC00' : rqd > 25 ? '#FFA500' : '#FF3333';
 
     return { nodeCount, density, maxSensor, avgSensor, overThreshold, avgSecondary, avgTemp, rqd, riskLevel, rockGrade, rockColor, sensorKey, threshold };
-  }, [box, fractures, scenario, gasThreshold, volume, measureCfg]);
+  }, [box, fractures, isZh, measureCfg, volume]);
 
   if (!isActive && !box) return null;
 
@@ -201,6 +225,7 @@ export function VolumeMeasure() {
 
   return (
     <>
+      {isActive && !box && <MeasurementSnapIndicator point={hoverPoint} snap={snap} locale={locale} />}
       {/* 框选结果 — 实时渲染（包括拖拽中） */}
       {box && (
         <group>
@@ -225,7 +250,7 @@ export function VolumeMeasure() {
             [box.min[0], box.max[1], box.max[2]], [box.max[0], box.max[1], box.max[2]],
           ].map((p, i) => (
             <mesh key={i} position={p as [number, number, number]} userData={{ noRaycast: true }}>
-              <sphereGeometry args={[0.5, 10, 10]} />
+              <sphereGeometry args={[0.18, 10, 10]} />
               <meshBasicMaterial color="#FFE600" />
             </mesh>
           ))}
@@ -244,13 +269,15 @@ export function VolumeMeasure() {
           {draggingUI && (
             <Html position={[(box.min[0] + box.max[0]) / 2, box.max[1] + 2, (box.min[2] + box.max[2]) / 2]} center>
               <div className="glass-panel px-3 py-1.5 text-[10px] text-[#FFE600] font-mono whitespace-nowrap" style={{ pointerEvents: 'none' }}>
-                {(box.max[0] - box.min[0]).toFixed(0)}×{(box.max[2] - box.min[2]).toFixed(0)} m² · 拖拽确定范围
+                {isZh
+                  ? `${(box.max[0] - box.min[0]).toFixed(0)}×${(box.max[2] - box.min[2]).toFixed(0)} m² · 拖拽确定范围`
+                  : `${(box.max[0] - box.min[0]).toFixed(0)}×${(box.max[2] - box.min[2]).toFixed(0)} m² · drag to confirm the footprint`}
               </div>
             </Html>
           )}
           {!draggingUI && volume > 0 && (
             <Html position={[(box.min[0] + box.max[0]) / 2, box.max[1] + 2, (box.min[2] + box.max[2]) / 2]} center>
-              <div className="glass-panel px-4 py-3 text-xs min-w-[260px]" style={{ pointerEvents: 'auto' }}>
+              <div data-testid="area-measure-report" className="glass-panel px-4 py-3 text-xs min-w-[260px]" style={{ pointerEvents: 'auto' }}>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-[#FFE600] font-bold text-[11px]">{measureCfg.areaTitle}</span>
                   {analysis && (
@@ -263,11 +290,11 @@ export function VolumeMeasure() {
                 {/* 基础数据 */}
                 <div className="space-y-1 text-[10px] mb-2">
                   <div className="flex justify-between">
-                    <span className="text-[#A0A0B0]">体积</span>
+                    <span className="text-[#A0A0B0]">{isZh ? '体积' : 'Volume'}</span>
                     <span className="text-[#FFE600] font-mono font-bold">{volume.toFixed(0)} m³</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-[#A0A0B0]">底面积</span>
+                    <span className="text-[#A0A0B0]">{isZh ? '底面积' : 'Footprint'}</span>
                     <span className="text-[#E0E0E8] font-mono">{(box.max[0] - box.min[0]).toFixed(0)}×{(box.max[2] - box.min[2]).toFixed(0)} m²</span>
                   </div>
                 </div>
@@ -277,22 +304,22 @@ export function VolumeMeasure() {
                   <div className="space-y-1 text-[10px] mb-2 pt-2 border-t border-white/5">
                     <div className="flex justify-between">
                       <span className="text-[#A0A0B0]">{measureCfg.pointLabel}</span>
-                      <span className="text-[#E0E0E8] font-mono">{analysis.nodeCount} 个</span>
+                      <span className="text-[#E0E0E8] font-mono">{isZh ? `${analysis.nodeCount} 个` : `${analysis.nodeCount}`}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-[#A0A0B0]">{measureCfg.densityLabel}</span>
-                      <span className="text-[#FF8800] font-mono">{analysis.density.toFixed(1)} /千m³</span>
+                      <span className="text-[#FF8800] font-mono">{isZh ? `${analysis.density.toFixed(1)} /千m³` : `${analysis.density.toFixed(1)} /1000m³`}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-[#A0A0B0]">{measureCfg.primaryLabel}峰值</span>
+                      <span className="text-[#A0A0B0]">{isZh ? `${measureCfg.primaryLabel}峰值` : `${measureCfg.primaryLabel} peak`}</span>
                       <span className={`font-mono ${analysis.overThreshold > 0 ? 'text-[#FF3333]' : 'text-[#00CC66]'} font-bold`}>{analysis.maxSensor.toFixed(2)} {measureCfg.primaryUnit}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-[#A0A0B0]">{measureCfg.primaryLabel}均值</span>
+                      <span className="text-[#A0A0B0]">{isZh ? `${measureCfg.primaryLabel}均值` : `${measureCfg.primaryLabel} avg`}</span>
                       <span className="text-[#88AAFF] font-mono">{analysis.avgSensor.toFixed(2)} {measureCfg.primaryUnit}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-[#A0A0B0]">超阈值点</span>
+                      <span className="text-[#A0A0B0]">{isZh ? '超阈值点' : 'Over-limit points'}</span>
                       <span className={`font-mono ${analysis.overThreshold > 0 ? 'text-[#FF4422]' : 'text-[#00CCAA]'}`}>{analysis.overThreshold} / {analysis.nodeCount}</span>
                     </div>
                     <div className="flex justify-between">
@@ -305,7 +332,7 @@ export function VolumeMeasure() {
                     </div>
                     {measureCfg.showRockGrade && (
                       <div className="flex justify-between">
-                        <span className="text-[#A0A0B0]">RQD 岩质</span>
+                        <span className="text-[#A0A0B0]">{isZh ? 'RQD 岩质' : 'RQD Rock Grade'}</span>
                         <span className="font-mono font-bold" style={{ color: analysis.rockColor }}>
                           {analysis.rqd.toFixed(0)} · {analysis.rockGrade}
                         </span>
@@ -315,7 +342,7 @@ export function VolumeMeasure() {
                 )}
                 {analysis && analysis.nodeCount === 0 && (
                   <div className="text-[9px] text-[#A0A0B0]/50 text-center py-2 border-t border-white/5">
-                    此区域无{measureCfg.pointLabel}
+                    {isZh ? `此区域无${measureCfg.pointLabel}` : `No ${measureCfg.pointLabel} inside this region`}
                   </div>
                 )}
 
@@ -323,7 +350,7 @@ export function VolumeMeasure() {
                 <div className="space-y-2 pt-2 border-t border-white/10">
                   <div>
                     <div className="flex justify-between text-[9px] mb-0.5">
-                      <span className="text-[#A0A0B0]">框选高度</span>
+                      <span className="text-[#A0A0B0]">{isZh ? '框选高度' : 'Selection Height'}</span>
                       <span className="text-[#FFE600] font-mono">{yHeight.toFixed(0)} m</span>
                     </div>
                     <input
@@ -335,7 +362,7 @@ export function VolumeMeasure() {
                   </div>
                   <div>
                     <div className="flex justify-between text-[9px] mb-0.5">
-                      <span className="text-[#A0A0B0]">垂直位置</span>
+                      <span className="text-[#A0A0B0]">{isZh ? '垂直位置' : 'Vertical Position'}</span>
                       <span className="text-[#FFE600] font-mono">Y: {yCenter.toFixed(0)} ({(yCenter - halfH).toFixed(0)}~{(yCenter + halfH).toFixed(0)})</span>
                     </div>
                     <input
@@ -348,8 +375,8 @@ export function VolumeMeasure() {
                 </div>
 
                 <div className="flex gap-2 mt-2.5 pt-2 border-t border-white/5">
-                  <button className="flex-1 px-2 py-1.5 text-[10px] bg-[#FFE600]/20 text-[#FFE600] rounded hover:bg-[#FFE600]/30 transition-all" onClick={handleFinish}>确认并保存</button>
-                  <button className="px-2 py-1.5 text-[10px] bg-white/5 text-[#A0A0B0] rounded hover:text-[#E0E0E8] hover:bg-white/10 transition-all" onClick={handleReset}>重选</button>
+                  <button data-testid="area-measure-confirm" className="flex-1 px-2 py-1.5 text-[10px] bg-[#FFE600]/20 text-[#FFE600] rounded hover:bg-[#FFE600]/30 transition-all" onClick={handleFinish}>{isZh ? '确认并保存' : 'Confirm & Save'}</button>
+                  <button data-testid="area-measure-reset" className="px-2 py-1.5 text-[10px] bg-white/5 text-[#A0A0B0] rounded hover:text-[#E0E0E8] hover:bg-white/10 transition-all" onClick={handleReset}>{isZh ? '重选' : 'Reselect'}</button>
                 </div>
               </div>
             </Html>
@@ -361,7 +388,7 @@ export function VolumeMeasure() {
       {isActive && !box && !draggingUI && (
         <Html position={[0, 0, 0]} center>
           <div className="glass-panel px-3 py-2 text-[10px] text-[#FFE600] animate-pulse whitespace-nowrap" style={{ pointerEvents: 'none' }}>
-            F2 区域框选 · 左键拖拽画框 · 松手后可调高度 · 右键旋转（ESC取消）
+            {isZh ? 'F2 区域框选 · 左键拖拽画框 · 松手后可调高度 · 右键旋转（ESC取消）' : 'F2 Area Select · left-drag to draw a region · adjust height after release · right-drag to orbit (ESC to cancel)'}
           </div>
         </Html>
       )}

@@ -11,7 +11,7 @@
  * UI：浮动播放条（播放/暂停/重播/进度条/速度）
  */
 import { useFrame } from '@react-three/fiber';
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useSceneStore } from '../../store/useSceneStore';
 import { resetPlaybackCache } from '../../lib/playbackEngine';
 
@@ -52,11 +52,12 @@ export function PlaybackBar() {
   const setPlaying = useSceneStore((s) => s.setPlaying);
   const setPlaybackProgress = useSceneStore((s) => s.setPlaybackProgress);
   const setPlaybackSpeed = useSceneStore((s) => s.setPlaybackSpeed);
+  const locale = useSceneStore((s) => s.locale);
 
-  const handleStart = () => {
+  const handleStart = useCallback(() => {
     resetPlaybackCache();
     startPlayback();
-  };
+  }, [startPlayback]);
 
   // 键盘快捷键：空格播放/暂停
   useEffect(() => {
@@ -72,7 +73,7 @@ export function PlaybackBar() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [isPlaying, progress, startPlayback, setPlaying]);
+  }, [handleStart, isPlaying, playbackActive, progress, setPlaying]);
 
   return (
     <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-30">
@@ -89,7 +90,7 @@ export function PlaybackBar() {
             }
           }}
           className="flex items-center justify-center w-9 h-9 rounded-full bg-[#FFE600]/15 hover:bg-[#FFE600]/25 border border-[#FFE600]/30 transition-all group"
-          title={isPlaying ? '暂停' : (playbackActive && progress >= 1) ? '重新播放' : '播放'}
+          title={locale === 'zh-CN' ? (isPlaying ? '暂停' : (playbackActive && progress >= 1) ? '重新播放' : '播放') : (isPlaying ? 'Pause' : (playbackActive && progress >= 1) ? 'Replay' : 'Play')}
         >
           {isPlaying ? (
             <svg className="w-4 h-4 text-[#FFE600]" viewBox="0 0 24 24" fill="currentColor">
@@ -107,7 +108,7 @@ export function PlaybackBar() {
         <button
           onClick={() => handleStart()}
           className="flex items-center justify-center w-7 h-7 rounded-full hover:bg-white/10 transition-all"
-          title="从头播放"
+          title={locale === 'zh-CN' ? '从头播放' : 'Restart'}
         >
           <svg className="w-3.5 h-3.5 text-[#A0A0B0] hover:text-[#E0E0E8]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M3 12a9 9 0 1 0 9-9 9 9 0 0 0-7 3.3" />
@@ -166,9 +167,9 @@ export function PlaybackBar() {
           <button
             onClick={() => stopPlayback()}
             className="text-[9px] px-2 py-1 rounded text-[#A0A0B0] hover:text-[#E0E0E8] hover:bg-white/5 transition-all"
-            title="退出回放，显示完整场景"
+            title={locale === 'zh-CN' ? '退出回放，显示完整场景' : 'Exit playback and show the full scene'}
           >
-            完成
+            {locale === 'zh-CN' ? '完成' : 'Done'}
           </button>
         )}
       </div>

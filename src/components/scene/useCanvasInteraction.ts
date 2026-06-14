@@ -1,6 +1,39 @@
 import { useThree } from '@react-three/fiber';
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import { snapMeasurementPoint, type MeasurementSnapResult } from '../../lib/measurementPicking';
+import { useSceneStore } from '../../store/useSceneStore';
+
+interface CanvasInteractionOptions {
+  snapToNetwork?: boolean;
+}
+
+export interface CanvasInteractionPoint {
+  point: THREE.Vector3;
+  snap: MeasurementSnapResult;
+  hit:
+    | {
+        kind: 'robot';
+        robotId: string;
+      }
+    | {
+        kind: 'fracture';
+        fractureId: string;
+        nodeId: string | null;
+      }
+    | null;
+}
+
+function isLowOpacitySurface(mesh: THREE.Mesh): boolean {
+  const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+  return materials.some((material) => (
+    'transparent' in material &&
+    'opacity' in material &&
+    material.transparent === true &&
+    typeof material.opacity === 'number' &&
+    material.opacity <= 0.45
+  ));
+}
 
 /**
  * 文档级射线检测 hook — 绕过 R3F mesh 事件传播 + drei Html 叠加层拦截问题
@@ -24,11 +57,20 @@ export function useCanvasInteraction(
     onPointerDown?: (point: THREE.Vector3, e: PointerEvent) => void;
     onPointerMove?: (point: THREE.Vector3, e: PointerEvent) => void;
     onPointerUp?: (point: THREE.Vector3, e: PointerEvent) => void;
-  }
+    onPointerDownDetail?: (detail: CanvasInteractionPoint, e: PointerEvent) => void;
+    onPointerMoveDetail?: (detail: CanvasInteractionPoint, e: PointerEvent) => void;
+    onPointerUpDetail?: (detail: CanvasInteractionPoint, e: PointerEvent) => void;
+  },
+  options: CanvasInteractionOptions = {}
 ) {
   const { gl, camera, scene } = useThree();
+  const fractures = useSceneStore((s) => s.fractures);
   const handlersRef = useRef(handlers);
+  const fracturesRef = useRef(fractures);
+  const optionsRef = useRef(options);
   handlersRef.current = handlers;
+  fracturesRef.current = fractures;
+  optionsRef.current = options;
 
   useEffect(() => {
     if (!enabled) return;
@@ -45,7 +87,27 @@ export function useCanvasInteraction(
       );
     };
 
-    const getIntersection = (clientX: number, clientY: number): THREE.Vector3 => {
+    const toRawSnap = (point: THREE.Vector3): MeasurementSnapResult => ({
+      point: [point.x, point.y, point.z],
+      snapped: false,
+      targetType: 'raw',
+      distance: 0,
+    });
+
+    const snapPoint = (
+      point: THREE.Vector3,
+      hit: CanvasInteractionPoint['hit'],
+    ): CanvasInteractionPoint => {
+      if (optionsRef.current.snapToNetwork === false) return { point, snap: toRawSnap(point), hit };
+      const snap = snapMeasurementPoint(
+        [point.x, point.y, point.z],
+        fracturesRef.current,
+        2.5
+      );
+      return { point: new THREE.Vector3(...snap.point), snap, hit };
+    };
+
+    const getIntersection = (clientX: number, clientY: number): CanvasInteractionPoint => {
       const rect = dom.getBoundingClientRect();
       const x = ((clientX - rect.left) / rect.width) * 2 - 1;
       const y = -((clientY - rect.top) / rect.height) * 2 + 1;
@@ -59,7 +121,8 @@ export function useCanvasInteraction(
           obj instanceof THREE.Mesh &&
           obj.visible &&
           obj.geometry &&
-          !obj.userData.noRaycast
+          !obj.userData.noRaycast &&
+          !isLowOpacitySurface(obj)
         ) {
           meshes.push(obj);
         }
@@ -67,19 +130,32 @@ export function useCanvasInteraction(
 
       const intersects = raycaster.intersectObjects(meshes, false);
       if (intersects.length > 0) {
-        return intersects[0].point.clone();
+        const hitObject = intersects[0].object;
+        const hit = hitObject.userData.selectableKind === 'robot'
+          ? {
+              kind: 'robot' as const,
+              robotId: String(hitObject.userData.robotId ?? ''),
+            }
+          : hitObject.userData.selectableKind === 'fracture'
+          ? {
+              kind: 'fracture' as const,
+              fractureId: String(hitObject.userData.fractureId ?? ''),
+              nodeId: hitObject.userData.nodeId ? String(hitObject.userData.nodeId) : null,
+            }
+          : null;
+        return snapPoint(intersects[0].point.clone(), hit);
       }
 
       // 回退：射线与 Y=0 水平面求交
       const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
       const hitPoint = new THREE.Vector3();
       const gotHit = raycaster.ray.intersectPlane(groundPlane, hitPoint);
-      if (gotHit) return hitPoint;
+      if (gotHit) return snapPoint(hitPoint, null);
 
       // 最终回退：射线方向上的远点
-      return raycaster.ray.origin.clone().add(
+      return snapPoint(raycaster.ray.origin.clone().add(
         raycaster.ray.direction.clone().multiplyScalar(100)
-      );
+      ), null);
     };
 
     // 监听 document（capture 阶段），检查坐标是否在 canvas 区域内
@@ -88,21 +164,24 @@ export function useCanvasInteraction(
       if (e.button !== 0) return; // 只响应左键，右键留给 OrbitControls 旋转
       if (!isInCanvas(e.clientX, e.clientY)) return;
       const point = getIntersection(e.clientX, e.clientY);
-      handlersRef.current.onPointerDown?.(point, e);
+      handlersRef.current.onPointerDown?.(point.point, e);
+      handlersRef.current.onPointerDownDetail?.(point, e);
     };
 
     const handleMove = (e: PointerEvent) => {
       if (!handlersRef.current.onPointerMove) return;
       if (!isInCanvas(e.clientX, e.clientY)) return;
       const point = getIntersection(e.clientX, e.clientY);
-      handlersRef.current.onPointerMove?.(point, e);
+      handlersRef.current.onPointerMove?.(point.point, e);
+      handlersRef.current.onPointerMoveDetail?.(point, e);
     };
 
     const handleUp = (e: PointerEvent) => {
       if (e.button !== 0) return;
       if (!isInCanvas(e.clientX, e.clientY)) return;
       const point = getIntersection(e.clientX, e.clientY);
-      handlersRef.current.onPointerUp?.(point, e);
+      handlersRef.current.onPointerUp?.(point.point, e);
+      handlersRef.current.onPointerUpDetail?.(point, e);
     };
 
     document.addEventListener('pointerdown', handleDown, { capture: true });

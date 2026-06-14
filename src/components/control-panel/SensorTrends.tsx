@@ -3,45 +3,8 @@ import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { useSensorTrend } from '../../hooks/useSensorTrend';
 import { useSceneStore } from '../../store/useSceneStore';
 import { ChevronDown, MapPin } from 'lucide-react';
-import type { ScenarioType } from '../../types';
-
-/** 场景特定的趋势标签配置 */
-const TREND_LABELS: Record<ScenarioType, {
-  primary: { label: string; unit: string; threshold: number };
-  temp: { label: string };
-  aux: { label: string; unit: string };
-}> = {
-  coal: {
-    primary: { label: 'CH₄ 浓度', unit: '%', threshold: 1.5 },
-    temp: { label: '环境温度' },
-    aux: { label: '大气压力', unit: 'kPa' },
-  },
-  gold: {
-    primary: { label: '微震频率', unit: '次/h', threshold: 15 },
-    temp: { label: '岩温' },
-    aux: { label: '应力', unit: 'MPa' },
-  },
-  oil: {
-    primary: { label: '孔隙压力', unit: 'MPa', threshold: 30 },
-    temp: { label: '地层温度' },
-    aux: { label: '渗透率', unit: 'mD' },
-  },
-  pipeline: {
-    primary: { label: '天然气泄漏', unit: '%LEL', threshold: 20 },
-    temp: { label: '管道温度' },
-    aux: { label: '运行压力', unit: 'MPa' },
-  },
-  nuclear: {
-    primary: { label: '剂量率', unit: 'mSv/h', threshold: 25 },
-    temp: { label: '冷却剂温度' },
-    aux: { label: '运行压力', unit: 'MPa' },
-  },
-  refinery: {
-    primary: { label: '壁厚减薄', unit: '%', threshold: 3 },
-    temp: { label: '操作温度' },
-    aux: { label: '腐蚀速率', unit: 'mm/yr' },
-  },
-};
+import { getLocalizedSceneLabels, getLocalizedTrendLabels } from '../../lib/sceneSemantics';
+import { t } from '../../domain/i18nCatalog';
 
 // Mini sparkline chart using SVG
 function Sparkline({ data, color, height = 36 }: { data: number[]; color: string; height?: number }) {
@@ -97,21 +60,21 @@ function TrendRow({
   const overThreshold = threshold !== undefined && current > threshold;
 
   return (
-    <div className="px-1 py-1 rounded bg-[#0F0F16]/40">
+    <div className="px-1 py-1 rounded bg-[#F8FAFC]/40">
       <div className="flex items-center justify-between mb-0.5">
-        <span className="text-[9px] text-[#A0A0B0]">{label}</span>
+        <span className="text-[9px] text-[#667085]">{label}</span>
         <div className="flex items-center gap-1">
-          <span className={`text-[11px] font-mono font-bold ${overThreshold ? 'text-[#FF3333]' : ''}`} style={!overThreshold ? { color } : undefined}>
+          <span className={`text-[11px] font-mono font-bold ${overThreshold ? 'text-[#B42318]' : ''}`} style={!overThreshold ? { color } : undefined}>
             {current}{unit}
           </span>
           {delta !== 0 && (
-            <span className={`text-[9px] ${delta > 0 ? 'text-[#FF3333]' : 'text-[#00FF66]'}`}>
+            <span className={`text-[9px] ${delta > 0 ? 'text-[#B42318]' : 'text-[#00FF66]'}`}>
               {delta > 0 ? '▲' : '▼'}{Math.abs(Math.round(delta * 10) / 10)}
             </span>
           )}
         </div>
       </div>
-      <Sparkline data={data} color={overThreshold ? '#FF3333' : color} />
+      <Sparkline data={data} color={overThreshold ? '#B42318' : color} />
     </div>
   );
 }
@@ -120,20 +83,24 @@ export function SensorTrends() {
   const [collapsed, setCollapsed] = useState(false);
   const [view, setView] = useState<'aggregate' | 'regional'>('aggregate');
   const [activeRegion, setActiveRegion] = useState<string | null>(null);
-  const { data: trend, loading } = useSensorTrend();
+  const { data: trend, loading, totalNodes } = useSensorTrend();
   const flyTo = useSceneStore((s) => s.flyTo);
   const setHighlightedFractureIds = useSceneStore((s) => s.setHighlightedFractureIds);
   const scenario = useSceneStore((s) => s.scenario);
-  const labels = TREND_LABELS[scenario] || TREND_LABELS.coal;
+  const locale = useSceneStore((s) => s.locale);
+  const labels = getLocalizedTrendLabels(scenario, locale);
+  const localizedScene = getLocalizedSceneLabels(scenario, locale);
 
-  const handleRegionClick = (r: typeof trend.regions[0]) => {
+  type RegionTrend = NonNullable<typeof trend>['regions'][number];
+
+  const handleRegionClick = (r: RegionTrend) => {
     if (activeRegion === r.regionId) {
       // 再次点击取消选择
       setActiveRegion(null);
       setHighlightedFractureIds(null);
     } else {
       setActiveRegion(r.regionId);
-      // 直接高亮该区域内的裂缝面 — 不用球体
+      // 直接高亮该区域内的通道对象 — 不用球体
       setHighlightedFractureIds(r.fractureIds);
       flyTo({ position: r.center, region: r.regionName, zoom: 'close' });
     }
@@ -154,9 +121,9 @@ export function SensorTrends() {
           <svg className="w-3.5 h-3.5 text-[#4DA6FF]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M3 3v18h18M7 14l4-4 4 4 5-5" />
           </svg>
-          <span>传感器趋势</span>
-          <span className="text-[9px] text-[#A0A0B0]/40 ml-auto">近 2.5 小时</span>
-          <ChevronDown className={`w-3 h-3 text-[#A0A0B0] transition-transform ${collapsed ? '' : 'rotate-180'}`} />
+          <span>{t('panel.sensorTrends', locale)}</span>
+          <span className="text-[9px] text-[#667085]/40 ml-auto">{locale === 'zh-CN' ? '近 2.5 小时' : 'Last 2.5h'}</span>
+          <ChevronDown className={`w-3 h-3 text-[#667085] transition-transform ${collapsed ? '' : 'rotate-180'}`} />
         </CardTitle>
       </CardHeader>
 
@@ -164,8 +131,10 @@ export function SensorTrends() {
         <CardContent className="space-y-1.5">
           {/* Source label */}
           {trend && (
-            <div className="text-[7px] text-[#A0A0B0]/40 text-center pb-0.5">
-              {trend.source}
+            <div className="text-[7px] text-[#667085]/40 text-center pb-0.5">
+              {locale === 'zh-CN'
+                ? trend.source
+                : `${totalNodes} ${localizedScene.status.nodeLabel.toLowerCase()} aggregated across ${trend.regions.length} regions`}
             </div>
           )}
 
@@ -175,31 +144,31 @@ export function SensorTrends() {
               onClick={(e) => { e.stopPropagation(); handleViewChange('aggregate'); }}
               className={`flex-1 px-1 py-0.5 text-[9px] rounded transition-all ${
                 view === 'aggregate'
-                  ? 'bg-[#FFE600]/10 text-[#FFE600] border border-[#FFE600]/20'
-                  : 'text-[#A0A0B0]/50 border border-transparent hover:bg-white/5'
+                  ? 'bg-[#C99A2E]/10 text-[#C99A2E] border border-[#C99A2E]/20'
+                  : 'text-[#667085]/50 border border-transparent hover:bg-[#F8FAFC]'
               }`}
             >
-              全局聚合
+              {locale === 'zh-CN' ? '全局聚合' : 'Aggregate'}
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); handleViewChange('regional'); }}
               className={`flex-1 px-1 py-0.5 text-[9px] rounded transition-all ${
                 view === 'regional'
-                  ? 'bg-[#FFE600]/10 text-[#FFE600] border border-[#FFE600]/20'
-                  : 'text-[#A0A0B0]/50 border border-transparent hover:bg-white/5'
+                  ? 'bg-[#C99A2E]/10 text-[#C99A2E] border border-[#C99A2E]/20'
+                  : 'text-[#667085]/50 border border-transparent hover:bg-[#F8FAFC]'
               }`}
             >
-              分区域
+              {locale === 'zh-CN' ? '分区域' : 'Regional'}
             </button>
           </div>
 
           {loading || !trend ? (
-            <div className="text-[10px] text-[#A0A0B0]/40 text-center py-3">加载趋势...</div>
+            <div className="text-[10px] text-[#667085]/40 text-center py-3">{locale === 'zh-CN' ? '加载趋势...' : 'Loading trends...'}</div>
           ) : view === 'aggregate' ? (
             <>
-              <TrendRow label={`${labels.primary.label} (聚合)`} unit={labels.primary.unit} data={trend.ch4} color="#FFA500" threshold={labels.primary.threshold} />
-              <TrendRow label={`${labels.temp.label} (聚合)`} unit="°C" data={trend.temperature} color="#FF6B35" />
-              <TrendRow label={`${labels.aux.label} (聚合)`} unit={labels.aux.unit} data={trend.pressure} color="#4DA6FF" />
+              <TrendRow label={locale === 'zh-CN' ? `${labels.primary.label} (聚合)` : `${labels.primary.label} (Aggregate)`} unit={labels.primary.unit} data={trend.ch4} color="#B54708" threshold={labels.primary.threshold} />
+              <TrendRow label={locale === 'zh-CN' ? `${labels.temperature.label} (聚合)` : `${labels.temperature.label} (Aggregate)`} unit={labels.temperature.unit} data={trend.temperature} color="#FF6B35" />
+              <TrendRow label={locale === 'zh-CN' ? `${labels.aux.label} (聚合)` : `${labels.aux.label} (Aggregate)`} unit={labels.aux.unit} data={trend.pressure} color="#4DA6FF" />
             </>
           ) : (
             <div className="space-y-1.5 max-h-[180px] overflow-y-auto custom-scroll">
@@ -212,19 +181,19 @@ export function SensorTrends() {
                     onClick={(e) => { e.stopPropagation(); handleRegionClick(r); }}
                     className={`px-1 py-1 rounded cursor-pointer transition-all border ${
                       isActive
-                        ? 'bg-[#FFE600]/8 border-[#FFE600]/30 shadow-[0_0_8px_rgba(255,230,0,0.15)]'
-                        : 'bg-[#0F0F16]/40 border-white/5 hover:border-[#FFE600]/15 hover:bg-[#0F0F16]/60'
+                        ? 'bg-[#C99A2E]/8 border-[#C99A2E]/30 shadow-[0_0_8px_rgba(255,230,0,0.15)]'
+                        : 'bg-[#F8FAFC]/40 border-[#D9E1EA] hover:border-[#C99A2E]/15 hover:bg-[#F8FAFC]/60'
                     }`}
                   >
                     <div className="flex items-center justify-between mb-0.5">
                       <div className="flex items-center gap-1">
-                        <MapPin className={`w-2.5 h-2.5 ${isActive ? 'text-[#FFE600]' : 'text-[#A0A0B0]/40'}`} />
-                        <span className={`text-[9px] font-medium ${isActive ? 'text-[#FFE600]' : 'text-[#E0E0E8]'}`}>{r.regionName}</span>
+                        <MapPin className={`w-2.5 h-2.5 ${isActive ? 'text-[#C99A2E]' : 'text-[#667085]/40'}`} />
+                        <span className={`text-[9px] font-medium ${isActive ? 'text-[#C99A2E]' : 'text-[#182230]'}`}>{r.regionName}</span>
                       </div>
-                      <span className="text-[7px] text-[#A0A0B0]/40">{r.nodeCount} 节点</span>
+                      <span className="text-[7px] text-[#667085]/40">{locale === 'zh-CN' ? `${r.nodeCount} 节点` : `${r.nodeCount} nodes`}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className={`text-[9px] font-mono ${ch4Now > labels.primary.threshold ? 'text-[#FF3333]' : 'text-[#FFA500]'}`}>
+                      <span className={`text-[9px] font-mono ${ch4Now > labels.primary.threshold ? 'text-[#B42318]' : 'text-[#B54708]'}`}>
                         {labels.primary.label} {ch4Now.toFixed(2)}{labels.primary.unit}
                       </span>
                       <span className="text-[9px] font-mono text-[#FF6B35]">
@@ -232,11 +201,11 @@ export function SensorTrends() {
                       </span>
                     </div>
                     <div className="mt-0.5">
-                      <Sparkline data={r.ch4} color={ch4Now > labels.primary.threshold ? '#FF3333' : '#FFA500'} height={24} />
+                      <Sparkline data={r.ch4} color={ch4Now > labels.primary.threshold ? '#B42318' : '#B54708'} height={24} />
                     </div>
                     {isActive && (
-                      <div className="text-[7px] text-[#FFE600]/50 text-center mt-0.5 animate-fade-in">
-                        已框选 · 再次点击取消
+                      <div className="text-[7px] text-[#C99A2E]/50 text-center mt-0.5 animate-fade-in">
+                        {locale === 'zh-CN' ? '已框选 · 再次点击取消' : 'Highlighted · click again to clear'}
                       </div>
                     )}
                   </div>

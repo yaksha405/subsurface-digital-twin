@@ -1,16 +1,24 @@
 import { useState, useEffect, useMemo } from 'react';
 import { fetchRobots, fetchRobotStats } from '../api/robotApi';
-import type { Robot, DataSourceType } from '../types';
+import type { Robot, DataSourceType, ScenarioType } from '../types';
 import type { RobotFleetStats } from '../types/api';
 
 // 模块级缓存（按数据源分别缓存）
-const robotCache: Record<string, Robot[] | null> = { fracture: null, pipeline: null, nuclear: null, refinery: null, underground: null };
-const statsCache: Record<string, RobotFleetStats | null> = { fracture: null, pipeline: null, nuclear: null, refinery: null, underground: null };
+const robotCache: Record<string, Robot[] | null> = {};
+const statsCache: Record<string, RobotFleetStats | null> = {};
+
+function cacheKey(dataSource: DataSourceType, scenario: ScenarioType): string {
+  return dataSource === 'fracture' ? `${dataSource}:${scenario}` : dataSource;
+}
 
 /** 清除指定数据源的缓存（切换数据源时调用） */
 export function clearRobotCache(dataSource: DataSourceType) {
-  robotCache[dataSource] = null;
-  statsCache[dataSource] = null;
+  for (const key of Object.keys(robotCache)) {
+    if (key === dataSource || key.startsWith(`${dataSource}:`)) robotCache[key] = null;
+  }
+  for (const key of Object.keys(statsCache)) {
+    if (key === dataSource || key.startsWith(`${dataSource}:`)) statsCache[key] = null;
+  }
 }
 
 export interface RobotFilter {
@@ -30,8 +38,8 @@ export const defaultFilter: RobotFilter = {
 /**
  * 获取全部机器人列表（带模块缓存，按数据源区分）
  */
-export function useAllRobots(dataSource: DataSourceType = 'fracture') {
-  const key = dataSource;
+export function useAllRobots(dataSource: DataSourceType = 'fracture', scenario: ScenarioType = 'coal') {
+  const key = cacheKey(dataSource, scenario);
   const [data, setData] = useState<Robot[] | null>(robotCache[key]);
   const [loading, setLoading] = useState(!robotCache[key]);
   const [error, setError] = useState<Error | null>(null);
@@ -40,7 +48,7 @@ export function useAllRobots(dataSource: DataSourceType = 'fracture') {
     if (robotCache[key]) { setData(robotCache[key]); return; }
     const ctrl = new AbortController();
     setLoading(true);
-    fetchRobots(undefined, ctrl.signal, dataSource)
+    fetchRobots(undefined, ctrl.signal, dataSource, scenario)
       .then((robots) => {
         robotCache[key] = robots;
         setData(robots);
@@ -50,7 +58,7 @@ export function useAllRobots(dataSource: DataSourceType = 'fracture') {
       })
       .finally(() => setLoading(false));
     return () => ctrl.abort();
-  }, [key]);
+  }, [dataSource, key, scenario]);
 
   return { data, loading, error };
 }
@@ -58,8 +66,8 @@ export function useAllRobots(dataSource: DataSourceType = 'fracture') {
 /**
  * 获取集群统计（带模块缓存，按数据源区分）
  */
-export function useRobotStats(dataSource: DataSourceType = 'fracture') {
-  const key = dataSource;
+export function useRobotStats(dataSource: DataSourceType = 'fracture', scenario: ScenarioType = 'coal') {
+  const key = cacheKey(dataSource, scenario);
   const [data, setData] = useState<RobotFleetStats | null>(statsCache[key]);
   const [loading, setLoading] = useState(!statsCache[key]);
 
@@ -67,7 +75,7 @@ export function useRobotStats(dataSource: DataSourceType = 'fracture') {
     if (statsCache[key]) { setData(statsCache[key]); return; }
     const ctrl = new AbortController();
     setLoading(true);
-    fetchRobotStats(ctrl.signal, dataSource)
+    fetchRobotStats(ctrl.signal, dataSource, scenario)
       .then((stats) => {
         statsCache[key] = stats;
         setData(stats);
@@ -75,7 +83,7 @@ export function useRobotStats(dataSource: DataSourceType = 'fracture') {
       .catch(() => {})
       .finally(() => setLoading(false));
     return () => ctrl.abort();
-  }, [key]);
+  }, [dataSource, key, scenario]);
 
   return { data, loading };
 }
@@ -83,8 +91,8 @@ export function useRobotStats(dataSource: DataSourceType = 'fracture') {
 /**
  * 带过滤的机器人列表 Hook
  */
-export function useFilteredRobots(filter: RobotFilter, dataSource: DataSourceType = 'fracture') {
-  const { data: allRobots, loading } = useAllRobots(dataSource);
+export function useFilteredRobots(filter: RobotFilter, dataSource: DataSourceType = 'fracture', scenario: ScenarioType = 'coal') {
+  const { data: allRobots, loading } = useAllRobots(dataSource, scenario);
 
   const filtered = useMemo(() => {
     if (!allRobots) return [];

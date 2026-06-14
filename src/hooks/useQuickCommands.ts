@@ -14,8 +14,9 @@ export interface UseQuickCommandsResult {
 
 export function useQuickCommands(): UseQuickCommandsResult {
   const scenario = useSceneStore((s) => s.scenario);
+  const locale = useSceneStore((s) => s.locale);
 
-  const data = useMemo(() => getQuickCommands(scenario), [scenario]);
+  const data = useMemo(() => getQuickCommands(scenario, locale), [scenario, locale]);
 
   return { data, loading: false };
 }

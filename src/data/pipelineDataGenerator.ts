@@ -18,7 +18,7 @@
  * - 腐蚀速率: 阴极保护 0.01-0.3 mm/yr, 无保护 0.5-1.0 mm/yr
  */
 
-import type { Fracture, FractureNode, SensorReading } from '../types';
+import type { Fracture, SensorReading } from '../types';
 
 // 固定种子随机
 let _seed = 42;
@@ -29,13 +29,12 @@ function sr(): number {
 function rand(min: number, max: number): number {
   return min + sr() * (max - min);
 }
+function randRange(range: readonly [number, number]): number {
+  return rand(range[0], range[1]);
+}
 function randInt(min: number, max: number): number {
   return Math.floor(rand(min, max + 1));
 }
-function pick<T>(arr: T[]): T {
-  return arr[Math.floor(sr() * arr.length)];
-}
-
 // ==================== 真实管道参数 ====================
 
 /** 管道等级规格 — 基于 API 5L / ASME B31.4 / B31.8 */
@@ -76,7 +75,7 @@ const PIPE_SPECS = {
     temperature_c: [8, 45],
     corrosion_rate_mmyear: [0.05, 0.35],
   },
-};
+} as const;
 
 type PipeClass = 'trunk' | 'distribution' | 'service';
 
@@ -88,10 +87,10 @@ function getPipeSpec(pipeClass: PipeClass) {
 
 function genPipelineSensorReading(pipeClass: PipeClass): SensorReading {
   const spec = getPipeSpec(pipeClass);
-  const operatingPressure = +rand(...spec.operating_pressure_mpa).toFixed(2);
-  const wallThickness = +rand(...spec.wall_thickness_mm).toFixed(1);
-  const corrosionRate = +rand(...spec.corrosion_rate_mmyear).toFixed(3);
-  const temperature = +rand(...spec.temperature_c).toFixed(1);
+  const operatingPressure = +randRange(spec.operating_pressure_mpa).toFixed(2);
+  const wallThickness = +randRange(spec.wall_thickness_mm).toFixed(1);
+  const corrosionRate = +randRange(spec.corrosion_rate_mmyear).toFixed(3);
+  const temperature = +randRange(spec.temperature_c).toFixed(1);
 
   // H₂S: 酸性气田 0-500 ppm, NACE MR0175 阈值 50 ppm
   const h2s = +(sr() > 0.7 ? rand(20, 500) : rand(0, 30)).toFixed(1);
@@ -103,7 +102,7 @@ function genPipelineSensorReading(pipeClass: PipeClass): SensorReading {
   const co = +(sr() > 0.9 ? rand(20, 100) : rand(0, 8)).toFixed(1);
 
   // 流量 (m³/h)
-  const flowRate = +rand(...spec.flow_rate_m3h).toFixed(0);
+  const flowRate = +randRange(spec.flow_rate_m3h).toFixed(0);
 
   // 壁厚损失百分比
   const wallLossPct = +(corrosionRate * rand(5, 20)).toFixed(1); // 累积腐蚀
@@ -126,7 +125,7 @@ function genPipelineSensorReading(pipeClass: PipeClass): SensorReading {
     stress_mpa: operatingPressure,           // 运行压力 MPa
     stress_sigma1: yieldUtilization * 100,   // 屈服利用率 %
     stress_sigma2: flowRate / 1000,          // 流量 (千 m³/h, 存为副值)
-    stress_sigma3: +rand(...spec.yield_strength_mpa).toFixed(0), // 钢材屈服强度 MPa
+    stress_sigma3: +randRange(spec.yield_strength_mpa).toFixed(0), // 钢材屈服强度 MPa
     permeability_md: corrosionRate,          // 腐蚀速率 mm/yr
     water_pressure_mpa: +rand(0.1, 0.8).toFixed(2), // 外部土压 MPa
     microseismic_count: vibration,           // 振动频率 Hz
@@ -152,10 +151,10 @@ function genPipelineSensorReading(pipeClass: PipeClass): SensorReading {
  * @param targetPoint 目标终点 [x, y, z]
  * @param pipeClass 管道等级
  */
-function generatePipePath(
+function _generatePipePath(
   entryPoint: [number, number, number],
   targetPoint: [number, number, number],
-  pipeClass: PipeClass
+  _pipeClass: PipeClass
 ): [number, number, number][] {
   const points: [number, number, number][] = [[...entryPoint]];
 
@@ -193,7 +192,7 @@ function generatePipePath(
 /**
  * 生成分支管道路径 — 从主管某点分出
  */
-function generateBranchPath(
+function _generateBranchPath(
   origin: [number, number, number],
   direction: [number, number, number],
   length: number
@@ -265,9 +264,8 @@ function buildPipeline(
   customName?: string
 ): Fracture {
   const spec = getPipeSpec(pipeClass);
-  const diameter = +rand(...spec.diameter_mm).toFixed(0);
-  const wallThickness = +rand(...spec.wall_thickness_mm).toFixed(1);
-  const grade = pick(spec.steel_grade);
+  const diameter = +randRange(spec.diameter_mm).toFixed(0);
+  const wallThickness = +randRange(spec.wall_thickness_mm).toFixed(1);
 
   const fracture: Fracture = {
     id: `P-${String(id).padStart(3, '0')}`,
@@ -378,7 +376,7 @@ function generateHorizontalPipe(
 function generateElbowPipe(
   start: [number, number, number],
   end: [number, number, number],
-  midOffset: number
+  _midOffset: number
 ): [number, number, number][] {
   // start → corner → end 的 L 型路径
   const corner: [number, number, number] = [end[0], start[1], end[2]];

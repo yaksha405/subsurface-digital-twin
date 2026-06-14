@@ -3,7 +3,7 @@
  * 按数据源生成场景特定的告警：瓦斯/剂量率/泄漏/减薄、温度异常、设备离线等
  */
 
-import type { Robot, DataSourceType } from '../types';
+import type { Robot, DataSourceType, ScenarioType } from '../types';
 
 export type AlertLevel = 'danger' | 'warning' | 'info';
 export type AlertType =
@@ -40,11 +40,28 @@ interface ScenarioAlertCfg {
   robotCount: number;        // 系统告警中的机器人数量
 }
 
-const SCENARIO_CFG: Record<DataSourceType, ScenarioAlertCfg> = {
+type AlertScenarioKey = DataSourceType | ScenarioType;
+
+const SCENARIO_CFG: Record<AlertScenarioKey, ScenarioAlertCfg> = {
   fracture: {
     primaryLabel: 'CH₄', primaryUnit: '%', primaryThreshold: 1.5,
     primaryTitle: 'CH₄ 浓度超标', tempLabel: '环境温度', tempThreshold: 40,
     depthLabel: 'Z', robotCount: 200,
+  },
+  coal: {
+    primaryLabel: 'CH₄', primaryUnit: '%', primaryThreshold: 1.5,
+    primaryTitle: 'CH₄ 浓度超标', tempLabel: '环境温度', tempThreshold: 40,
+    depthLabel: 'Z', robotCount: 200,
+  },
+  gold: {
+    primaryLabel: '微震事件', primaryUnit: '次/h', primaryThreshold: 15,
+    primaryTitle: '微震活动异常', tempLabel: '岩温', tempThreshold: 45,
+    depthLabel: '深度', robotCount: 200,
+  },
+  oil: {
+    primaryLabel: '孔隙压力', primaryUnit: 'MPa', primaryThreshold: 30,
+    primaryTitle: '储层孔隙压力异常', tempLabel: '地层温度', tempThreshold: 90,
+    depthLabel: '深度', robotCount: 200,
   },
   pipeline: {
     primaryLabel: '泄漏', primaryUnit: '%LEL', primaryThreshold: 20,
@@ -68,40 +85,63 @@ const SCENARIO_CFG: Record<DataSourceType, ScenarioAlertCfg> = {
   },
 };
 
-const SYSTEM_ALERTS: { type: AlertType; level: AlertLevel; title: string; desc: string }[] = [
-  {
-    type: 'system',
-    level: 'info',
-    title: '系统启动完成',
-    desc: 'HIVE 数字孪生主控舱初始化完毕，Mesh 网络拓扑建立成功',
-  },
-  {
-    type: 'task_complete',
-    level: 'info',
-    title: '区域扫描完成',
-    desc: '三维扫描任务完成，重建 12,000 个体素节点，点云置信度 60%',
-  },
-];
+function systemAlertsFor(cfg: ScenarioAlertCfg): { type: AlertType; level: AlertLevel; title: string; desc: string }[] {
+  return [
+    {
+      type: 'system',
+      level: 'info',
+      title: '系统启动完成',
+      desc: `HIVE 数字孪生主控舱初始化完毕，${cfg.robotCount} 台机器人已注册，Mesh 网络拓扑建立成功`,
+    },
+    {
+      type: 'task_complete',
+      level: 'info',
+      title: '区域扫描完成',
+      desc: `三维扫描任务完成，重建 12,000 个体素节点，点云置信度 60%，当前场景主指标为 ${cfg.primaryLabel}`,
+    },
+  ];
+}
 
-// 按数据源分别缓存
-const cache: Partial<Record<DataSourceType, AlertEvent[]>> = {};
+// 按数据源 + 子场景分别缓存，避免 fracture 下煤矿/金矿/油气共用告警语义。
+const cache: Record<string, AlertEvent[]> = {};
 
-export function generateMockAlerts(robots?: Robot[], dataSource: DataSourceType = 'fracture'): AlertEvent[] {
-  if (cache[dataSource]) return cache[dataSource]!;
+function resolveAlertScenarioKey(dataSource: DataSourceType, scenario: ScenarioType): AlertScenarioKey {
+  return dataSource === 'fracture' ? scenario : dataSource;
+}
+
+function cacheKeyFor(dataSource: DataSourceType, scenario: ScenarioType): string {
+  return dataSource === 'fracture' ? `fracture:${scenario}` : dataSource;
+}
+
+function primaryReadingFor(robot: Robot, key: AlertScenarioKey): number {
+  if (key === 'gold') return robot.sensors.ch4;
+  if (key === 'oil') return robot.sensors.ch4;
+  if (key === 'underground') return robot.sensors.ch4;
+  return robot.sensors.ch4;
+}
+
+export function generateMockAlerts(
+  robots?: Robot[],
+  dataSource: DataSourceType = 'fracture',
+  scenario: ScenarioType = 'coal',
+): AlertEvent[] {
+  const cacheKey = cacheKeyFor(dataSource, scenario);
+  if (cache[cacheKey]) return cache[cacheKey]!;
   if (!robots) return [];
 
-  const cfg = SCENARIO_CFG[dataSource];
+  const scenarioKey = resolveAlertScenarioKey(dataSource, scenario);
+  const cfg = SCENARIO_CFG[scenarioKey];
   const alerts: AlertEvent[] = [];
   let counter = 0;
 
   // System alerts
-  for (const sys of SYSTEM_ALERTS) {
+  for (const sys of systemAlertsFor(cfg)) {
     alerts.push({
       id: `alert-${String(++counter).padStart(4, '0')}`,
       level: sys.level,
       type: sys.type,
       title: sys.title,
-      description: sys.desc.replace('Mesh', `${cfg.robotCount} 台机器人已注册，Mesh`),
+      description: sys.desc,
       timestamp: Date.now() - Math.floor(Math.random() * 3600000 * 2),
       acknowledged: false,
     });
@@ -131,10 +171,11 @@ export function generateMockAlerts(robots?: Robot[], dataSource: DataSourceType 
       triggered = true; level = 'warning'; type = 'mesh_disconnect';
       title = `Mesh 组网中断 — ${r.id}`;
       desc = `${r.id} 从 Mesh 网络掉线，角色 ${r.meshRole}，影响区域 ${cfg.depthLabel}=${r.depth}m 通信链路`;
-    } else if (r.sensors.ch4 > cfg.primaryThreshold) {
+    } else if (primaryReadingFor(r, scenarioKey) > cfg.primaryThreshold) {
+      const primaryReading = primaryReadingFor(r, scenarioKey);
       triggered = true; level = 'danger'; type = 'gas_overload';
       title = `${cfg.primaryTitle} — ${r.id}`;
-      desc = `${r.id} 检测到 ${cfg.primaryLabel} ${r.sensors.ch4}${cfg.primaryUnit}，超过安全阈值 ${cfg.primaryThreshold}${cfg.primaryUnit}，位置 ${cfg.depthLabel}=${r.depth}m`;
+      desc = `${r.id} 检测到 ${cfg.primaryLabel} ${primaryReading}${cfg.primaryUnit}，超过安全阈值 ${cfg.primaryThreshold}${cfg.primaryUnit}，位置 ${cfg.depthLabel}=${r.depth}m`;
     } else if (r.sensors.temperature > cfg.tempThreshold) {
       triggered = true; level = 'danger'; type = 'temp_anomaly';
       title = `${cfg.tempLabel}异常 — ${r.id}`;
@@ -153,6 +194,6 @@ export function generateMockAlerts(robots?: Robot[], dataSource: DataSourceType 
   }
 
   alerts.sort((a, b) => b.timestamp - a.timestamp);
-  cache[dataSource] = alerts;
+  cache[cacheKey] = alerts;
   return alerts;
 }

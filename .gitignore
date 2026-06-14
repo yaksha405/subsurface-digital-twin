@@ -32,3 +32,6 @@ after-dropdown-click.yaml
 chat-test.yaml
 refinery-view.png
 refinery.png
+
+backend/__pycache__/
+backend/processors/__pycache__/

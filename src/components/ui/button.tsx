@@ -3,15 +3,15 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '../../lib/utils';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-xs font-medium ring-offset-[#0A0A0F] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFE600]/40 disabled:pointer-events-none disabled:opacity-50 cursor-pointer select-none',
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-xs font-semibold ring-offset-[#EEF2F6] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1F2937]/30 disabled:pointer-events-none disabled:opacity-50 cursor-pointer select-none',
   {
     variants: {
       variant: {
-        default: 'bg-[#FFE600]/10 text-[#FFE600] border border-[#FFE600]/30 hover:bg-[#FFE600]/20 hover:border-[#FFE600]/50',
-        destructive: 'bg-[#FF3333]/10 text-[#FF3333] border border-[#FF3333]/30 hover:bg-[#FF3333]/20',
-        ghost: 'text-[#A0A0B0] hover:bg-white/5 hover:text-[#E0E0E8]',
-        outline: 'border border-white/10 bg-transparent text-[#E0E0E8] hover:bg-white/5 hover:border-white/20',
-        secondary: 'bg-[#1E3A5F]/30 text-[#6BA3D8] border border-[#1E3A5F]/50 hover:bg-[#1E3A5F]/50',
+        default: 'bg-[#1F2937] text-white border border-[#1F2937] hover:bg-[#111827]',
+        destructive: 'bg-[#B42318]/10 text-[#B42318] border border-[#F3B8B0] hover:bg-[#B42318]/15',
+        ghost: 'text-[#667085] hover:bg-[#EEF2F6] hover:text-[#182230]',
+        outline: 'border border-[#D9E1EA] bg-white text-[#344054] hover:bg-[#F8FAFC] hover:border-[#B7C3D0]',
+        secondary: 'bg-[#E7F7EF] text-[#087443] border border-[#B7E4CB] hover:bg-[#DDF3E8]',
       },
       size: {
         default: 'h-8 px-3 py-1',
@@ -38,4 +38,4 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 );
 Button.displayName = 'Button';
 
-export { Button, buttonVariants };
+export { Button };

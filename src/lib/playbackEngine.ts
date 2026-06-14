@@ -40,9 +40,17 @@ export interface PlaybackState {
   revealRatios: Record<string, number>;
 }
 
+interface RobotAssignment {
+  fractureId: string;
+  speedFactor: number;
+  stallAt: number;
+  stallType: RobotStatus | null;
+  entryOffset: number;
+}
+
 // 缓存：避免每次 render 都重新分配
 let _cacheKey = '';
-let _assignments: Map<string, { fractureId: string; speedFactor: number; stallAt: number; stallType: RobotStatus | null }> = new Map();
+let _assignments: Map<string, RobotAssignment> = new Map();
 let _curveCache: Map<string, THREE.CatmullRomCurve3> = new Map();
 
 // 缓存：每条分支的汇合点信息 { branchId → { parentId, junctionFraction } }
@@ -123,7 +131,7 @@ function computeBranchJunction(
  * 这确保了所有机器人在回放开始时都在地表入口聚集，
  * 而不是凭空出现在地下深处的分支入口。
  */
-function getRootEntryPoint(
+function _getRootEntryPoint(
   fracture: Fracture,
   fractures: Fracture[],
 ): [number, number, number] {
@@ -209,12 +217,12 @@ function findNearestEntry(
 function assignRobotsToFractures(
   robots: Robot[],
   fractures: Fracture[],
-): Map<string, { fractureId: string; speedFactor: number; stallAt: number; stallType: RobotStatus | null; entryOffset: number }> {
+): Map<string, RobotAssignment> {
   const key = `${robots.length}-${fractures.length}-${robots[0]?.id}-${fractures[0]?.id}`;
-  if (key === _cacheKey) return _assignments as any;
+  if (key === _cacheKey) return _assignments;
   _cacheKey = key;
 
-  const assignments = new Map<string, { fractureId: string; speedFactor: number; stallAt: number; stallType: RobotStatus | null; entryOffset: number }>();
+  const assignments = new Map<string, RobotAssignment>();
 
   if (fractures.length === 0) return assignments;
 
@@ -314,7 +322,7 @@ function assignRobotsToFractures(
     }
   }
 
-  _assignments = assignments as any;
+  _assignments = assignments;
   return assignments;
 }
 

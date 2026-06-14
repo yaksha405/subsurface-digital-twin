@@ -1,7 +1,7 @@
-import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
+import { useMemo, useState, useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import { useSceneStore } from '../../store/useSceneStore';
-import type { Fracture } from '../../types';
+import type { Fracture, FractureNode, ScenarioType, SensorReading } from '../../types';
 import { SCENARIO_BASE_COLOR, STATUS, INTERACTION, ENTRANCE, GEO_IDENTITY, NUCLEAR_IDENTITY } from '../../lib/sceneColors';
 import { computePlaybackState } from '../../lib/playbackEngine';
 import { useAllRobots } from '../../hooks/useRobots';
@@ -74,7 +74,7 @@ function valueToColor(
 }
 
 function getSensorMetric(
-  sensors: any, scenario: string
+  sensors: SensorReading, scenario: string
 ): { value: number; min: number; max: number; threshold?: number } {
   if (scenario === 'coal') return { value: sensors.ch4_pct, min: 0, max: 5, threshold: 1.5 };
   if (scenario === 'gold') return { value: sensors.microseismic_count, min: 0, max: 30, threshold: 15 };
@@ -89,14 +89,12 @@ export function FractureNetwork() {
   const visible = useSceneStore((s) => s.layers.fractures);
   const fractures = useSceneStore((s) => s.fractures);
   const selectedFracture = useSceneStore((s) => s.selectedFracture);
-  const selectFracture = useSceneStore((s) => s.selectFracture);
-  const selectFractureNode = useSceneStore((s) => s.selectFractureNode);
   const scenario = useSceneStore((s) => s.scenario);
   const highlightedFractureIds = useSceneStore((s) => s.highlightedFractureIds);
   const playbackProgress = useSceneStore((s) => s.playbackProgress);
   const playbackActive = useSceneStore((s) => s.playbackActive);
   const dataSource = useSceneStore((s) => s.dataSource);
-  const { data: allRobots } = useAllRobots(dataSource);
+  const { data: allRobots } = useAllRobots(dataSource, scenario);
 
   // 回放：揭示比例由机器人实际位置驱动（机器人爬到哪里，管道才渲染到哪里）
   // 与 RobotMarkers 完全共享同一逻辑 — computePlaybackState 既是真相源
@@ -126,7 +124,6 @@ export function FractureNetwork() {
           fracture={fracture}
           isSelected={isSelected}
           isHighlighted={isHighlighted}
-          onSelect={selectFracture}
           revealRatio={revealRatio}
         />
       );
@@ -138,7 +135,6 @@ export function FractureNetwork() {
           fracture={fracture}
           isSelected={isSelected}
           isHighlighted={isHighlighted}
-          onSelect={selectFracture}
           scenario={scenario}
           revealRatio={revealRatio}
         />
@@ -150,7 +146,6 @@ export function FractureNetwork() {
         fracture={fracture}
         isSelected={isSelected}
         isHighlighted={isHighlighted}
-        onSelect={selectFracture}
         scenario={scenario}
         revealRatio={revealRatio}
       />
@@ -192,7 +187,6 @@ export function FractureNetwork() {
             node={node}
             fractureId={fracture.id}
             scenario={scenario}
-            onSelect={selectFractureNode}
           />
         ))
       )}
@@ -210,9 +204,8 @@ function PlaybackScanPoints({ fractures, revealRatios }: { fractures: Fracture[]
   const meshRef = useRef<THREE.InstancedMesh>(null);
 
   // 为每条已揭示裂缝生成散点（确定性 — 不用 Math.random 避免闪烁）
-  const { positions, opacities } = useMemo(() => {
+  const { positions } = useMemo(() => {
     const positions: [number, number, number][] = [];
-    const opacities: number[] = [];
 
     // 确定性伪随机
     let seed = 12345;
@@ -239,10 +232,9 @@ function PlaybackScanPoints({ fractures, revealRatios }: { fractures: Fracture[]
           p1[1] + (p2[1] - p1[1]) * pathFrac + (rnd() - 0.5) * spread,
           p1[2] + (p2[2] - p1[2]) * pathFrac + (rnd() - 0.5) * spread,
         ]);
-        opacities.push(0.3 + ratio * 0.5);
       }
     }
-    return { positions, opacities };
+    return { positions };
   }, [fractures, revealRatios]);
 
   // 仅在 positions 变化时设置实例矩阵（不需要每帧更新）
@@ -305,22 +297,26 @@ function PipeMesh({
   fracture,
   isSelected,
   isHighlighted,
-  onSelect,
   scenario,
   revealRatio = 1,
 }: {
   fracture: Fracture;
   isSelected: boolean;
   isHighlighted: boolean | null;
-  onSelect: (f: Fracture) => void;
-  scenario: string;
+  scenario: ScenarioType;
   revealRatio?: number;
 }) {
   const [hovered, setHovered] = useState(false);
 
-  const { tubeGeo, joints } = useMemo(() => {
+  const { tubeGeo, hitGeo, joints } = useMemo(() => {
     const allPoints = fracture.path.map((p) => new THREE.Vector3(...p));
-    if (allPoints.length < 2) return { tubeGeo: null as THREE.TubeGeometry | null, joints: [] as { pos: THREE.Vector3; r: number }[] };
+    if (allPoints.length < 2) {
+      return {
+        tubeGeo: null as THREE.TubeGeometry | null,
+        hitGeo: null as THREE.TubeGeometry | null,
+        joints: [] as { pos: THREE.Vector3; r: number }[],
+      };
+    }
 
     // 回放揭示：截断路径到已发现部分
     const cutCount = Math.max(2, Math.ceil(allPoints.length * revealRatio));
@@ -332,6 +328,7 @@ function PipeMesh({
     const radius = fracture.type === 'main' ? baseR : baseR * 0.6;
     const segments = Math.max(16, Math.min(60, points.length * 2));
     const geo = new THREE.TubeGeometry(curve, segments, radius, 14, false);
+    const hit = new THREE.TubeGeometry(curve, segments, Math.max(radius * 2.2, 0.7), 10, false);
 
     // 球形接头（管端连接点）— 替代法兰环，使管道看起来像有连接节点而非封堵
     const jointR = radius * 1.3;
@@ -339,15 +336,10 @@ function PipeMesh({
       { pos: points[0], r: jointR },
       { pos: points[points.length - 1], r: jointR },
     ];
-    return { tubeGeo: geo, joints };
+    return { tubeGeo: geo, hitGeo: hit, joints };
   }, [fracture, revealRatio]);
 
-  const handleClick = useCallback(
-    (e: any) => { e.stopPropagation(); onSelect(fracture); },
-    [fracture, onSelect]
-  );
-
-  if (!tubeGeo) return null;
+  if (!tubeGeo || !hitGeo) return null;
 
   const baseColor = getPipeColor(fracture, scenario);
   const inRegion = isHighlighted === true;
@@ -356,17 +348,15 @@ function PipeMesh({
   const opacity = filtered ? (inRegion ? 0.95 : 0.15) : (isSelected ? 0.95 : hovered ? 0.85 : 0.75);
   const emissive = isSelected ? INTERACTION.selected : hovered ? INTERACTION.hover : (filtered && inRegion) ? INTERACTION.selected : '#000000';
   const emissiveIntensity = isSelected ? 0.3 : hovered ? 0.15 : (filtered && inRegion) ? 0.25 : 0;
-  const flangeColor = isSelected || hovered ? INTERACTION.selected : NUCLEAR_IDENTITY.rpv;
   const jointColor = isSelected || hovered ? INTERACTION.selected : NUCLEAR_IDENTITY.sg;
 
   return (
     <group
-      onClick={handleClick}
       onPointerOver={() => setHovered(true)}
       onPointerOut={() => setHovered(false)}
     >
       {/* 管体 */}
-      <mesh geometry={tubeGeo}>
+      <mesh geometry={tubeGeo} userData={{ selectableKind: 'fracture', fractureId: fracture.id, nodeId: null }}>
         <meshStandardMaterial
           color={baseColor}
           transparent
@@ -378,9 +368,12 @@ function PipeMesh({
           depthWrite={opacity > 0.5}
         />
       </mesh>
+      <mesh geometry={hitGeo} userData={{ selectableKind: 'fracture', fractureId: fracture.id, nodeId: null }}>
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+      </mesh>
       {/* 球形接头（管端连接节点） */}
       {joints.map((j, i) => (
-        <mesh key={`joint-${i}`} position={j.pos}>
+        <mesh key={`joint-${i}`} position={j.pos} userData={{ selectableKind: 'fracture', fractureId: fracture.id, nodeId: null }}>
           <sphereGeometry args={[j.r, 12, 10]} />
           <meshStandardMaterial color={jointColor} roughness={0.5} metalness={0.7} transparent opacity={opacity} />
         </mesh>
@@ -390,7 +383,7 @@ function PipeMesh({
 }
 
 /** 管道入口标记 — 红色法兰+标签 */
-function PipeEntrance({ position, name }: { position: [number, number, number]; name: string }) {
+function PipeEntrance({ position, name: _name }: { position: [number, number, number]; name: string }) {
   const [hovered, setHovered] = useState(false);
   return (
     <group position={position} onPointerOver={() => setHovered(true)} onPointerOut={() => setHovered(false)}>
@@ -421,20 +414,18 @@ function UndergroundChannelMesh({
   fracture,
   isSelected,
   isHighlighted,
-  onSelect,
   revealRatio = 1,
 }: {
   fracture: Fracture;
   isSelected: boolean;
   isHighlighted: boolean | null;
-  onSelect: (f: Fracture) => void;
   revealRatio?: number;
 }) {
   const [hovered, setHovered] = useState(false);
 
-  const tubeGeo = useMemo(() => {
+  const { tubeGeo, hitGeo } = useMemo(() => {
     const allPoints = fracture.path.map((p) => new THREE.Vector3(...p));
-    if (allPoints.length < 2) return null;
+    if (allPoints.length < 2) return { tubeGeo: null as THREE.TubeGeometry | null, hitGeo: null as THREE.TubeGeometry | null };
 
     // 回放揭示：截断路径
     const cutCount = Math.max(2, Math.ceil(allPoints.length * revealRatio));
@@ -473,16 +464,12 @@ function UndergroundChannelMesh({
       }
     }
     geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    const hit = new THREE.TubeGeometry(curve, tubularSegments, Math.max(radius * 2.4, 0.8), 10, false);
 
-    return geo;
+    return { tubeGeo: geo, hitGeo: hit };
   }, [fracture, revealRatio]);
 
-  const handleClick = useCallback(
-    (e: any) => { e.stopPropagation(); onSelect(fracture); },
-    [fracture, onSelect]
-  );
-
-  if (!tubeGeo) return null;
+  if (!tubeGeo || !hitGeo) return null;
 
   const glowColor = GEO_IDENTITY.waterGlow;
 
@@ -514,31 +501,34 @@ function UndergroundChannelMesh({
     : 0.22;
 
   return (
-    <mesh
-      geometry={tubeGeo}
-      onClick={handleClick}
-      onPointerOver={() => setHovered(true)}
-      onPointerOut={() => setHovered(false)}
-      renderOrder={2}
-    >
-      <meshStandardMaterial
-        vertexColors
-        transparent
-        opacity={opacity}
-        emissive={emissive}
-        emissiveIntensity={emissiveIntensity}
-        roughness={0.2}
-        metalness={0.0}
-        depthWrite={opacity > 0.5}
-      />
-    </mesh>
+    <group onPointerOver={() => setHovered(true)} onPointerOut={() => setHovered(false)}>
+      <mesh
+        geometry={tubeGeo}
+        renderOrder={2}
+        userData={{ selectableKind: 'fracture', fractureId: fracture.id, nodeId: null }}
+      >
+        <meshStandardMaterial
+          vertexColors
+          transparent
+          opacity={opacity}
+          emissive={emissive}
+          emissiveIntensity={emissiveIntensity}
+          roughness={0.2}
+          metalness={0.0}
+          depthWrite={opacity > 0.5}
+        />
+      </mesh>
+      <mesh geometry={hitGeo} userData={{ selectableKind: 'fracture', fractureId: fracture.id, nodeId: null }}>
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+      </mesh>
+    </group>
   );
 }
 
 /** 地下暗流入口标记 — 水蓝色光圈 */
 function UndergroundEntrance({
   position,
-  name,
+  name: _name,
 }: {
   position: [number, number, number];
   name: string;
@@ -565,7 +555,7 @@ function UndergroundEntrance({
 /** 裂缝地表入口标记 — 黄色圆环 + 小球 */
 function FractureEntrance({
   position,
-  name,
+  name: _name,
 }: {
   position: [number, number, number];
   name: string;
@@ -600,24 +590,22 @@ function FractureSurface({
   fracture,
   isSelected,
   isHighlighted,
-  onSelect,
   scenario,
   revealRatio = 1,
 }: {
   fracture: Fracture;
   isSelected: boolean;
   isHighlighted: boolean | null;
-  onSelect: (f: Fracture) => void;
-  scenario: string;
+  scenario: ScenarioType;
   revealRatio?: number;
 }) {
   const [hovered, setHovered] = useState(false);
   const gasThreshold = useSceneStore((s) => s.gasThreshold);
   const colorMode = useSceneStore((s) => s.fractureColorMode);
 
-  const { surfaceGeo, leftEdgeGeo, rightEdgeGeo } = useMemo(() => {
+  const { surfaceGeo, leftEdgeGeo, rightEdgeGeo, hitGeo } = useMemo(() => {
     const allPoints = fracture.path.map((p) => new THREE.Vector3(...p));
-    if (allPoints.length < 2) return { surfaceGeo: null, leftEdgeGeo: null, rightEdgeGeo: null };
+    if (allPoints.length < 2) return { surfaceGeo: null, leftEdgeGeo: null, rightEdgeGeo: null, hitGeo: null };
 
     // 回放揭示：截断路径
     const cutCount = Math.max(2, Math.ceil(allPoints.length * revealRatio));
@@ -716,15 +704,13 @@ function FractureSurface({
     const rightEdgeGeo = new THREE.BufferGeometry();
     rightEdgeGeo.setAttribute('position', new THREE.Float32BufferAttribute(rightEdgeVerts, 3));
 
-    return { surfaceGeo, leftEdgeGeo, rightEdgeGeo };
-  }, [fracture, isSelected, hovered, scenario, gasThreshold, colorMode, revealRatio]);
+    const hitCurve = new THREE.CatmullRomCurve3(framePoints);
+    const hitGeo = new THREE.TubeGeometry(hitCurve, Math.max(16, framePoints.length * 2), 1.2, 8, false);
 
-  const handleClick = useCallback(
-    (e: any) => { e.stopPropagation(); onSelect(fracture); },
-    [fracture, onSelect]
-  );
+    return { surfaceGeo, leftEdgeGeo, rightEdgeGeo, hitGeo };
+  }, [fracture, scenario, gasThreshold, colorMode, revealRatio]);
 
-  if (!surfaceGeo) return null;
+  if (!surfaceGeo || !hitGeo) return null;
 
   const emissiveColor = isSelected ? INTERACTION.selected : hovered ? INTERACTION.selected : '#000000';
   const emissiveIntensity = isSelected ? 0.4 : hovered ? 0.2 : 0;
@@ -744,12 +730,11 @@ function FractureSurface({
 
   return (
     <group
-      onClick={handleClick}
       onPointerOver={() => setHovered(true)}
       onPointerOut={() => setHovered(false)}
     >
       {/* 裂缝面 */}
-      <mesh geometry={surfaceGeo}>
+      <mesh geometry={surfaceGeo} userData={{ selectableKind: 'fracture', fractureId: fracture.id, nodeId: null }}>
         <meshStandardMaterial
           vertexColors
           side={THREE.DoubleSide}
@@ -761,14 +746,17 @@ function FractureSurface({
           depthWrite={false}
         />
       </mesh>
+      <mesh geometry={hitGeo} userData={{ selectableKind: 'fracture', fractureId: fracture.id, nodeId: null }}>
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+      </mesh>
 
       {/* 裂缝两侧轮廓线 */}
-      <line geometry={leftEdgeGeo}>
+      <primitive object={new THREE.Line(leftEdgeGeo)}>
         <lineBasicMaterial color={finalEdgeColor} transparent opacity={finalEdgeOpacity} linewidth={1} />
-      </line>
-      <line geometry={rightEdgeGeo}>
+      </primitive>
+      <primitive object={new THREE.Line(rightEdgeGeo)}>
         <lineBasicMaterial color={finalEdgeColor} transparent opacity={finalEdgeOpacity} linewidth={1} />
-      </line>
+      </primitive>
     </group>
   );
 }
@@ -801,14 +789,12 @@ function buildSurfaceGeo(
 /** 裂缝测点标记 — 只显示有机器人的节点 */
 function FractureNodeMarker({
   node,
-  fractureId,
+  fractureId: _fractureId,
   scenario,
-  onSelect,
 }: {
-  node: any;
+  node: FractureNode;
   fractureId: string;
-  scenario: string;
-  onSelect: (id: string) => void;
+  scenario: ScenarioType;
 }) {
   const [hovered, setHovered] = useState(false);
 
@@ -847,22 +833,25 @@ function FractureNodeMarker({
     return STATUS.safe;
   }, [node.sensors, scenario]);
 
-  const handleClick = useCallback(
-    (e: any) => { e.stopPropagation(); onSelect(node.id); },
-    [node.id, onSelect]
-  );
-
   if (!node.robotId) return null;
 
   return (
     <group position={node.position}>
       <mesh
-        onClick={handleClick}
+        userData={{ selectableKind: 'fracture', fractureId: node.id.split('-N')[0], nodeId: node.id }}
         onPointerOver={() => setHovered(true)}
         onPointerOut={() => setHovered(false)}
       >
         <sphereGeometry args={[hovered ? 0.55 : 0.3, 6, 6]} />
         <meshBasicMaterial color={color} transparent opacity={0.7} />
+      </mesh>
+      <mesh userData={{ selectableKind: 'fracture', fractureId: node.id.split('-N')[0], nodeId: node.id }}>
+        <sphereGeometry args={[0.8, 8, 8]} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+      </mesh>
+      <mesh userData={{ selectableKind: 'fracture', fractureId: node.id.split('-N')[0], nodeId: node.id }}>
+        <sphereGeometry args={[1.1, 10, 10]} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
     </group>
   );

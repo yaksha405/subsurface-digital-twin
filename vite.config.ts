@@ -35,4 +35,21 @@ export default defineConfig({
       '@deck.gl/react',
     ],
   },
+  build: {
+    chunkSizeWarningLimit: 900,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return undefined;
+          if (id.includes('/react/') || id.includes('/react-dom/') || id.includes('/scheduler/') || id.includes('/zustand/')) return 'vendor-react';
+          if (id.includes('@react-three') || id.includes('three')) return 'vendor-3d';
+          if (id.includes('@deck.gl') || id.includes('@luma.gl') || id.includes('@math.gl')) return 'vendor-map';
+          if (id.includes('@radix-ui')) return 'vendor-ui';
+          if (id.includes('react-markdown') || id.includes('remark-gfm') || id.includes('micromark') || id.includes('mdast') || id.includes('unist')) return 'vendor-markdown';
+          if (id.includes('jspdf') || id.includes('html2canvas') || id.includes('dompurify')) return 'vendor-report';
+          return undefined;
+        },
+      },
+    },
+  },
 })

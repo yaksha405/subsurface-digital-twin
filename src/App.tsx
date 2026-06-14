@@ -3,39 +3,287 @@ import { ControlPanel } from './components/control-panel/ControlPanel';
 import { Scene3DCanvas } from './components/scene/Scene3DCanvas';
 import { ChatPanel } from './components/chat/ChatPanel';
 import { WatermarkOverlay } from './components/scene/WatermarkOverlay';
-import { RobotDetailDialog } from './components/scene/RobotDetailDialog';
 import { useSceneStore } from './store/useSceneStore';
+import { t } from './domain/i18nCatalog';
+import type { ScenarioType } from './types';
+import { useEffect } from 'react';
+
+interface DevProjectionPoint {
+  x: number;
+  y: number;
+  visible: boolean;
+}
+
+interface DevInteractiveTarget {
+  id: string;
+  label: string;
+  type: 'robot' | 'fracture-node' | 'fracture-path';
+  point: [number, number, number];
+  screen: DevProjectionPoint;
+}
+
+function normalizeDevScenario(scenario: string | null): ScenarioType | null {
+  if (!scenario) return null;
+  if (scenario === 'fracture') return 'coal';
+
+  const validScenarios: ScenarioType[] = ['coal', 'gold', 'oil', 'pipeline', 'nuclear', 'refinery', 'underground'];
+  return validScenarios.includes(scenario as ScenarioType) ? scenario as ScenarioType : null;
+}
+
+function installDevTestApi() {
+  const win = window as Window & {
+    __HIVE_STORE__?: typeof useSceneStore;
+    __HIVE_DEV_VIEW__?: {
+      projectPoint: (point: [number, number, number]) => DevProjectionPoint;
+    };
+    __HIVE_TEST_API__?: {
+      setLocale: (locale: 'zh-CN' | 'en-US') => void;
+      switchScenario: (scenario: ScenarioType) => void;
+      selectRobotById: (id: string) => Promise<boolean>;
+      selectFractureById: (id: string) => Promise<boolean>;
+      setActiveTool: (tool: 'none' | 'profile' | 'area' | 'text' | 'distance') => void;
+      getSnapshot: () => ReturnType<typeof useSceneStore.getState>;
+      getInteractiveTargets: () => Promise<{
+        robots: DevInteractiveTarget[];
+        fractureNodes: DevInteractiveTarget[];
+        fracturePaths: DevInteractiveTarget[];
+      }>;
+    };
+  };
+  win.__HIVE_STORE__ = useSceneStore;
+  win.__HIVE_TEST_API__ = {
+    setLocale: (locale) => {
+      useSceneStore.getState().setLocale(locale);
+    },
+    switchScenario: (scenario) => {
+      const state = useSceneStore.getState();
+      state.setDataSource(
+        scenario === 'pipeline'
+          ? 'pipeline'
+          : scenario === 'nuclear'
+            ? 'nuclear'
+            : scenario === 'refinery'
+              ? 'refinery'
+              : scenario === 'underground'
+                ? 'underground'
+                : 'fracture',
+      );
+      state.setScenario(scenario);
+      state.setGasThreshold(
+        scenario === 'underground'
+          ? 5000
+          : scenario === 'nuclear'
+            ? 25
+            : scenario === 'pipeline'
+              ? 20
+              : scenario === 'refinery'
+                ? 3
+                : scenario === 'gold'
+                  ? 15
+                  : scenario === 'oil'
+                    ? 30
+                    : 1.5,
+      );
+    },
+    selectRobotById: async (id) => {
+      const { buildSceneDataset } = await import('./domain/sceneDataset');
+      const state = useSceneStore.getState();
+      const robot = buildSceneDataset(state.dataSource, state.scenario).robots.find((item) => item.id === id);
+      if (!robot) return false;
+      state.openRobotDetail(robot);
+      return true;
+    },
+    selectFractureById: async (id) => {
+      const { buildSceneDataset } = await import('./domain/sceneDataset');
+      const state = useSceneStore.getState();
+      const fracture = buildSceneDataset(state.dataSource, state.scenario).fractures.find((item) => item.id === id);
+      if (!fracture) return false;
+      state.selectFracture(fracture);
+      return true;
+    },
+    setActiveTool: (tool) => {
+      useSceneStore.getState().setActiveTool(tool);
+    },
+    getSnapshot: () => useSceneStore.getState(),
+    getInteractiveTargets: async () => {
+      const { buildSceneDataset } = await import('./domain/sceneDataset');
+      const state = useSceneStore.getState();
+      const view = win.__HIVE_DEV_VIEW__;
+      const dataset = buildSceneDataset(state.dataSource, state.scenario);
+
+      const robots = dataset.robots
+        .map((robot) => ({
+          id: robot.id,
+          label: robot.task,
+          type: 'robot' as const,
+          point: robot.position,
+          screen: view?.projectPoint(robot.position) ?? { x: 0, y: 0, visible: false },
+        }))
+        .filter((target) => target.screen.visible);
+
+      const fractureNodes = dataset.fractures.flatMap((fracture) =>
+        fracture.nodes.map((node) => ({
+          id: node.id,
+          label: `${fracture.name}:${node.id}`,
+          type: 'fracture-node' as const,
+          point: node.position,
+          screen: view?.projectPoint(node.position) ?? { x: 0, y: 0, visible: false },
+        }))
+      ).filter((target) => target.screen.visible);
+
+      const fracturePaths = dataset.fractures.flatMap((fracture) =>
+        fracture.path
+          .filter((_, index) => index % 2 === 0)
+          .map((point, index) => ({
+            id: `${fracture.id}-path-${index}`,
+            label: fracture.name,
+            type: 'fracture-path' as const,
+            point,
+            screen: view?.projectPoint(point) ?? { x: 0, y: 0, visible: false },
+          }))
+      ).filter((target) => target.screen.visible);
+
+      return { robots, fractureNodes, fracturePaths };
+    },
+  };
+}
 
 /** C4: 小屏幕提示 — 宽度不足时引导用户使用桌面端 */
 function MobileWarning() {
+  const locale = useSceneStore((s) => s.locale);
+
   return (
     <div className="fixed inset-0 z-[9999] bg-[#080812] flex flex-col items-center justify-center p-8 text-center md:hidden">
       <div className="text-5xl mb-4">🖥️</div>
-      <h1 className="text-lg font-bold text-[#FFE600] mb-3">建议使用桌面端访问</h1>
+      <h1 className="text-lg font-bold text-[#FFE600] mb-3">{t('mobile.title', locale)}</h1>
       <p className="text-sm text-[#A0A0B0] leading-relaxed max-w-xs">
-        HIVE 数字孪生主控舱为专业工业应用，需要较大屏幕以展示 3D 场景和多项监控面板。
+        {t('mobile.body', locale)}
         <br /><br />
-        请在宽度 ≥ 768px 的设备上访问（推荐 1920×1080 及以上分辨率）。
+        {locale === 'zh-CN'
+          ? '请在宽度 ≥ 768px 的设备上访问（推荐 1920×1080 及以上分辨率）。'
+          : 'Use a viewport wider than 768px. 1920×1080 or above is recommended.'}
       </p>
     </div>
   );
 }
 
+function DevStateBeacon() {
+  const locale = useSceneStore((s) => s.locale);
+  const dataSource = useSceneStore((s) => s.dataSource);
+  const scenario = useSceneStore((s) => s.scenario);
+  const activeTool = useSceneStore((s) => s.activeTool);
+  const selectedRobotId = useSceneStore((s) => s.selectedRobot?.id ?? '');
+  const selectedFractureId = useSceneStore((s) => s.selectedFracture?.id ?? '');
+  const selectedFractureNodeId = useSceneStore((s) => s.selectedFractureNode ?? '');
+
+  return (
+    <div
+      data-testid="dev-state"
+      data-locale={locale}
+      data-data-source={dataSource}
+      data-scenario={scenario}
+      data-active-tool={activeTool}
+      data-selected-robot={selectedRobotId}
+      data-selected-fracture={selectedFractureId}
+      data-selected-node={selectedFractureNodeId}
+      hidden
+      aria-hidden="true"
+    />
+  );
+}
+
+function DevInteractionBeacon() {
+  return (
+    <div
+      data-testid="dev-interactions"
+      data-robots="[]"
+      data-fracture-nodes="[]"
+      data-fracture-paths="[]"
+      hidden
+      aria-hidden="true"
+    />
+  );
+}
+
+function DevSelectionDebugBeacon() {
+  return (
+    <div
+      data-testid="dev-selection-debug"
+      data-last-down=""
+      data-last-up=""
+      data-last-delta=""
+      data-last-nearest-robot=""
+      data-last-screen-fracture=""
+      data-last-snap-target=""
+      data-last-selection=""
+      hidden
+      aria-hidden="true"
+    />
+  );
+}
+
+function DevUrlBootstrap() {
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const locale = params.get('dev-locale');
+    const scenario = normalizeDevScenario(params.get('dev-scenario'));
+    const tool = params.get('dev-tool') as 'none' | 'profile' | 'area' | 'text' | 'distance' | null;
+    const robotId = params.get('dev-robot');
+    const fractureId = params.get('dev-fracture');
+
+    const api = (window as Window & {
+      __HIVE_TEST_API__?: {
+        setLocale: (locale: 'zh-CN' | 'en-US') => void;
+        switchScenario: (scenario: ScenarioType) => void;
+        selectRobotById: (id: string) => Promise<boolean>;
+        selectFractureById: (id: string) => Promise<boolean>;
+        setActiveTool: (tool: 'none' | 'profile' | 'area' | 'text' | 'distance') => void;
+      };
+    }).__HIVE_TEST_API__;
+
+    if (!api) return;
+
+    if (locale === 'zh-CN' || locale === 'en-US') {
+      api.setLocale(locale);
+    }
+    if (scenario) {
+      api.switchScenario(scenario);
+    }
+    if (tool) {
+      api.setActiveTool(tool);
+    }
+
+    void (async () => {
+      if (robotId) {
+        await api.selectRobotById(robotId);
+      }
+      if (fractureId) {
+        await api.selectFractureById(fractureId);
+      }
+    })();
+  }, []);
+
+  return null;
+}
+
 export default function App() {
-  const selectedRobot = useSceneStore((s) => s.selectedRobot);
-  const detailOpen = useSceneStore((s) => s.robotDetailOpen);
-  const closeRobotDetail = useSceneStore((s) => s.closeRobotDetail);
+  if (import.meta.env.DEV) {
+    installDevTestApi();
+  }
 
   return (
     <>
       <MobileWarning />
+      {import.meta.env.DEV && <DevUrlBootstrap />}
+      {import.meta.env.DEV && <DevStateBeacon />}
+      {import.meta.env.DEV && <DevInteractionBeacon />}
+      {import.meta.env.DEV && <DevSelectionDebugBeacon />}
       <MainLayout
         controlPanel={<ControlPanel />}
         scene3D={<Scene3DCanvas />}
         chatPanel={<ChatPanel />}
         watermark={<WatermarkOverlay />}
       />
-      <RobotDetailDialog robot={selectedRobot} open={detailOpen} onClose={closeRobotDetail} />
     </>
   );
 }

@@ -78,6 +78,7 @@ export interface AIResponse {
 export interface QuickCommand {
   label: string;
   command: string;
+  commandEn?: string;
 }
 
 // ===================================================================

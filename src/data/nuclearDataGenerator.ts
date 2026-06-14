@@ -16,7 +16,6 @@ let _seed = 42;
 function sr(): number { _seed = (_seed * 16807) % 2147483647; return _seed / 2147483647; }
 function rand(a: number, b: number): number { return a + sr() * (b - a); }
 function randInt(a: number, b: number): number { return Math.floor(rand(a, b + 1)); }
-function pick<T>(arr: T[]): T { return arr[Math.floor(sr() * arr.length)]; }
 
 type NPC = 'primary' | 'secondary' | 'auxiliary';
 
@@ -31,7 +30,6 @@ const SPECS: Record<NPC, {
 
 function genSensor(cls: NPC, name: string): SensorReading {
   const s = SPECS[cls];
-  const dia = +rand(...s.d).toFixed(0);
   const wt = +rand(...s.wt).toFixed(1);
   const op = +rand(...s.op).toFixed(2);
   const temp = +rand(...s.ot).toFixed(1);

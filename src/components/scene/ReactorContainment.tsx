@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import * as THREE from 'three';
 import { useSceneStore } from '../../store/useSceneStore';
 import { NUCLEAR_IDENTITY } from '../../lib/sceneColors';

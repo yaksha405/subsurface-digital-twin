@@ -17,6 +17,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useThree, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useSceneStore } from '../../store/useSceneStore';
+import type { PotreeTweenInstance, PotreeViewerInstance } from '../../types/potree';
 
 /**
  * PotreeCameraSync — 在 R3F Canvas 内运行，每帧将 R3F 相机同步到 Potree 相机
@@ -40,18 +41,110 @@ export function PotreeCameraSync() {
     const target = camera.position.clone().add(dir.multiplyScalar(50));
     view.lookAt(target);
 
-    // 触发 Potree 重渲染
-    potreeViewer.setDirty();
+    // 触发 Potree 重渲染（部分构建不暴露 setDirty，需兼容）
+    if (typeof potreeViewer.setDirty === 'function') {
+      potreeViewer.setDirty();
+    }
   });
 
   return null;
 }
 
 // 模块级共享：Potree viewer 实例（供 PotreeCameraSync 读取）
-export let potreeViewer: any = null;
+export let potreeViewer: PotreeViewerInstance | null = null;
 
 // 动态加载脚本（顺序：jQuery → Potree CSS → Potree JS）
 let potreeScriptPromise: Promise<void> | null = null;
+
+function ensureTweenCompat() {
+  if (window.TWEEN) return;
+
+  const tweens = new Set<CompatTween>();
+  const linear = (k: number) => k;
+  const quarticOut = (k: number) => 1 - Math.pow(1 - k, 4);
+
+  class CompatTween implements PotreeTweenInstance {
+    private from: Record<string, number> = {};
+    private toValues: Record<string, number> = {};
+    private duration = 0;
+    private startTime = 0;
+    private easingFn = linear;
+    private updateFn: () => void = () => {};
+    private completeFn: () => void = () => {};
+
+    constructor(private target: Record<string, number> | THREE.Vector3) {}
+
+    to(target: Record<string, number> | THREE.Vector3, duration = 0) {
+      this.toValues = {};
+      for (const [key, value] of Object.entries(target)) {
+        if (typeof value === 'number') this.toValues[key] = value;
+      }
+      this.duration = Math.max(0, duration);
+      return this;
+    }
+
+    easing(fn: (k: number) => number) {
+      this.easingFn = fn;
+      return this;
+    }
+
+    onUpdate(fn: () => void) {
+      this.updateFn = fn;
+      return this;
+    }
+
+    onComplete(fn: () => void) {
+      this.completeFn = fn;
+      return this;
+    }
+
+    start(time = performance.now()) {
+      this.startTime = time;
+      this.from = {};
+      for (const key of Object.keys(this.toValues)) {
+        const value = (this.target as unknown as Record<string, number>)[key];
+        this.from[key] = typeof value === 'number' ? value : 0;
+      }
+      tweens.add(this);
+      return this;
+    }
+
+    stop() {
+      tweens.delete(this);
+      return this;
+    }
+
+    tick(time = performance.now()) {
+      const elapsed = this.duration <= 0 ? 1 : Math.min(1, (time - this.startTime) / this.duration);
+      const eased = this.easingFn(elapsed);
+      const target = this.target as unknown as Record<string, number>;
+      for (const [key, to] of Object.entries(this.toValues)) {
+        const from = this.from[key] ?? 0;
+        target[key] = from + (to - from) * eased;
+      }
+      this.updateFn();
+      if (elapsed >= 1) {
+        tweens.delete(this);
+        this.completeFn();
+      }
+    }
+  }
+
+  window.TWEEN = {
+    Tween: CompatTween,
+    Easing: {
+      Linear: { None: linear },
+      Quartic: { Out: quarticOut },
+    },
+    update: (time?: number) => {
+      for (const tween of Array.from(tweens)) tween.tick(time);
+      return tweens.size > 0;
+    },
+    remove: (tween: PotreeTweenInstance) => {
+      tweens.delete(tween as CompatTween);
+    },
+  };
+}
 
 function loadScript(src: string): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -69,23 +162,25 @@ function loadPotreeScript(): Promise<void> {
     const base = import.meta.env.BASE_URL;
 
     // 1. jQuery（Potree 1.8 依赖）
-    if (!(window as any).jQuery) {
+    if (!window.jQuery) {
       await loadScript(`${base}potree/jquery.min.js`);
     }
 
+    ensureTweenCompat();
+
     // 1.5 BinaryHeap — Potree 1.8 内部依赖但未在 potree.js 中定义
-    if (!(window as any).BinaryHeap) {
-      (window as any).BinaryHeap = class BinaryHeap {
-        private content: any[] = [];
-        private scoreFunction: (x: any) => number;
-        constructor(scoreFunction: (x: any) => number) {
+    if (!window.BinaryHeap) {
+      window.BinaryHeap = class BinaryHeap<T> {
+        private content: T[] = [];
+        private scoreFunction: (x: T) => number;
+        constructor(scoreFunction: (x: T) => number) {
           this.scoreFunction = scoreFunction;
         }
-        push(element: any) {
+        push(element: T) {
           this.content.push(element);
           this.bubbleUp(this.content.length - 1);
         }
-        pop(): any {
+        pop(): T {
           const result = this.content[0];
           const end = this.content.pop()!;
           if (this.content.length > 0) {
@@ -94,7 +189,7 @@ function loadPotreeScript(): Promise<void> {
           }
           return result;
         }
-        remove(node: any) {
+        remove(node: T) {
           const length = this.content.length;
           for (let i = 0; i < length; i++) {
             if (this.content[i] !== node) continue;
@@ -149,7 +244,7 @@ function loadPotreeScript(): Promise<void> {
     }
 
     // 2. proj4（Potree 坐标投影依赖，缺失会导致 "proj4 is not defined"）
-    if (!(window as any).proj4) {
+    if (!window.proj4) {
       await loadScript(`${base}potree/proj4.js`);
     }
 
@@ -162,10 +257,10 @@ function loadPotreeScript(): Promise<void> {
     }
 
     // 4. Potree JS
-    if (!(window as any).Potree?.Viewer) {
+    if (!window.Potree?.Viewer) {
       await loadScript(`${base}potree/potree.js`);
       // 验证 Potree 正确导出
-      if (!(window as any).Potree?.Viewer) {
+      if (!window.Potree?.Viewer) {
         throw new Error('Potree 加载失败 — Viewer 未导出（jQuery 可能未正确加载）');
       }
     }
@@ -195,17 +290,19 @@ export function PotreeViewer() {
     if (!visible) return;
 
     let cancelled = false;
-    let viewer: any = null;
+    let viewer: PotreeViewerInstance | null = null;
+    const container = containerRef.current;
 
     // 超时保护：10 秒后自动隐藏 loading（Potree 是增强层，不应阻塞 UI）
     const loadTimeout = setTimeout(() => setLoading(false), 10_000);
 
     loadPotreeScript()
       .then(() => {
-        if (cancelled || !containerRef.current) return;
+        if (cancelled || !container) return;
 
-        const Potree = (window as any).Potree;
-        viewer = new Potree.Viewer(containerRef.current);
+        const Potree = window.Potree;
+        if (!Potree) throw new Error('Potree 未加载');
+        viewer = new Potree.Viewer(container);
 
         // 隐藏 Potree 自带 UI（我们用自己的 React UI）
         viewer.setEDLEnabled(true);
@@ -223,13 +320,17 @@ export function PotreeViewer() {
         if (viewer.setTools) viewer.setTools([]);
 
         // 禁用 Potree 的自带输入处理（R3F 统一控制相机）
-        viewer.inputHandler.setEnabled(false);
+        if (typeof viewer.inputHandler?.setEnabled === 'function') {
+          viewer.inputHandler.setEnabled(false);
+        } else if (viewer.inputHandler) {
+          viewer.inputHandler.enabled = false;
+        }
 
         potreeViewer = viewer;
 
         // 加载点云
         const pcUrl = getPointCloudUrl();
-        Potree.loadPointCloud(pcUrl, 'pointcloud', (e: any) => {
+        Potree.loadPointCloud(pcUrl, 'pointcloud', (e) => {
           if (cancelled) return;
 
           if (e.type === 'loading_failed') {
@@ -238,6 +339,7 @@ export function PotreeViewer() {
             return;
           }
 
+          if (!viewer) return;
           const scene = viewer.scene;
           scene.addPointCloud(e.pointcloud);
 
@@ -252,7 +354,6 @@ export function PotreeViewer() {
           viewer.fitToScreen();
 
           setLoading(false);
-          console.log('[PotreeViewer] Point cloud loaded:', e.pointcloud.pcoGeometry.numPoints, 'points');
         });
       })
       .catch((err) => {
@@ -264,13 +365,11 @@ export function PotreeViewer() {
       cancelled = true;
       clearTimeout(loadTimeout);
       potreeViewer = null;
-      if (viewer) {
+      if (viewer && container) {
         try {
           viewer.onBeforeRender = null;
-          if (containerRef.current) {
-            containerRef.current.innerHTML = '';
-          }
-        } catch (e) {
+          container.innerHTML = '';
+        } catch {
           // ignore
         }
       }

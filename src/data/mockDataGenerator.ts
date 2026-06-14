@@ -70,7 +70,7 @@ function getPressure(pos: Vec3): number {
   return Math.round((100 + Math.abs(pos.z) * 0.15 + rand(-3, 3)) * 10) / 10;
 }
 
-function getConfidence(pos: Vec3, t: number): number {
+function getConfidence(pos: Vec3): number {
   // Core tunnel areas have high confidence, edges/fractures have low
   const distFromCenter = Math.sqrt(pos.x * pos.x + pos.y * pos.y);
   let conf = 0.9 - distFromCenter * 0.02;
@@ -124,7 +124,7 @@ function generateNode(index: number): SceneNode {
   return {
     node_id: `V-${String(5832 + index).padStart(4, '0')}`,
     timestamp: Date.now() - rand(0, 3600000),
-    confidence_score: getConfidence(center, t),
+    confidence_score: getConfidence(center),
     geometry: {
       center,
       mesh_vertices: meshVertices,

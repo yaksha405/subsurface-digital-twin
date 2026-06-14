@@ -1,4 +1,4 @@
-import type { Robot, RobotModel, RobotStatus, MeshRole, DataSourceType } from '../types';
+import type { Robot, RobotModel, RobotStatus, MeshRole, DataSourceType, ScenarioType } from '../types';
 import { getAllPathPoints, generateFractureNetwork } from './fractureDataGenerator';
 import { getAllPipelinePathPoints, generatePipelineNetwork } from './pipelineDataGenerator';
 import { getAllNuclearPathPoints, generateNuclearNetwork } from './nuclearDataGenerator';
@@ -61,6 +61,32 @@ const TASKS_FRACTURE = [
   '裂隙扩张监测',
   '声发射信号采集',
   '水文参数探查',
+];
+
+const TASKS_GOLD = [
+  '微震活动监测',
+  '岩爆风险复核',
+  '应力异常巡测',
+  '采空区稳定性评估',
+  '矿脉追踪成像',
+  '裂隙扩张监测',
+  '岩温梯度测绘',
+  '待命中',
+  '空区边界扫描',
+  '声发射信号采集',
+];
+
+const TASKS_OIL = [
+  '孔隙压力监测',
+  '储层连通性评估',
+  '渗透率原位测试',
+  '含水率巡检',
+  '地层温度测绘',
+  '压裂风险复核',
+  '储层裂缝扫描',
+  '待命中',
+  '压差异常排查',
+  '采收率辅助分析',
 ];
 
 // 任务池（管线场景）
@@ -188,7 +214,12 @@ function getRobotPosition(index: number, dataSource: DataSourceType): [number, n
   ];
 }
 
-function generateRobot(index: number, dataSource: DataSourceType): Robot {
+function round(value: number, digits: number): number {
+  const factor = 10 ** digits;
+  return Math.round(value * factor) / factor;
+}
+
+function generateRobot(index: number, dataSource: DataSourceType, scenario: ScenarioType = 'coal'): Robot {
   const position = getRobotPosition(index, dataSource);
   const modelWeights =
     dataSource === 'pipeline' ? MODEL_WEIGHTS_PIPELINE :
@@ -201,6 +232,8 @@ function generateRobot(index: number, dataSource: DataSourceType): Robot {
     dataSource === 'nuclear' ? TASKS_NUCLEAR :
     dataSource === 'refinery' ? TASKS_REFINERY :
     dataSource === 'underground' ? TASKS_UNDERGROUND :
+    scenario === 'gold' ? TASKS_GOLD :
+    scenario === 'oil' ? TASKS_OIL :
     TASKS_FRACTURE;
   const model = weightedPick(modelWeights).model;
   const status = weightedPick(STATUS_WEIGHTS).status;
@@ -234,7 +267,7 @@ function generateRobot(index: number, dataSource: DataSourceType): Robot {
     depth = Math.round(Math.sqrt(position[0] ** 2 + position[1] ** 2 + position[2] ** 2) * 10) / 10;
   } else if (dataSource === 'underground') {
     // 地下深度(m) — y 轴负方向，每单位 = 10m 实际深度
-    depth = Math.round(-position[1] * 10);
+    depth = Math.max(0, Math.round(-Math.min(position[1], 0) * 10));
   } else {
     // 地下裂缝：距岩体表面深度(m)
     const distFromSurface = Math.min(
@@ -254,30 +287,41 @@ function generateRobot(index: number, dataSource: DataSourceType): Robot {
   if (dataSource === 'nuclear') {
     // 核反应堆：剂量率(mSv/h) / 冷却剂温度(°C) / 运行压力(MPa)
     const doseRoll = sr();
-    ch4 = doseRoll > 0.8 ? +rand(15, 50).toFixed(2) : +rand(0.1, 8).toFixed(2);
-    temperature = +rand(280, 330).toFixed(1);
-    humidity = +rand(15.0, 15.5).toFixed(1);
+    ch4 = doseRoll > 0.8 ? round(rand(15, 50), 2) : round(rand(0.1, 8), 2);
+    temperature = round(rand(280, 330), 1);
+    humidity = round(rand(14.8, 15.6), 1);
   } else if (dataSource === 'refinery') {
     // 炼油化工：壁厚减薄(%) / 操作温度(°C) / 腐蚀速率(mm/yr)
-    ch4 = +rand(0.5, 8.0).toFixed(1);
-    temperature = +rand(60, 420).toFixed(1);
-    humidity = +rand(0.03, 0.80).toFixed(2);
+    ch4 = round(rand(0.5, 8.0), 1);
+    temperature = round(rand(60, 420), 1);
+    humidity = round(rand(0.03, 0.8), 2);
   } else if (dataSource === 'pipeline') {
     // 管线：天然气泄漏(%LEL) / 管道温度(°C) / 运行压力(MPa)
     const leakRoll = sr();
-    ch4 = leakRoll > 0.85 ? +rand(15, 35).toFixed(1) : +rand(0, 10).toFixed(1);
-    temperature = +rand(8, 55).toFixed(1);
-    humidity = +rand(3.0, 12.0).toFixed(1);
+    ch4 = leakRoll > 0.85 ? round(rand(15, 35), 1) : round(rand(0, 10), 1);
+    temperature = round(rand(8, 55), 1);
+    humidity = round(rand(3.0, 12.0), 1);
   } else if (dataSource === 'underground') {
-    // 地下暗流：溶解氧(mg/L) / 地温(°C) / 含水率(%)
-    ch4 = +rand(0, 0.3).toFixed(2);       // 微量甲烷（地下有机物厌氧分解）
-    temperature = +rand(35, 110).toFixed(1);  // 地温梯度
-    humidity = +rand(95, 100).toFixed(1);      // 地下水环境接近饱和
+    // 地下暗流：矿化度(mg/L) / 地温(°C) / 含水率(%)
+    const mineralRoll = sr();
+    ch4 = mineralRoll > 0.8 ? Math.round(rand(48_000, 72_000)) : Math.round(rand(12_000, 42_000));
+    temperature = round(rand(35, 110), 1);
+    humidity = round(rand(95, 100), 1);
   } else {
-    // 地下裂缝：CH₄(%) / 环境温度(°C) / 湿度(%)
-    ch4 = Math.round(rand(0.1, 3.5) * 100) / 100;
-    temperature = Math.round((22 + depth * 0.15 + rand(-3, 8)) * 10) / 10;
-    humidity = Math.round(rand(45, 95));
+    // 地下裂缝子场景：主指标 / 温度 / 辅助读数
+    if (scenario === 'gold') {
+      ch4 = Math.round(rand(4, 22));
+      temperature = round(rand(26, 42), 1);
+      humidity = round(rand(8, 22), 1);
+    } else if (scenario === 'oil') {
+      ch4 = round(rand(14, 36), 1);
+      temperature = round(rand(52, 92), 1);
+      humidity = round(rand(0.4, 3.6), 2);
+    } else {
+      ch4 = round(rand(0.1, 3.5), 2);
+      temperature = round(22 + depth * 0.15 + rand(-3, 8), 1);
+      humidity = Math.round(rand(45, 95));
+    }
   }
 
   return {
@@ -297,12 +341,14 @@ function generateRobot(index: number, dataSource: DataSourceType): Robot {
 }
 
 let cachedRobots: Robot[] | null = null;
+let cachedGoldRobots: Robot[] | null = null;
+let cachedOilRobots: Robot[] | null = null;
 let cachedPipelineRobots: Robot[] | null = null;
 let cachedNuclearRobots: Robot[] | null = null;
 let cachedRefineryRobots: Robot[] | null = null;
 let cachedUndergroundRobots: Robot[] | null = null;
 
-export function generateMockRobots(dataSource: DataSourceType = 'fracture'): Robot[] {
+export function generateMockRobots(dataSource: DataSourceType = 'fracture', scenario: ScenarioType = 'coal'): Robot[] {
   if (dataSource === 'pipeline') {
     if (cachedPipelineRobots) return cachedPipelineRobots;
     generatePipelineNetwork();
@@ -339,16 +385,34 @@ export function generateMockRobots(dataSource: DataSourceType = 'fracture'): Rob
     return cachedUndergroundRobots;
   }
 
+  if (scenario === 'gold') {
+    if (cachedGoldRobots) return cachedGoldRobots;
+    generateFractureNetwork('gold');
+    seed = 7777;
+    cachedGoldRobots = [];
+    for (let i = 0; i < TOTAL_ROBOTS; i++) cachedGoldRobots.push(generateRobot(i, 'fracture', 'gold'));
+    return cachedGoldRobots;
+  }
+
+  if (scenario === 'oil') {
+    if (cachedOilRobots) return cachedOilRobots;
+    generateFractureNetwork('oil');
+    seed = 7777;
+    cachedOilRobots = [];
+    for (let i = 0; i < TOTAL_ROBOTS; i++) cachedOilRobots.push(generateRobot(i, 'fracture', 'oil'));
+    return cachedOilRobots;
+  }
+
   if (cachedRobots) return cachedRobots;
   generateFractureNetwork('coal');
   seed = 7777;
   cachedRobots = [];
-  for (let i = 0; i < TOTAL_ROBOTS; i++) cachedRobots.push(generateRobot(i, 'fracture'));
+  for (let i = 0; i < TOTAL_ROBOTS; i++) cachedRobots.push(generateRobot(i, 'fracture', 'coal'));
   return cachedRobots;
 }
 
-export function getMockRobotStats(dataSource: DataSourceType = 'fracture') {
-  const robots = generateMockRobots(dataSource);
+export function getMockRobotStats(dataSource: DataSourceType = 'fracture', scenario: ScenarioType = 'coal') {
+  const robots = generateMockRobots(dataSource, scenario);
   const online = robots.filter(r => r.status === 'online').length;
   const offline = robots.filter(r => r.status === 'offline').length;
   const lowBattery = robots.filter(r => r.status === 'low_battery').length;

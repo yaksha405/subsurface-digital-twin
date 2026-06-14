@@ -10,27 +10,31 @@
  */
 
 import type { AlertEvent, AlertLevel } from '../data/alertDataGenerator';
-import type { DataSourceType } from '../types';
+import type { DataSourceType, ScenarioType } from '../types';
 import { isMockMode } from './config';
 import { httpClient } from './httpClient';
+import { normalizeAlertRecord } from './normalizers';
 
 // Mock 实现：延迟导入
-async function getMockAlerts(dataSource: DataSourceType = 'fracture'): Promise<AlertEvent[]> {
-  const { generateMockRobots } = await import('../data/robotDataGenerator');
-  const { generateMockAlerts } = await import('../data/alertDataGenerator');
-  const robots = generateMockRobots(dataSource);
-  return generateMockAlerts(robots, dataSource);
+async function getMockAlerts(dataSource: DataSourceType = 'fracture', scenario: ScenarioType = 'coal'): Promise<AlertEvent[]> {
+  const { buildSceneDataset } = await import('../domain/sceneDataset');
+  return buildSceneDataset(dataSource, scenario).alerts;
 }
 
 /**
  * 获取告警事件列表
  * GET /alerts
  */
-export async function fetchAlerts(signal?: AbortSignal, dataSource: DataSourceType = 'fracture'): Promise<AlertEvent[]> {
+export async function fetchAlerts(
+  signal?: AbortSignal,
+  dataSource: DataSourceType = 'fracture',
+  scenario: ScenarioType = 'coal',
+): Promise<AlertEvent[]> {
   if (isMockMode) {
-    return getMockAlerts(dataSource);
+    return getMockAlerts(dataSource, scenario);
   }
-  return httpClient.get<AlertEvent[]>('/alerts', { signal });
+  const raw = await httpClient.get<Record<string, unknown>[]>('/alerts', { signal });
+  return raw.map(normalizeAlertRecord);
 }
 
 /**
@@ -41,10 +45,12 @@ export async function fetchAlertsByLevel(
   level: AlertLevel,
   signal?: AbortSignal,
   dataSource: DataSourceType = 'fracture',
+  scenario: ScenarioType = 'coal',
 ): Promise<AlertEvent[]> {
   if (isMockMode) {
-    const all = await getMockAlerts(dataSource);
+    const all = await getMockAlerts(dataSource, scenario);
     return all.filter((a) => a.level === level);
   }
-  return httpClient.get<AlertEvent[]>(`/alerts?level=${level}`, { signal });
+  const raw = await httpClient.get<Record<string, unknown>[]>(`/alerts?level=${level}`, { signal });
+  return raw.map(normalizeAlertRecord);
 }

@@ -8,6 +8,7 @@
     "build": "vite build",
     "build:check": "tsc -b && vite build",
     "lint": "eslint .",
+    "test": "node scripts/run-node-tests.mjs src/domain/accessControl.test.ts src/domain/aiActionPolicy.test.ts src/domain/exportHistory.test.ts src/domain/exportPreflight.test.ts src/domain/findingCoverage.test.ts src/domain/findingFactory.test.ts src/domain/findingSchemas.test.ts src/domain/findingTypes.test.ts src/domain/i18nCatalog.test.ts src/domain/missionHistory.test.ts src/domain/roleDashboard.test.ts src/domain/sceneDataset.test.ts src/domain/sceneMetricSummary.test.ts src/data/alertDataGenerator.scenario.test.ts src/data/robotDataGenerator.scenario.test.ts src/data/sensorTrendGenerator.test.ts src/data/undergroundDataGenerator.test.ts src/api/alertApi.scenario.test.ts src/api/normalizers.test.ts src/lib/alertLocale.test.ts src/lib/measurementPicking.test.ts src/lib/mockAI.underground.test.ts src/lib/robotTelemetryCopy.test.ts src/lib/sceneControlCopy.test.ts src/lib/sceneSemantics.test.ts src/lib/taskLocale.test.ts src/store/useSceneStore.dataSource.test.ts src/store/useSceneStore.findings.test.ts src/store/useSceneStore.locale.test.ts src/store/useSceneStore.selection.test.ts",
     "preview": "vite preview"
   },
   "dependencies": {

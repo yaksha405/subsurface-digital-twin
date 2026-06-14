@@ -7,10 +7,10 @@ const badgeVariants = cva(
   {
     variants: {
       variant: {
-        default: 'border-[#FFE600]/30 bg-[#FFE600]/10 text-[#FFE600]',
-        danger: 'border-[#FF3333]/30 bg-[#FF3333]/10 text-[#FF3333]',
-        info: 'border-[#1E3A5F]/50 bg-[#1E3A5F]/20 text-[#6BA3D8]',
-        neutral: 'border-white/10 bg-white/5 text-[#A0A0B0]',
+        default: 'border-[#EFD39B] bg-[#FFFAF0] text-[#9A6700]',
+        danger: 'border-[#F3B8B0] bg-[#FFF7F5] text-[#B42318]',
+        info: 'border-[#B7C3D0] bg-[#F2F5F9] text-[#344054]',
+        neutral: 'border-[#D9E1EA] bg-[#F8FAFC] text-[#667085]',
       },
     },
     defaultVariants: { variant: 'default' },
@@ -25,4 +25,4 @@ function Badge({ className, variant, ...props }: BadgeProps) {
   return <div className={cn(badgeVariants({ variant }), className)} {...props} />;
 }
 
-export { Badge, badgeVariants };
+export { Badge };

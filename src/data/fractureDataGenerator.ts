@@ -14,15 +14,21 @@
  * - 井下实测典型温度22-45°C, 地应力5-40MPa
  */
 
-import type { Fracture, FractureNode, SensorReading, ScenarioType } from '../types';
+import type { Fracture, SensorReading, ScenarioType } from '../types';
+
+type GeologicalScenario = 'coal' | 'gold' | 'oil';
 
 // 随机工具
 const rand = (min: number, max: number) => min + Math.random() * (max - min);
 const randInt = (min: number, max: number) => Math.floor(rand(min, max + 1));
 const pick = <T>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
+const randRange = (range: readonly [number, number]) => rand(range[0], range[1]);
+const randIntRange = (range: readonly [number, number]) => randInt(range[0], range[1]);
+const toGeologicalScenario = (scenario: ScenarioType): GeologicalScenario =>
+  scenario === 'gold' || scenario === 'oil' ? scenario : 'coal';
 
 // 场景传感器范围（基于论文数据）
-const SCENARIO_RANGES: Record<ScenarioType, Record<string, [number, number]>> = {
+const SCENARIO_RANGES: Record<GeologicalScenario, Record<string, readonly [number, number]>> = {
   coal: {
     ch4_pct: [0.1, 4.5],
     co_ppm: [0, 50],
@@ -83,29 +89,29 @@ const SCENARIO_RANGES: Record<ScenarioType, Record<string, [number, number]>> = 
   },
 };
 
-function genSensorReading(scenario: ScenarioType): SensorReading {
+function genSensorReading(scenario: GeologicalScenario): SensorReading {
   const ranges = SCENARIO_RANGES[scenario];
   return {
-    ch4_pct: +rand(...(ranges.ch4_pct || [0, 0])).toFixed(2),
-    co_ppm: +rand(...(ranges.co_ppm || [0, 2])).toFixed(1),
-    h2s_ppm: +rand(...(ranges.h2s_ppm || [0, 1])).toFixed(1),
-    temperature_c: +rand(...ranges.temperature_c).toFixed(1),
-    stress_mpa: +rand(...ranges.stress_mpa).toFixed(2),
-    stress_sigma1: +rand(...(ranges.stress_sigma1 || ranges.stress_mpa)).toFixed(2),
-    stress_sigma2: +rand(...(ranges.stress_sigma2 || ranges.stress_mpa)).toFixed(2),
-    stress_sigma3: +rand(...(ranges.stress_sigma3 || ranges.stress_mpa)).toFixed(2),
-    permeability_md: +rand(...ranges.permeability_md).toFixed(4),
-    water_pressure_mpa: +rand(...(ranges.water_pressure_mpa || [0, 1])).toFixed(2),
-    microseismic_count: randInt(...(ranges.microseismic_count || [0, 2])),
-    acoustic_emission_mv: +rand(...(ranges.acoustic_emission_mv || [0, 100])).toFixed(0),
-    humidity_pct: +rand(...ranges.humidity_pct).toFixed(1),
-    fracture_aperture_um: +rand(...ranges.fracture_aperture_um).toFixed(1),
-    displacement_mm: +rand(...(ranges.displacement_mm || [0, 0.5])).toFixed(2),
-    rock_strength_mpa: +rand(...(ranges.rock_strength_mpa || [50, 80])).toFixed(1),
-    pore_pressure_mpa: +rand(...(ranges.pore_pressure_mpa || [0, 1])).toFixed(2),
-    porosity_pct: +rand(...(ranges.porosity_pct || [0, 5])).toFixed(1),
-    fluid_ph: +rand(...(ranges.fluid_ph || [7, 7.5])).toFixed(1),
-    water_saturation_pct: +rand(...(ranges.water_saturation_pct || [0, 10])).toFixed(1),
+    ch4_pct: +randRange(ranges.ch4_pct || [0, 0]).toFixed(2),
+    co_ppm: +randRange(ranges.co_ppm || [0, 2]).toFixed(1),
+    h2s_ppm: +randRange(ranges.h2s_ppm || [0, 1]).toFixed(1),
+    temperature_c: +randRange(ranges.temperature_c).toFixed(1),
+    stress_mpa: +randRange(ranges.stress_mpa).toFixed(2),
+    stress_sigma1: +randRange(ranges.stress_sigma1 || ranges.stress_mpa).toFixed(2),
+    stress_sigma2: +randRange(ranges.stress_sigma2 || ranges.stress_mpa).toFixed(2),
+    stress_sigma3: +randRange(ranges.stress_sigma3 || ranges.stress_mpa).toFixed(2),
+    permeability_md: +randRange(ranges.permeability_md).toFixed(4),
+    water_pressure_mpa: +randRange(ranges.water_pressure_mpa || [0, 1]).toFixed(2),
+    microseismic_count: randIntRange(ranges.microseismic_count || [0, 2]),
+    acoustic_emission_mv: +randRange(ranges.acoustic_emission_mv || [0, 100]).toFixed(0),
+    humidity_pct: +randRange(ranges.humidity_pct).toFixed(1),
+    fracture_aperture_um: +randRange(ranges.fracture_aperture_um).toFixed(1),
+    displacement_mm: +randRange(ranges.displacement_mm || [0, 0.5]).toFixed(2),
+    rock_strength_mpa: +randRange(ranges.rock_strength_mpa || [50, 80]).toFixed(1),
+    pore_pressure_mpa: +randRange(ranges.pore_pressure_mpa || [0, 1]).toFixed(2),
+    porosity_pct: +randRange(ranges.porosity_pct || [0, 5]).toFixed(1),
+    fluid_ph: +randRange(ranges.fluid_ph || [7, 7.5]).toFixed(1),
+    water_saturation_pct: +randRange(ranges.water_saturation_pct || [0, 10]).toFixed(1),
   };
 }
 
@@ -184,7 +190,7 @@ const FRACTURE_NAMES = [
 function buildFracture(
   id: number,
   path: [number, number, number][],
-  scenario: ScenarioType,
+  scenario: GeologicalScenario,
   isMain: boolean,
   parentId: string | null
 ): Fracture {
@@ -195,7 +201,7 @@ function buildFracture(
     type: isMain ? 'main' : 'branch',
     path,
     length: +pathLength(path).toFixed(1),
-    aperture_um: +rand(...ranges.fracture_aperture_um).toFixed(1),
+    aperture_um: +randRange(ranges.fracture_aperture_um).toFixed(1),
     porosity: +(rand(0.005, 0.035)).toFixed(4),
     fractal_dim: +(rand(2.03, 2.35)).toFixed(4),
     tortuosity: +(rand(1.05, 1.25)).toFixed(4),
@@ -245,6 +251,7 @@ let cachedNodePositions: [number, number, number][] = [];
 /** 生成完整裂缝网络（主裂缝从地表 Y≈20 向下延伸，分支从主裂缝分叉） */
 export function generateFractureNetwork(scenario: ScenarioType): Fracture[] {
   if (cache[scenario]) return cache[scenario]!;
+  const geologicalScenario = toGeologicalScenario(scenario);
 
   const fractures: Fracture[] = [];
 
@@ -262,7 +269,7 @@ export function generateFractureNetwork(scenario: ScenarioType): Fracture[] {
   for (let i = 0; i < surfaceEntries.length; i++) {
     const { origin, dirInward } = surfaceEntries[i];
     const path = generateSurfacePath(origin, dirInward, rand(25, 65), rand(0.3, 1.2));
-    fractures.push(buildFracture(i, path, scenario, true, null));
+    fractures.push(buildFracture(i, path, geologicalScenario, true, null));
   }
 
   // === 12 条分支裂缝：从主裂缝的测点分叉 ===
@@ -270,7 +277,7 @@ export function generateFractureNetwork(scenario: ScenarioType): Fracture[] {
     const parent = pick(fractures.slice(0, 6));
     const branchOrigin = pick(parent.nodes).position;
     const path = generateBranchPath(branchOrigin as [number, number, number], rand(5, 25), rand(0.3, 1.0));
-    fractures.push(buildFracture(6 + i, path, scenario, false, parent.id));
+    fractures.push(buildFracture(6 + i, path, geologicalScenario, false, parent.id));
   }
 
   // === 分配机器人到裂缝节点 ===
@@ -317,7 +324,7 @@ function assignRobotsToNodes(fractures: Fracture[]): void {
  * 获取场景传感器范围描述（用于 AI prompt）
  */
 export function getScenarioSensorSummary(scenario: ScenarioType): string {
-  const ranges = SCENARIO_RANGES[scenario];
+  const ranges = SCENARIO_RANGES[toGeologicalScenario(scenario)];
   const labels: Record<string, string> = {
     ch4_pct: 'CH4浓度(%)',
     co_ppm: 'CO浓度(ppm)',

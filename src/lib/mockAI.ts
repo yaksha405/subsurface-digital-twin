@@ -1,4 +1,8 @@
 import type { SceneAction, Fracture, ScenarioType } from '../types';
+import type { QuickCommand } from '../types/api';
+import type { Locale } from '../domain/i18nCatalog';
+import { getMeasureConfig } from './sceneMeasureConfig';
+import { getSceneSemantics } from './sceneSemantics';
 
 interface AIResponse {
   message: string;
@@ -18,7 +22,7 @@ function fractureCenter(f: Fracture): [number, number, number] {
 }
 
 /** 找到 CH4 最高的裂缝 */
-function findHighGasFractures(fractures: Fracture[], gasThreshold: number) {
+function findHighGasFractures(fractures: Fracture[]) {
   return fractures
     .map((f) => ({
       fracture: f,
@@ -41,9 +45,15 @@ export function generateMockAIResponse(
   const fractures = sceneContext?.fractures ?? [];
   const scenario = sceneContext?.scenario ?? 'coal';
   const gasThreshold = sceneContext?.gasThreshold ?? 1.5;
+  const semantics = getSceneSemantics(scenario);
+  const measureConfig = getMeasureConfig(scenario, gasThreshold);
+  const isUndergroundHydrologyRequest = scenario === 'underground'
+    && (lowerInput.includes('水压') || lowerInput.includes('涌水') || lowerInput.includes('突水') || lowerInput.includes('压力') || lowerInput.includes('地温') || lowerInput.includes('温度') || lowerInput.includes('水质') || lowerInput.includes('ph') || lowerInput.includes('矿化'))
+    && !lowerInput.includes('最危险')
+    && !lowerInput.includes('危险点');
 
   // ========== 找出最危险的点 ==========
-  if (
+  if (!isUndergroundHydrologyRequest && (
     lowerInput.includes('最危险') ||
     lowerInput.includes('危险点') ||
     lowerInput.includes('最危险的地方') ||
@@ -51,29 +61,29 @@ export function generateMockAIResponse(
     lowerInput.includes('异常') ||
     lowerInput.includes('辐射热点') ||
     lowerInput.includes('危险管段')
-  ) {
+  )) {
     return findDangerousPoints(input, sceneContext);
   }
 
   // ========== 测距/剖面/框选 ==========
-  const areaTitle = scenario === 'pipeline' ? '区域管段分析' : scenario === 'nuclear' ? '区域辐射分析' : scenario === 'refinery' ? '区域设备分析' : scenario === 'gold' ? '区域应力分析' : scenario === 'oil' ? '区域储层分析' : '区域地质分析';
-  const profileTitle = scenario === 'pipeline' ? '管段截面分析' : scenario === 'nuclear' ? '管道截面分析' : scenario === 'refinery' ? '通道截面分析' : '剖面截面分析';
+  const areaTitle = measureConfig.areaTitle;
+  const profileTitle = measureConfig.profileTitle;
 
   if (lowerInput.includes('测距') || lowerInput.includes('测量距离')) {
-    const slopeLabel = ['pipeline', 'nuclear', 'refinery'].includes(scenario) ? '倾斜角' : '坡角';
+    const slopeLabel = measureConfig.slopeAngleLabel;
     return {
       message: `## 已激活测距工具\n\n请在3D场景中点击两个点进行距离测量。\n\n测量结果将包含：\n- 三维直线距离\n- 水平距离\n- 垂直高差（带方向）\n- ${slopeLabel}\n- 方位角（含罗盘方位）`,
       actions: [{ type: 'activateTool', tool: 'distance' }],
     };
   }
   if (lowerInput.includes('剖面') || lowerInput.includes('截面')) {
-    const pointLabel = ['pipeline', 'nuclear', 'refinery'].includes(scenario) ? '管道/设备测点' : '裂缝节点';
+    const pointLabel = measureConfig.pointLabel;
     return {
       message: `## 已激活剖面线工具\n\n请在3D场景中点击两点绘制剖面线。\n\n将生成专业${profileTitle}，包含：\n- ${pointLabel}投影分布\n- 10段密度热力带\n- 风险分级`,
       actions: [{ type: 'activateTool', tool: 'profile' }],
     };
   }
-  if (lowerInput.includes('框选') || lowerInput.includes('区域分析') || lowerInput.includes('体积') || lowerInput.includes('区域地质')) {
+  if (lowerInput.includes('框选') || lowerInput.includes('区域分析') || lowerInput.includes('体积') || lowerInput.includes('区域地质') || lowerInput.includes('区域暗流')) {
     const features = scenario === 'pipeline' ? '管段密度 & 壁厚损失\n- 天然气泄漏检测\n- 腐蚀速率评估' :
       scenario === 'nuclear' ? '管道密度 & 剂量率分布\n- FAC速率评估\n- 疲劳使用因子' :
       scenario === 'refinery' ? '通道密度 & 壁厚减薄\n- 腐蚀速率评估\n- 泄漏浓度检测' :
@@ -128,20 +138,30 @@ export function generateMockAIResponse(
   }
 
   // ========== 裂缝分布概览 ==========
-  if (lowerInput.includes('裂缝') && (lowerInput.includes('分布') || lowerInput.includes('概览') || lowerInput.includes('多少条'))) {
+  if ((lowerInput.includes('裂缝') || lowerInput.includes('暗流') || lowerInput.includes('通道')) && (lowerInput.includes('分布') || lowerInput.includes('概览') || lowerInput.includes('多少条') || lowerInput.includes('网络'))) {
     if (fractures.length === 0) {
       return {
-        message: `当前场景尚未加载裂缝数据，请稍候。`,
+        message: `当前场景尚未加载${semantics.networkLabel}数据，请稍候。`,
         actions: [{ type: 'fitAll' }],
       };
     }
 
     const mainFractures = fractures.filter((f) => f.type === 'main');
     const branchFractures = fractures.filter((f) => f.type === 'branch');
-    const avgLen = fractures.reduce((s, f) => s + f.length, 0) / fractures.length;
-    const avgAperture = fractures.reduce((s, f) => s + f.aperture_um, 0) / fractures.length;
     const avgConn = fractures.reduce((s, f) => s + f.connectivity, 0) / fractures.length;
     const avgFractal = fractures.reduce((s, f) => s + f.fractal_dim, 0) / fractures.length;
+
+    if (scenario === 'underground') {
+      const highPerm = fractures.filter((f) => f.sensorReading.permeability_md >= semantics.trend.primary.threshold);
+      const hotChannels = fractures.filter((f) => f.sensorReading.temperature_c >= semantics.trend.temperature.threshold);
+      return {
+        message: `## 地下暗流通道网络概览\n\n当前探测区域共识别 **${fractures.length} 段暗流通道**：\n\n| 类型 | 数量 | 平均长度 | 平均通道直径 |\n|------|------|---------|------------|\n| 主干通道 | ${mainFractures.length} 段 | ${Math.round(mainFractures.reduce((s, f) => s + f.length, 0) / Math.max(mainFractures.length, 1))}m | ${(mainFractures.reduce((s, f) => s + f.aperture_um, 0) / Math.max(mainFractures.length, 1) / 1000).toFixed(2)}m |\n| 分支通道 | ${branchFractures.length} 段 | ${Math.round(branchFractures.reduce((s, f) => s + f.length, 0) / Math.max(branchFractures.length, 1))}m | ${(branchFractures.reduce((s, f) => s + f.aperture_um, 0) / Math.max(branchFractures.length, 1) / 1000).toFixed(2)}m |\n\n平均连通性 **${avgConn.toFixed(2)}**，高渗透通道 **${highPerm.length}** 段，地温异常通道 **${hotChannels.length}** 段。\n\n已展开全景视角，地下暗流通道网络已高亮。`,
+        actions: [
+          { type: 'fitAll' },
+          { type: 'clearMarkers' },
+        ],
+      };
+    }
 
     return {
       message: `## 裂缝网络分布概览\n\n当前探测区域共识别 **${fractures.length} 条裂缝**：\n\n| 类型 | 数量 | 平均长度 | 平均开度 |\n|------|------|---------|--------|\n| 主裂缝 | ${mainFractures.length} 条 | ${Math.round(mainFractures.reduce((s, f) => s + f.length, 0) / Math.max(mainFractures.length, 1))}m | ${Math.round(mainFractures.reduce((s, f) => s + f.aperture_um, 0) / Math.max(mainFractures.length, 1))}µm |\n| 分支裂缝 | ${branchFractures.length} 条 | ${Math.round(branchFractures.reduce((s, f) => s + f.length, 0) / Math.max(branchFractures.length, 1))}m | ${Math.round(branchFractures.reduce((s, f) => s + f.aperture_um, 0) / Math.max(branchFractures.length, 1))}µm |\n\n裂缝网络分形维数 **${avgFractal.toFixed(2)}**，平均连通性 **${avgConn.toFixed(2)}**。\n\n已展开全景视角，所有裂缝网络已高亮。`,
@@ -152,9 +172,43 @@ export function generateMockAIResponse(
     };
   }
 
+  // ========== 地下暗流场景特定分析（放在通用压力/温度/浓度分支之前，避免串到裂缝/瓦斯话术） ==========
+  if (scenario === 'underground') {
+    if (lowerInput.includes('水压') || lowerInput.includes('涌水') || lowerInput.includes('突水') || lowerInput.includes('压力')) {
+      const waterSorted = fractures.map(f => ({ f, water: f.sensorReading.water_pressure_mpa, perm: f.sensorReading.permeability_md }))
+        .sort((a, b) => b.water - a.water);
+      const top = waterSorted.slice(0, 5);
+      const rows = top.map(x => `| ${x.f.id} (${x.f.name}) | ${x.water.toFixed(1)}MPa | ${x.perm.toFixed(0)}mD | ${x.water > 8 ? '🔴 高压' : x.water > 5 ? '⚠️ 关注' : '🟢 正常'} |`).join('\n');
+      return {
+        message: `## 地下暗流水压异常分析\n\n| 通道 | 水压 | 渗透率 | 状态 |\n|------|------|--------|------|\n${rows}\n\n> 水压 > 8MPa 且渗透率 > 5000mD 的通道需要优先确认连通边界和排水能力。`,
+        actions: [{ type: 'clearMarkers' }],
+      };
+    }
+    if (lowerInput.includes('地温') || lowerInput.includes('温度') || lowerInput.includes('热')) {
+      const tempSorted = fractures.map(f => ({ f, temp: f.sensorReading.temperature_c, water: f.sensorReading.water_pressure_mpa }))
+        .sort((a, b) => b.temp - a.temp);
+      const top = tempSorted.slice(0, 5);
+      const rows = top.map(x => `| ${x.f.id} (${x.f.name}) | ${x.temp.toFixed(0)}°C | ${x.water.toFixed(1)}MPa | ${x.temp > 90 ? '🔴 异常' : x.temp > 70 ? '⚠️ 偏高' : '🟢 正常'} |`).join('\n');
+      return {
+        message: `## 地温梯度分析\n\n| 通道 | 地温 | 水压 | 状态 |\n|------|------|------|------|\n${rows}\n\n> 高地温区建议与水化学、流速和机器人耐温余量一起复核。`,
+        actions: [{ type: 'clearMarkers' }, { type: 'toggleLayer', layer: 'tempHeatmap' }],
+      };
+    }
+    if (lowerInput.includes('水质') || lowerInput.includes('ph') || lowerInput.includes('矿化')) {
+      const quality = fractures.map(f => ({ f, ph: f.sensorReading.fluid_ph, mineral: f.sensorReading.co_ppm, h2s: f.sensorReading.h2s_ppm }))
+        .sort((a, b) => Math.abs(7 - b.ph) - Math.abs(7 - a.ph))
+        .slice(0, 5);
+      const rows = quality.map(x => `| ${x.f.id} (${x.f.name}) | ${x.ph.toFixed(1)} | ${x.mineral.toFixed(0)}mg/L | ${x.h2s.toFixed(1)}ppm | ${x.ph < 5.5 || x.ph > 8.5 ? '⚠️ 复核' : '🟢 正常'} |`).join('\n');
+      return {
+        message: `## 地下暗流水质异常分析\n\n| 通道 | pH | 矿化度估算 | H₂S | 状态 |\n|------|----|----------|-----|------|\n${rows}\n\n> 水质指标为机器人原位传感器 Mock 原始值聚合，正式报告需结合取样化验校准。`,
+        actions: [{ type: 'clearMarkers' }],
+      };
+    }
+  }
+
   // ========== 瓦斯浓度分析 ==========
   if (lowerInput.includes('瓦斯') || lowerInput.includes('ch4') || lowerInput.includes('气体') || lowerInput.includes('甲烷') || lowerInput.includes('浓度')) {
-    const sorted = findHighGasFractures(fractures, gasThreshold);
+    const sorted = findHighGasFractures(fractures);
     const dangerous = sorted.filter((x) => x.ch4 >= gasThreshold).slice(0, 5);
     const allAbove = sorted.filter((x) => x.ch4 >= gasThreshold);
 
@@ -254,6 +308,10 @@ export function generateMockAIResponse(
 
     const tableRows = top
       .map((x) => {
+        if (scenario === 'underground') {
+          const quality = x.perm > 10000 ? '🔴 极高（需复核水压）' : x.perm > 5000 ? '⚠️ 高渗透' : '🟢 正常';
+          return `| ${x.f.id} (${x.f.name}) | ${x.perm.toFixed(0)} | ${(x.aperture / 1000).toFixed(2)}m | ${x.conn.toFixed(2)} | ${quality} |`;
+        }
         const quality = x.perm > 2.0 ? '🟢 高（适合抽采）' : x.perm > 0.5 ? '🟡 中' : '🔴 低';
         return `| ${x.f.id} (${x.f.name}) | ${x.perm.toFixed(2)} | ${x.aperture.toFixed(0)}µm | ${x.conn.toFixed(2)} | ${quality} |`;
       })
@@ -262,13 +320,13 @@ export function generateMockAIResponse(
     const actions: SceneAction[] = [{ type: 'clearMarkers' }];
 
     // 标记高渗透率裂缝（适合抽采）
-    const highPerm = top.filter((x) => x.perm > 1.0);
+    const highPerm = top.filter((x) => scenario === 'underground' ? x.perm > 5000 : x.perm > 1.0);
     if (highPerm.length > 0) {
       actions.push({
         type: 'markPoints',
         points: highPerm.map((x) => ({
           position: fractureCenter(x.f),
-          label: `${x.f.id} 渗透率=${x.perm.toFixed(2)}mD 抽采通道`,
+          label: `${x.f.id} 渗透率=${scenario === 'underground' ? x.perm.toFixed(0) : x.perm.toFixed(2)}mD ${scenario === 'underground' ? '高渗透通道' : '抽采通道'}`,
           level: 'info' as const,
         })),
       });
@@ -281,6 +339,13 @@ export function generateMockAIResponse(
         position: fractureCenter(top[0].f),
         region: `最高渗透率: ${top[0].f.id}`,
       });
+    }
+
+    if (scenario === 'underground') {
+      return {
+        message: `## 地下暗流渗透率评估\n\n基于通道测点的渗透率、水压与连通性数据，已标记高渗透暗流通道：\n\n| 通道 | 渗透率 (mD) | 通道直径 | 连通性 | 评价 |\n|------|-----------|--------|--------|------|\n${tableRows}\n\n> 渗透率 > 5000 mD 的通道应优先复核水压、地温与连通边界。\n\n${highPerm.length > 0 ? `⚠️ 已标记 **${highPerm.length}** 段高渗透通道，建议纳入重点复测和排水边界校核。` : '当前暗流通道渗透率处于可控范围。'}`,
+        actions,
+      };
     }
 
     return {
@@ -364,7 +429,9 @@ export function generateMockAIResponse(
   // ========== 实验指令 ==========
   if (lowerInput.includes('实验') || lowerInput.includes('测试') || lowerInput.includes('模拟') || lowerInput.includes('压裂')) {
     return {
-      message: `## 可用虚拟实验\n\n请在3D场景中选中裂缝后，在右侧面板执行实验：\n\n| 实验 | 描述 |\n|------|------|\n| 瓦斯扩散模拟 | 预测CH₄扩散路径 |\n| 稳定性评估 | 评估围岩稳定性 |\n| 突水预警 | 计算突水风险等级 |\n| 岩爆预测 | 基于微震和应力 |\n| 渗透率评估 | 计算等效渗透率 |\n| 裂缝连通性 | 分析网络连通性 |\n\n> 提示：点击3D场景中的裂缝线可选中并查看详情面板。`,
+      message: scenario === 'underground'
+        ? `## 可用虚拟实验\n\n请在3D场景中选中暗流通道后，在右侧面板执行实验：\n\n| 实验 | 描述 |\n|------|------|\n| 渗透率评估 | 计算通道等效渗透率 |\n| 水压异常 | 复核承压水边界 |\n| 地温梯度 | 识别高地温通道 |\n| 水质异常 | 分析 pH、矿化度和 H₂S |\n| 连通性分析 | 分析暗流网络连通性 |\n\n> 提示：点击3D场景中的暗流通道可选中并查看详情面板。`
+        : `## 可用虚拟实验\n\n请在3D场景中选中裂缝后，在右侧面板执行实验：\n\n| 实验 | 描述 |\n|------|------|\n| 瓦斯扩散模拟 | 预测CH₄扩散路径 |\n| 稳定性评估 | 评估围岩稳定性 |\n| 突水预警 | 计算突水风险等级 |\n| 岩爆预测 | 基于微震和应力 |\n| 渗透率评估 | 计算等效渗透率 |\n| 裂缝连通性 | 分析网络连通性 |\n\n> 提示：点击3D场景中的裂缝线可选中并查看详情面板。`,
       actions: [],
     };
   }
@@ -372,7 +439,7 @@ export function generateMockAIResponse(
   // ========== 机器人状态 ==========
   if (lowerInput.includes('机器人') || lowerInput.includes('状态') || lowerInput.includes('群智') || lowerInput.includes('设备')) {
     return {
-      message: `## 机器人集群状态\n\n当前部署的仿生探测机器人沿裂缝网络分布，实时回传传感器数据。\n\n左侧"机器人集群"面板可查看完整列表，点击告警可飞行到对应机器人位置。`,
+      message: `## 机器人集群状态\n\n当前部署的仿生探测机器人沿${semantics.networkLabel}分布，实时回传传感器数据。\n\n左侧"机器人集群"面板可查看完整列表，点击告警可飞行到对应机器人位置。`,
       actions: [],
     };
   }
@@ -619,7 +686,6 @@ export function generateMockAIResponse(
       };
     }
   }
-
   // ========== 兜底 ==========
   // 管线场景兜底
   if (scenario === 'pipeline') {
@@ -637,6 +703,11 @@ export function generateMockAIResponse(
   if (scenario === 'refinery') {
     return {
       message: `我已收到您的指令："${input}"\n\n当前炼油化工设备内部通道共 **${fractures.length}** 段，可用指令：\n- 设备网络概览\n- 壁厚减薄分析\n- 腐蚀速率评估\n- 找出最薄管壁\n- 蠕变寿命分析\n- 声发射检测\n- 泄漏检测\n\n请问还需要分析什么？`,
+    };
+  }
+  if (scenario === 'underground') {
+    return {
+      message: `我已收到您的指令："${input}"\n\n当前地下暗流通道网络共 **${fractures.length}** 段，可用指令：\n- 暗流网络概览\n- 渗透率分析\n- 水压异常\n- 地温梯度\n- 水质异常\n- 狭窄瓶颈定位\n- 找出最危险的点\n\n请问还需要分析什么？`,
     };
   }
   return {
@@ -699,12 +770,14 @@ function findDangerousPoints(
   sceneContext?: { fractures: Fracture[]; scenario: ScenarioType; gasThreshold: number }
 ): AIResponse {
   if (!sceneContext || sceneContext.fractures.length === 0) {
+    const semantics = getSceneSemantics(sceneContext?.scenario ?? 'coal');
     return {
-      message: `当前场景尚未加载裂缝数据。`,
+      message: `当前场景尚未加载${semantics.networkLabel}数据。`,
     };
   }
 
   const { fractures, scenario, gasThreshold } = sceneContext;
+  const semantics = getSceneSemantics(scenario);
 
   const allNodes = fractures.flatMap((f) =>
     f.nodes.map((n) => {
@@ -717,8 +790,6 @@ function findDangerousPoints(
       const perm = n.sensors.permeability_md;
 
       let score = 0;
-      let factors: string[] = [];
-
       if (scenario === 'coal') {
         score = ch4 * 25 + (ch4 > gasThreshold ? 30 : 0) + (temp > 38 ? 10 : 0) + (micro > 15 ? 20 : 0);
       } else if (scenario === 'gold') {
@@ -736,6 +807,8 @@ function findDangerousPoints(
         const ae = n.sensors.acoustic_emission_mv;
         const scale = n.sensors.stress_sigma2;
         score = wallLoss * 8 + (creep > 8000 ? 25 : 0) + (ae > 2000 ? 30 : 0) + (scale > 3 ? 15 : 0) + ch4 * 1.5;
+      } else if (scenario === 'underground') {
+        score = perm * 0.01 + (perm > 5000 ? 35 : 0) + (water > 8 ? 20 : 0) + (temp > 90 ? 20 : 0) + (h2s > 10 ? 10 : 0);
       } else {
         score = perm * 5 + (water > 5 ? 20 : 0);
       }
@@ -781,6 +854,11 @@ function findDangerousPoints(
       if (ae > 2000) factors.push(`声发射=${ae.toFixed(0)}mV`);
       if (scale > 3) factors.push(`结垢=${scale.toFixed(1)}mm`);
       if (n.h2s > 50) factors.push(`H₂S=${n.h2s.toFixed(0)}ppm`);
+    } else if (scenario === 'underground') {
+      if (n.perm > 5000) factors.push(`渗透率=${n.perm.toFixed(0)}mD`);
+      if (n.water > 8) factors.push(`水压=${n.water.toFixed(1)}MPa`);
+      if (n.temp > 90) factors.push(`地温=${n.temp.toFixed(0)}°C`);
+      if (n.h2s > 10) factors.push(`H₂S=${n.h2s.toFixed(1)}ppm`);
     } else {
       if (n.ch4 > gasThreshold) factors.push(`CH₄=${n.ch4.toFixed(1)}%`);
       if (n.temp > 38) factors.push(`温度=${n.temp.toFixed(0)}°C`);
@@ -808,14 +886,17 @@ function findDangerousPoints(
       if (scenario === 'refinery') {
         return `| ${i + 1} | ${n.fractureId} (${n.fractureName}) | 泄漏=${n.ch4.toFixed(1)}%LEL, H₂S=${n.h2s.toFixed(0)}ppm, 温度=${n.temp.toFixed(0)}°C | ${level} |`;
       }
+      if (scenario === 'underground') {
+        return `| ${i + 1} | ${n.fractureId} (${n.fractureName}) | 渗透率=${n.perm.toFixed(0)}mD, 水压=${n.water.toFixed(1)}MPa, 地温=${n.temp.toFixed(0)}°C | ${level} |`;
+      }
       return `| ${i + 1} | ${n.fractureId} (${n.fractureName}) | CH₄=${n.ch4}%, 温度=${n.temp.toFixed(0)}°C, 微震=${n.micro}/h | ${level} |`;
     })
     .join('\n');
 
-  const title = scenario === 'pipeline' ? '危险管段分析' : scenario === 'nuclear' ? '辐射热点分析' : scenario === 'refinery' ? '设备内检异常分析' : '最危险区域分析';
+  const title = scenario === 'pipeline' ? '危险管段分析' : scenario === 'nuclear' ? '辐射热点分析' : scenario === 'refinery' ? '设备内检异常分析' : scenario === 'underground' ? '暗流通道异常分析' : '最危险区域分析';
 
   return {
-    message: `## ${title}\n\n根据实时传感器数据综合评分，标记了 ${top3.length} 个高风险点位：\n\n| 编号 | 管道/裂缝 | 关键指标 | 等级 |\n|------|---------|---------|------|\n${tableRows}\n\n已自动飞行到最危险区域（${top3[0].fractureId}），脉冲标记已标注在3D场景中。`,
+    message: `## ${title}\n\n根据实时传感器数据综合评分，标记了 ${top3.length} 个高风险点位：\n\n| 编号 | ${semantics.objectLabel} | 关键指标 | 等级 |\n|------|---------|---------|------|\n${tableRows}\n\n已自动飞行到最危险区域（${top3[0].fractureId}），脉冲标记已标注在3D场景中。`,
     actions: [
       { type: 'clearMarkers' },
       { type: 'markPoints', points },
@@ -835,8 +916,6 @@ export const quickCommands = [
 ];
 
 // ==================== 场景特定快捷指令 ====================
-
-import type { QuickCommand } from '../types/api';
 
 const QUICK_COMMANDS: Record<string, QuickCommand[]> = {
   // 裂缝场景（煤矿/金矿/油气）
@@ -891,10 +970,31 @@ const QUICK_COMMANDS: Record<string, QuickCommand[]> = {
   ],
 };
 
-export function getQuickCommands(scenario: string): QuickCommand[] {
-  if (scenario === 'pipeline') return QUICK_COMMANDS.pipeline;
-  if (scenario === 'nuclear') return QUICK_COMMANDS.nuclear;
-  if (scenario === 'refinery') return QUICK_COMMANDS.refinery;
-  if (scenario === 'underground') return QUICK_COMMANDS.underground;
-  return QUICK_COMMANDS.fracture;
+export function getQuickCommands(scenario: string, locale: Locale = 'zh-CN'): QuickCommand[] {
+  const commands =
+    scenario === 'pipeline' ? QUICK_COMMANDS.pipeline
+      : scenario === 'nuclear' ? QUICK_COMMANDS.nuclear
+        : scenario === 'refinery' ? QUICK_COMMANDS.refinery
+          : scenario === 'underground' ? QUICK_COMMANDS.underground
+            : QUICK_COMMANDS.fracture;
+
+  if (locale === 'zh-CN') return commands;
+
+  const labelMap: Record<string, string[]> = {
+    fracture: ['Network Overview', 'Gas Review', 'Stress Review', 'Find Dangerous Zones', 'Permeability Review', 'Water-Inrush Review', 'Temperature Review'],
+    pipeline: ['Network Overview', 'Leak Review', 'Wall-Loss Review', 'Find Risk Segments', 'H2S Review', 'Corrosion Review', 'Pressure Review'],
+    nuclear: ['Piping Overview', 'Dose-Rate Survey', 'Fatigue Review', 'Find Radiation Hotspots', 'FAC Monitoring', 'Coolant Activity', 'Vibration Review'],
+    refinery: ['Passage Overview', 'Wall-Thinning Review', 'Corrosion Review', 'Find Thinnest Segments', 'Creep-Life Review', 'Acoustic Emission', 'Leak Review'],
+    underground: ['Channel Overview', 'Flow Review', 'Permeability Review', 'Water-Quality Exceptions', 'Find Bottlenecks', 'Cavity Volume Estimate', 'Geothermal Gradient'],
+  };
+
+  const key =
+    scenario === 'pipeline' || scenario === 'nuclear' || scenario === 'refinery' || scenario === 'underground'
+      ? scenario
+      : 'fracture';
+
+  return commands.map((command, index) => ({
+    ...command,
+    label: labelMap[key][index] ?? command.label,
+  }));
 }

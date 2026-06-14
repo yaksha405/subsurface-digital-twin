@@ -7,7 +7,7 @@
  * "言出法随"：用户说自然语言 → LLM 理解意图 → 调用对应 tool → 场景执行
  */
 
-import type { SceneAction, Fracture, ScenarioType } from '../types';
+import type { SceneAction, Fracture, ScenarioType, SensorReading } from '../types';
 
 // ===================================================================
 // 1. OpenAI-compatible Tool Schema（传给 LLM 的函数定义）
@@ -173,6 +173,44 @@ export const SCENE_TOOLS = [
   },
 ];
 
+interface ToolPointArg {
+  x: number;
+  y: number;
+  z: number;
+  label: string;
+  level?: 'danger' | 'warning' | 'info';
+  detail?: string;
+  source?: string;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function parseToolPoint(value: unknown): ToolPointArg | null {
+  if (!isRecord(value)) return null;
+  const x = Number(value.x);
+  const y = Number(value.y);
+  const z = Number(value.z);
+  if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) return null;
+  const level = value.level === 'danger' || value.level === 'warning' || value.level === 'info'
+    ? value.level
+    : 'info';
+  return {
+    x,
+    y,
+    z,
+    label: String(value.label ?? 'AI 标记'),
+    level,
+    detail: typeof value.detail === 'string' ? value.detail : undefined,
+    source: typeof value.source === 'string' ? value.source : undefined,
+  };
+}
+
+function sensorValue(sensors: SensorReading, key: keyof SensorReading): number {
+  return sensors[key];
+}
+
 // ===================================================================
 // 2. Tool Call → SceneAction 转换
 // ===================================================================
@@ -190,13 +228,17 @@ export function parseToolCall(
       };
 
     case 'mark_dangerous_points': {
-      const pts = (args.points as any[]) || [];
+      const pts = Array.isArray(args.points)
+        ? args.points.map(parseToolPoint).filter((point): point is ToolPointArg => point !== null)
+        : [];
       return {
         type: 'markPoints',
         points: pts.map((p) => ({
-          position: [Number(p.x), Number(p.y), Number(p.z)] as [number, number, number],
-          label: String(p.label),
-          level: (p.level as 'danger' | 'warning' | 'info') || 'info',
+          position: [p.x, p.y, p.z],
+          label: p.label,
+          level: p.level,
+          detail: p.detail,
+          source: p.source,
         })),
       };
     }
@@ -268,7 +310,7 @@ export function buildSceneContext(
     underground: '地下暗流',
   };
 
-  const sensorKey: Record<ScenarioType, string> = {
+  const sensorKey: Record<ScenarioType, keyof SensorReading> = {
     coal: 'ch4_pct',
     gold: 'stress_mpa',
     oil: 'permeability_md',
@@ -309,7 +351,7 @@ export function buildSceneContext(
       fractureName: f.name,
       nodeId: n.id,
       position: n.position,
-      value: (n.sensors as any)[key] ?? 0,
+      value: sensorValue(n.sensors, key),
       ch4: n.sensors.ch4_pct,
       temp: n.sensors.temperature_c,
       stress: n.sensors.stress_mpa,
@@ -346,7 +388,7 @@ export function buildSceneContext(
     .map((f) => {
       const avgSensor =
         f.nodes.length > 0
-          ? (f.nodes.reduce((sum, n) => sum + ((n.sensors as any)[key] ?? 0), 0) / f.nodes.length).toFixed(2)
+          ? (f.nodes.reduce((sum, n) => sum + sensorValue(n.sensors, key), 0) / f.nodes.length).toFixed(2)
           : 'N/A';
       const isPipeMode = scenario === 'pipeline' || scenario === 'nuclear' || scenario === 'refinery';
   const geomLabel = isPipeMode ? '壁厚' : '开度';

@@ -4,36 +4,30 @@ import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Switch } from '../ui/switch';
 import { Tooltip, TooltipTrigger, TooltipContent } from '../ui/tooltip';
 import { Bot, Mountain, GitBranch, MapPin, Boxes, Atom } from 'lucide-react';
+import { getSceneSemantics } from '../../lib/sceneSemantics';
+import { getLocalizedStructureLayerCopy } from '../../lib/sceneControlCopy';
+import { t } from '../../domain/i18nCatalog';
 
-/**
- * 各场景"掩体/结构层"（rockMass）的标签和图标
- * — coal/gold: 地质岩体
- * — oil: 储层岩体
- * — pipeline: 管沟覆土
- * — nuclear: 安全壳厂房（ReactorContainment，非岩体）
- * — refinery: 无此层（不渲染，隐藏开关）
- * — underground: 岩溶围岩
- */
-const STRUCTURE_LAYER: Record<Exclude<ScenarioType, 'refinery'>, {
-  label: string;
-  desc: string;
-  Icon: React.ComponentType<{ className?: string }>;
-}> = {
-  coal:        { label: '地质岩体',   desc: '半透明煤矿地质岩体外壳', Icon: Mountain },
-  gold:        { label: '地质岩体',   desc: '半透明金矿地质岩体外壳', Icon: Mountain },
-  oil:         { label: '储层岩体',   desc: '半透明油气储层岩体外壳', Icon: Mountain },
-  pipeline:    { label: '管沟覆土',   desc: '半透明管线覆土回填层', Icon: Mountain },
-  nuclear:     { label: '安全壳厂房', desc: '反应堆安全壳及 RPV/SG/RCP 等设备线框', Icon: Atom },
-  underground: { label: '岩溶围岩',   desc: '半透明深部岩溶围岩体', Icon: Mountain },
+const STRUCTURE_ICON: Record<ScenarioType, React.ComponentType<{ className?: string }>> = {
+  coal: Mountain,
+  gold: Mountain,
+  oil: Mountain,
+  pipeline: Mountain,
+  nuclear: Atom,
+  refinery: Mountain,
+  underground: Mountain,
 };
 
 export function LayerToggle() {
   const layers = useSceneStore((s) => s.layers);
   const setLayer = useSceneStore((s) => s.setLayer);
   const dataSource = useSceneStore((s) => s.dataSource);
+  const scenario = useSceneStore((s) => s.scenario);
+  const locale = useSceneStore((s) => s.locale);
+  const semantics = getSceneSemantics(scenario);
 
-  // refinery 场景无掩体/结构层，不显示该开关
-  const structureConfig = dataSource !== 'refinery' ? STRUCTURE_LAYER[dataSource] : null;
+  const effectiveScenario: ScenarioType = dataSource === 'fracture' ? scenario : dataSource;
+  const structureCopy = getLocalizedStructureLayerCopy(effectiveScenario, locale);
 
   const layerItems: {
     key: keyof LayerState;
@@ -42,20 +36,54 @@ export function LayerToggle() {
     Icon: React.ComponentType<{ className?: string }>;
   }[] = [];
 
-  if (structureConfig) {
-    layerItems.push({ key: 'rockMass', ...structureConfig });
+  if (structureCopy) {
+    layerItems.push({
+      key: 'rockMass',
+      label: structureCopy.label,
+      desc: structureCopy.desc,
+      Icon: STRUCTURE_ICON[effectiveScenario],
+    });
   }
   layerItems.push(
-    { key: 'fractures', label: '裂缝网络', desc: '地下裂缝/管道网络可视化', Icon: GitBranch },
-    { key: 'pointCloud', label: '点云数据', desc: '原始扫描点云渲染（Potree LOD）', Icon: Boxes },
-    { key: 'robots', label: '机器人集群', desc: '探测机器人实时位置', Icon: Bot },
-    { key: 'poi', label: '兴趣点标注', desc: '裂缝入口、传感器站点、危险区域', Icon: MapPin },
+    {
+      key: 'fractures',
+      label: locale === 'zh-CN' ? semantics.networkLabel : semantics.networkLabel
+        .replace('地下裂缝网络', 'Underground Fracture Network')
+        .replace('金矿裂缝网络', 'Gold-Mine Fracture Network')
+        .replace('油气储层裂缝网络', 'Reservoir Fracture Network')
+        .replace('油气输送管网', 'Pipeline Network')
+        .replace('核反应堆管道系统', 'Reactor Piping System')
+        .replace('炼化设备内部通道', 'Refinery Equipment Passages')
+        .replace('地下暗流', 'Underground Channels'),
+      desc: locale === 'zh-CN'
+        ? `${semantics.networkLabel}可视化`
+        : 'Show the primary inspection network geometry',
+      Icon: GitBranch,
+    },
+    {
+      key: 'pointCloud',
+      label: locale === 'zh-CN' ? '点云数据' : 'Point Cloud',
+      desc: locale === 'zh-CN' ? '原始扫描点云渲染（Potree LOD）' : 'Raw scan point cloud rendering (Potree LOD)',
+      Icon: Boxes,
+    },
+    {
+      key: 'robots',
+      label: locale === 'zh-CN' ? '机器人集群' : 'Robot Fleet',
+      desc: locale === 'zh-CN' ? '探测机器人实时位置' : 'Live positions of inspection robots',
+      Icon: Bot,
+    },
+    {
+      key: 'poi',
+      label: locale === 'zh-CN' ? '兴趣点标注' : 'Points of Interest',
+      desc: locale === 'zh-CN' ? `${semantics.objectLabel}入口、传感器站点、危险区域` : 'Entrances, sensor stations, and hazard markers',
+      Icon: MapPin,
+    },
   );
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>图层控制</CardTitle>
+        <CardTitle>{t('panel.layerControl', locale)}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-1.5">
         {layerItems.map(({ key, label, desc, Icon }) => {
@@ -69,18 +97,18 @@ export function LayerToggle() {
                     isDisabled
                       ? 'opacity-30 cursor-not-allowed'
                       : isEnabled
-                      ? 'bg-[#FFE600]/8 border border-[#FFE600]/20'
-                      : 'border border-transparent hover:bg-white/5'
+                      ? 'bg-[#C99A2E]/8 border border-[#C99A2E]/20'
+                      : 'border border-transparent hover:bg-[#F8FAFC]'
                   }`}
                   onClick={() => !isDisabled && setLayer(key, !isEnabled)}
                 >
                   <div className={`w-7 h-7 rounded flex items-center justify-center ${
-                    isEnabled && !isDisabled ? 'bg-[#FFE600]/15 text-[#FFE600]' : 'bg-[#2A2D3A] text-[#A0A0B0]'
+                    isEnabled && !isDisabled ? 'bg-[#C99A2E]/15 text-[#C99A2E]' : 'bg-[#E5EAF1] text-[#667085]'
                   }`}>
                     <Icon className="w-3.5 h-3.5" />
                   </div>
                   <div className="flex-1 text-left">
-                    <div className={`text-xs font-medium ${isEnabled && !isDisabled ? 'text-[#E0E0E8]' : 'text-[#A0A0B0]'}`}>
+                    <div className={`text-xs font-medium ${isEnabled && !isDisabled ? 'text-[#182230]' : 'text-[#667085]'}`}>
                       {label}
                     </div>
                   </div>
