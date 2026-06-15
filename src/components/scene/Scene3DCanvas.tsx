@@ -1,7 +1,7 @@
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { useThree, useFrame } from '@react-three/fiber';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { useSceneStore } from '../../store/useSceneStore';
 import { RobotMarkers } from './RobotMarkers';
@@ -31,6 +31,28 @@ interface OrbitControlsLike {
   enabled: boolean;
   update: () => void;
 }
+
+type PickCandidateKind = 'robot' | 'node' | 'path';
+
+interface PickCandidate {
+  kind: PickCandidateKind;
+  id: string;
+  label: string;
+  subtitle: string;
+  distanceSq: number;
+  point: [number, number, number];
+  robotId?: string;
+  fractureId?: string;
+  nodeId?: string | null;
+}
+
+interface PickCandidateEventDetail {
+  x: number;
+  y: number;
+  candidates: PickCandidate[];
+}
+
+const PICK_CANDIDATE_EVENT = 'hive:pick-candidates';
 
 function asOrbitControls(value: unknown): OrbitControlsLike | null {
   if (
@@ -226,6 +248,8 @@ export function Scene3DCanvas() {
       {/* Potree 工业级点云渲染（独立 WebGL context，八叉树 LOD） */}
       <PotreeViewer />
 
+      <OverlapPickMenu />
+
       {/* 任务回放控制条 */}
       <PlaybackBar />
 
@@ -406,6 +430,199 @@ function findNearestFractureSelectionByScreen(
   return bestPath;
 }
 
+function collectPickCandidates(
+  screen: { x: number; y: number },
+  robots: Robot[],
+  fractures: ReturnType<typeof useSceneStore.getState>['fractures'],
+  camera: THREE.Camera,
+  dom: HTMLCanvasElement,
+  radiusPx = 46,
+): PickCandidate[] {
+  const maxDistanceSq = radiusPx * radiusPx;
+  const candidates: PickCandidate[] = [];
+
+  for (const robot of robots) {
+    const projected = projectWorldToScreen(robot.position, camera, dom);
+    if (!projected.visible) continue;
+    const distanceSq = squaredDistance2D(screen, projected);
+    if (distanceSq > maxDistanceSq) continue;
+    candidates.push({
+      kind: 'robot',
+      id: `robot:${robot.id}`,
+      label: robot.id,
+      subtitle: robot.task,
+      distanceSq,
+      point: robot.position,
+      robotId: robot.id,
+    });
+  }
+
+  for (const fracture of fractures) {
+    for (const node of fracture.nodes) {
+      if (!node.robotId) continue;
+      const projected = projectWorldToScreen(node.position, camera, dom);
+      if (!projected.visible) continue;
+      const distanceSq = squaredDistance2D(screen, projected);
+      if (distanceSq > maxDistanceSq) continue;
+      candidates.push({
+        kind: 'node',
+        id: `node:${node.id}`,
+        label: node.id,
+        subtitle: fracture.name,
+        distanceSq,
+        point: node.position,
+        fractureId: fracture.id,
+        nodeId: node.id,
+      });
+    }
+
+    for (let i = 0; i < fracture.path.length; i += 2) {
+      const point = fracture.path[i];
+      const projected = projectWorldToScreen(point, camera, dom);
+      if (!projected.visible) continue;
+      const distanceSq = squaredDistance2D(screen, projected);
+      if (distanceSq > maxDistanceSq) continue;
+      candidates.push({
+        kind: 'path',
+        id: `path:${fracture.id}:${i}`,
+        label: fracture.id,
+        subtitle: fracture.name,
+        distanceSq,
+        point,
+        fractureId: fracture.id,
+        nodeId: null,
+      });
+    }
+  }
+
+  const deduped = new Map<string, PickCandidate>();
+  for (const candidate of candidates.sort((a, b) => a.distanceSq - b.distanceSq)) {
+    if (!deduped.has(candidate.id)) deduped.set(candidate.id, candidate);
+  }
+
+  return [...deduped.values()].slice(0, 6);
+}
+
+function dispatchPickCandidates(x: number, y: number, candidates: PickCandidate[]) {
+  window.dispatchEvent(new CustomEvent<PickCandidateEventDetail>(PICK_CANDIDATE_EVENT, {
+    detail: { x, y, candidates },
+  }));
+}
+
+function clearPickCandidates() {
+  window.dispatchEvent(new CustomEvent<PickCandidateEventDetail>(PICK_CANDIDATE_EVENT, {
+    detail: { x: 0, y: 0, candidates: [] },
+  }));
+}
+
+function candidateKindLabel(kind: PickCandidateKind, locale: 'zh-CN' | 'en-US') {
+  if (kind === 'robot') return locale === 'zh-CN' ? '机器人' : 'Robot';
+  if (kind === 'node') return locale === 'zh-CN' ? '测点' : 'Node';
+  return locale === 'zh-CN' ? '通道' : 'Path';
+}
+
+function OverlapPickMenu() {
+  const locale = useSceneStore((s) => s.locale);
+  const dataSource = useSceneStore((s) => s.dataSource);
+  const scenario = useSceneStore((s) => s.scenario);
+  const fractures = useSceneStore((s) => s.fractures);
+  const flyTo = useSceneStore((s) => s.flyTo);
+  const openRobotDetail = useSceneStore((s) => s.openRobotDetail);
+  const selectFracture = useSceneStore((s) => s.selectFracture);
+  const selectFractureNode = useSceneStore((s) => s.selectFractureNode);
+  const highlightWithTimer = useSceneStore((s) => s.highlightWithTimer);
+  const closeRobotDetail = useSceneStore((s) => s.closeRobotDetail);
+  const { data: robots } = useAllRobots(dataSource, scenario);
+  const [menu, setMenu] = useState<{ x: number; y: number; candidates: PickCandidate[] } | null>(null);
+
+  useEffect(() => {
+    const onCandidates = (event: Event) => {
+      const detail = (event as CustomEvent<PickCandidateEventDetail>).detail;
+      if (!detail?.candidates?.length) {
+        setMenu(null);
+        return;
+      }
+      setMenu({
+        x: Math.min(window.innerWidth - 260, Math.max(12, detail.x + 10)),
+        y: Math.min(window.innerHeight - 220, Math.max(52, detail.y + 10)),
+        candidates: detail.candidates,
+      });
+    };
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMenu(null);
+    };
+    window.addEventListener(PICK_CANDIDATE_EVENT, onCandidates);
+    window.addEventListener('keydown', onEscape);
+    return () => {
+      window.removeEventListener(PICK_CANDIDATE_EVENT, onCandidates);
+      window.removeEventListener('keydown', onEscape);
+    };
+  }, []);
+
+  if (!menu) return null;
+
+  const chooseCandidate = (candidate: PickCandidate) => {
+    if (candidate.kind === 'robot' && candidate.robotId) {
+      const robot = robots?.find((item) => item.id === candidate.robotId);
+      if (robot) {
+        flyTo({ position: robot.position, region: `robot-${robot.id}`, zoom: 'close' });
+        openRobotDetail(robot);
+      }
+    } else if (candidate.fractureId) {
+      const fracture = fractures.find((item) => item.id === candidate.fractureId);
+      if (fracture) {
+        selectFracture(fracture);
+        selectFractureNode(candidate.nodeId ?? null);
+        closeRobotDetail();
+        flyTo({ position: candidate.point, region: candidate.nodeId ?? fracture.id, zoom: 'close' });
+        setTimeout(() => highlightWithTimer(candidate.point, candidate.nodeId ? 1.6 : 2.4, 3500), 1200);
+      }
+    }
+    setMenu(null);
+  };
+
+  return (
+    <div
+      data-testid="overlap-pick-menu"
+      className="absolute z-40 w-[240px] rounded-lg border border-[#D9E1EA] bg-white shadow-xl"
+      style={{ left: menu.x, top: menu.y }}
+    >
+      <div className="flex items-center justify-between border-b border-[#E5EAF1] px-2.5 py-2">
+        <div className="text-[11px] font-semibold text-[#182230]">
+          {locale === 'zh-CN' ? '选择重叠对象' : 'Select Object'}
+        </div>
+        <button
+          data-testid="overlap-pick-close"
+          className="rounded px-1.5 py-0.5 text-[11px] text-[#667085] hover:bg-[#F2F4F7]"
+          onClick={() => setMenu(null)}
+        >
+          ESC
+        </button>
+      </div>
+      <div className="max-h-[176px] overflow-auto p-1.5">
+        {menu.candidates.map((candidate, index) => (
+          <button
+            key={candidate.id}
+            data-testid={`overlap-pick-option-${index}`}
+            data-pick-kind={candidate.kind}
+            data-pick-id={candidate.id}
+            className="mb-1 w-full rounded-md border border-transparent px-2 py-1.5 text-left hover:border-[#C99A2E]/30 hover:bg-[#FFFAF0]"
+            onClick={() => chooseCandidate(candidate)}
+          >
+            <div className="flex items-center gap-1.5">
+              <span className="rounded bg-[#F2F4F7] px-1.5 py-0.5 text-[9px] font-semibold text-[#667085]">
+                {candidateKindLabel(candidate.kind, locale)}
+              </span>
+              <span className="truncate text-[11px] font-mono font-semibold text-[#182230]">{candidate.label}</span>
+            </div>
+            <div className="mt-0.5 truncate text-[9px] text-[#667085]">{candidate.subtitle}</div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function SceneSelectionController() {
   const { camera, gl } = useThree();
   const activeTool = useSceneStore((s) => s.activeTool);
@@ -452,6 +669,24 @@ function SceneSelectionController() {
       if (delta > 6) return;
 
       const screenPoint = { x: e.clientX, y: e.clientY };
+      const pickCandidates = collectPickCandidates(
+        screenPoint,
+        robots ?? [],
+        fractures,
+        camera,
+        gl.domElement,
+      );
+      const hasRobotCandidate = pickCandidates.some((candidate) => candidate.kind === 'robot');
+      const hasSpatialCandidate = pickCandidates.some((candidate) => candidate.kind !== 'robot');
+      if (pickCandidates.length >= 2 && hasRobotCandidate && hasSpatialCandidate) {
+        dispatchPickCandidates(e.clientX, e.clientY, pickCandidates);
+        writeDebug({
+          lastSelection: `menu:${pickCandidates.map((candidate) => candidate.id).join('|')}`,
+        });
+        return;
+      }
+      clearPickCandidates();
+
       const nearestRobotByScreen = robots
         ? findNearestRobotByScreen(screenPoint, robots, camera, gl.domElement)
         : null;

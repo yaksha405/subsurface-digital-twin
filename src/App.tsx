@@ -48,6 +48,12 @@ function installDevTestApi() {
         fractureNodes: DevInteractiveTarget[];
         fracturePaths: DevInteractiveTarget[];
       }>;
+      getOverlappingTargets: () => Promise<{
+        robot: DevInteractiveTarget;
+        spatial: DevInteractiveTarget;
+        screen: DevProjectionPoint;
+        distance: number;
+      } | null>;
     };
   };
   win.__HIVE_STORE__ = useSceneStore;
@@ -164,6 +170,38 @@ function installDevTestApi() {
       ).filter((target) => target.screen.visible);
 
       return { robots, fractureNodes, fracturePaths };
+    },
+    getOverlappingTargets: async () => {
+      const targets = await win.__HIVE_TEST_API__?.getInteractiveTargets();
+      if (!targets) return null;
+      const spatialTargets = [...targets.fractureNodes, ...targets.fracturePaths];
+      let best: {
+        robot: DevInteractiveTarget;
+        spatial: DevInteractiveTarget;
+        screen: DevProjectionPoint;
+        distance: number;
+      } | null = null;
+
+      for (const robot of targets.robots) {
+        for (const spatial of spatialTargets) {
+          const distance = Math.hypot(robot.screen.x - spatial.screen.x, robot.screen.y - spatial.screen.y);
+          if (distance > 44) continue;
+          if (!best || distance < best.distance) {
+            best = {
+              robot,
+              spatial,
+              screen: {
+                x: (robot.screen.x + spatial.screen.x) / 2,
+                y: (robot.screen.y + spatial.screen.y) / 2,
+                visible: robot.screen.visible && spatial.screen.visible,
+              },
+              distance,
+            };
+          }
+        }
+      }
+
+      return best;
     },
   };
 }

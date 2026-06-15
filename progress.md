@@ -196,3 +196,7 @@
   - `npm run lint` 通过。
   - `npm run build:check` 通过。
   - `HIVE_UI_BASE_URL=http://127.0.0.1:5177/ node scripts/ui-regression.mjs` 通过（failures 为空）。
+- 2026-06-15 01:xx CST: P1 重叠 3D 对象选择器已实现：
+  - 当用户点击位置同时接近机器人与测点/通道路径时，不再只靠优先级猜测，而是在点击点旁弹出 `Select Object / 选择重叠对象` 菜单。
+  - 菜单列出 Robot / Node / Path 候选，用户选择后再打开对应右栏详情并执行聚焦/高亮。
+  - `window.__HIVE_TEST_API__.getOverlappingTargets()` 和 `scripts/ui-regression.mjs` 已补充自动化覆盖；回归可验证重叠菜单出现、候选不少于 2 个、点击候选后右栏详情打开。

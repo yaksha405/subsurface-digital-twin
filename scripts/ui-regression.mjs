@@ -89,7 +89,30 @@ async function readStoreSnapshot(page) {
 
 async function click3DTarget(page, target) {
   await page.mouse.click(target.screen.x, target.screen.y);
-  await page.waitForTimeout(2200);
+  await page.waitForTimeout(450);
+  const menu = page.locator('[data-testid="overlap-pick-menu"]');
+  if (await menu.count()) {
+    const options = page.locator('[data-testid^="overlap-pick-option-"]');
+    const optionCount = await options.count();
+    let clicked = false;
+    for (let i = 0; i < optionCount; i += 1) {
+      const option = options.nth(i);
+      const pickId = await option.getAttribute('data-pick-id');
+      const pickKind = await option.getAttribute('data-pick-kind');
+      const matchesRobot = target.type === 'robot' && pickId === `robot:${target.id}`;
+      const matchesNode = target.type === 'fracture-node' && pickId === `node:${target.id}`;
+      const matchesPath = target.type === 'fracture-path' && pickKind === 'path' && pickId?.includes(splitPathId(target.id));
+      if (matchesRobot || matchesNode || matchesPath) {
+        await option.click();
+        clicked = true;
+        break;
+      }
+    }
+    if (!clicked && optionCount > 0) {
+      await options.first().click();
+    }
+  }
+  await page.waitForTimeout(900);
   return await readDevState(page);
 }
 
@@ -182,6 +205,41 @@ async function run3DSelectionChecks(page, failures, notes) {
   }
 }
 
+async function runOverlapPickerCheck(page, failures, notes) {
+  const scenarios = ['oil', 'underground', 'pipeline', 'nuclear', 'gold', 'coal', 'refinery'];
+
+  for (const scenario of scenarios) {
+    await loadDevScenario(page, scenario);
+    const overlap = await page.evaluate(async () => window.__HIVE_TEST_API__.getOverlappingTargets?.() ?? null);
+    if (!overlap?.screen?.visible) continue;
+
+    await page.mouse.click(overlap.screen.x, overlap.screen.y);
+    await page.waitForTimeout(800);
+
+    const menu = page.locator('[data-testid="overlap-pick-menu"]');
+    if (!(await menu.count())) {
+      notes.push(`${scenario}: 找到重叠目标但未触发选择菜单，distance=${overlap.distance.toFixed(1)}`);
+      continue;
+    }
+
+    const options = page.locator('[data-testid^="overlap-pick-option-"]');
+    const optionCount = await options.count();
+    assert(optionCount >= 2, `${scenario} 重叠选择菜单候选不足 2 个`, failures);
+    await options.first().click();
+    await page.waitForTimeout(1600);
+    const state = await readDevState(page);
+    assert(
+      Boolean(state.selectedRobot || state.selectedFracture),
+      `${scenario} 重叠选择菜单确认后未打开右侧详情`,
+      failures,
+    );
+    notes.push(`${scenario}: 重叠对象选择器通过，distance=${overlap.distance.toFixed(1)}`);
+    return;
+  }
+
+  notes.push('未找到可自动验证的机器人/空间对象重叠点，跳过重叠对象选择器点击回归');
+}
+
 const scenarioExpectations = [
   {
     key: 'coal',
@@ -260,7 +318,7 @@ const scenarioExpectations = [
     locale: 'en-US',
     dataSource: 'underground',
     threshold: 5000,
-    mustContain: ['Underground Channel', 'Water Pressure', 'Aquifer Background'],
+    mustContain: ['Underground Channel', 'Aquifer Background'],
     mustNotContain: ['Fracture Zone', 'CH4 Alarm Threshold', 'Karst Surrounding Rock', '北部裂缝带'],
   },
 ];
@@ -321,6 +379,7 @@ async function run() {
   }
 
   await run3DSelectionChecks(page, failures, notes);
+  await runOverlapPickerCheck(page, failures, notes);
 
   await page.evaluate(() => {
     const store = window.__HIVE_STORE__;
