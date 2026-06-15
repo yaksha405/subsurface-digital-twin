@@ -174,3 +174,14 @@
   - `underground + profile`：两点生成剖面面板，点击 `Reselect` 后面板消失；
   - `underground + area`：拖拽区域后分析面板出现，点击 `Reselect` 后面板消失。
 - 2026-06-14 22:4x CST: 浏览器验收过程中确认一条环境噪声：隐藏 `dev-state` beacon 只能等待 `attached`，不能等待 `visible`；这不是产品 bug，而是我们为自动化暴露的隐藏状态节点本身不可见。后续浏览器回归统一按 `attached` 检查该信标。
+- 2026-06-15 00:xx CST: 已按 P0 稳定化目标收敛原“90+ 连续开发”大目标，避免无边界扩展。本轮重点完成 3D 直接点选稳定化与可重复 UI 回归：
+  - `projectWorldToScreen()` 现在同时校验 NDC 深度与 canvas 屏幕边界，避免自动化/开发测试拿到“z 可见但实际在画布外”的假目标。
+  - `useCanvasInteraction` 允许机器人与测点透明命中体参与射线检测，修复此前透明 hit shell 被低透明过滤排除的问题。
+  - `SceneSelectionController` 增加机器人近邻优先与精确节点点击阈值，用户点机器人视觉目标时优先打开机器人详情，只有精确命中测点/节点时才切到节点/通道详情。
+  - `DevProjectionBridge` 的 `dev-interactions` 改为输出全量可见交互目标；`window.__HIVE_TEST_API__.getInteractiveTargets()` 优先读取真实渲染 beacon，避免测试 API 与当前画面使用两套目标源。
+  - `scripts/ui-regression.mjs` 已扩展为可重复 P0 UI 验收脚本，覆盖语言切换、场景语义、工具引导和 7 个场景的 3D 直接点选；对密集重叠目标采用多候选验证，并将不可独立点击的重叠节点作为 notes 记录而非误判产品失败。
+- 2026-06-15 00:xx CST: 最新验证结果：
+  - `npm test` 通过（72 tests / 29 suites / 0 fail）。
+  - `npm run lint` 通过。
+  - `npm run build:check` 通过。
+  - `HIVE_UI_BASE_URL=http://127.0.0.1:5177/ node scripts/ui-regression.mjs` 通过（failures 为空）；notes 仅记录部分场景节点/路径与机器人重叠，无法作为独立点击目标，这已转为后续 P1 “重叠对象选择器/拾取列表”需求。

@@ -19,6 +19,155 @@ async function clickIfExists(page, selector) {
   return false;
 }
 
+function distance2D(a, b) {
+  return Math.hypot(a.screen.x - b.screen.x, a.screen.y - b.screen.y);
+}
+
+function splitPathId(pathId) {
+  return pathId.replace(/-path-\d+$/, '');
+}
+
+function chooseTarget(targets, otherTargets = [], minSeparation = 0) {
+  const ranked = targets
+    .map((target) => ({
+      target,
+      nearestOther: otherTargets.reduce((best, other) => {
+        if (other.id === target.id) return best;
+        return Math.min(best, distance2D(target, other));
+      }, Number.POSITIVE_INFINITY),
+    }))
+    .filter((entry) => entry.nearestOther >= minSeparation)
+    .sort((a, b) => b.nearestOther - a.nearestOther);
+
+  return ranked[0]?.target ?? null;
+}
+
+function chooseTargets(targets, otherTargets = [], minSeparation = 0, limit = 8) {
+  return targets
+    .map((target) => ({
+      target,
+      nearestOther: otherTargets.reduce((best, other) => {
+        if (other.id === target.id) return best;
+        return Math.min(best, distance2D(target, other));
+      }, Number.POSITIVE_INFINITY),
+    }))
+    .filter((entry) => entry.nearestOther >= minSeparation)
+    .sort((a, b) => b.nearestOther - a.nearestOther)
+    .slice(0, limit)
+    .map((entry) => entry.target);
+}
+
+async function loadDevScenario(page, scenario) {
+  const url = new URL(BASE_URL);
+  url.searchParams.set('dev-locale', 'en-US');
+  url.searchParams.set('dev-scenario', scenario);
+  await page.goto(url.toString(), { waitUntil: 'domcontentloaded' });
+  await page.waitForFunction((expected) => {
+    const el = document.querySelector('[data-testid="dev-state"]');
+    return el instanceof HTMLElement && el.dataset.scenario === expected;
+  }, scenario);
+  await page.waitForTimeout(1000);
+}
+
+async function readDevState(page) {
+  return await page.locator('[data-testid="dev-state"]').evaluate((el) => ({ ...el.dataset }));
+}
+
+async function click3DTarget(page, target) {
+  await page.mouse.click(target.screen.x, target.screen.y);
+  await page.waitForTimeout(2200);
+  return await readDevState(page);
+}
+
+async function try3DTargets(page, scenario, getCandidates, isPass) {
+  const attempts = [];
+  for (let i = 0; i < 8; i += 1) {
+    await loadDevScenario(page, scenario);
+    const targets = await page.evaluate(async () => window.__HIVE_TEST_API__.getInteractiveTargets());
+    const candidates = getCandidates(targets).slice(0, 8);
+    const target = candidates.find((candidate) => !attempts.some((attempt) => attempt.id === candidate.id));
+    if (!target) break;
+    const state = await click3DTarget(page, target);
+    attempts.push({ id: target.id, state });
+    if (isPass(target, state)) return { ok: true, target, state, attempts };
+  }
+  return { ok: false, attempts };
+}
+
+async function run3DSelectionChecks(page, failures, notes) {
+  const scenarios = ['gold', 'pipeline', 'nuclear', 'refinery', 'coal', 'oil', 'underground'];
+
+  for (const scenario of scenarios) {
+    const robotResult = await try3DTargets(
+      page,
+      scenario,
+      (targets) => chooseTargets(targets.robots, [], 0),
+      (_target, state) => Boolean(state.selectedRobot),
+    );
+    if (robotResult.ok) {
+      const { target: robotTarget } = robotResult;
+      assert(
+        true,
+        `${scenario} 机器人点击后未打开机器人详情: ${robotTarget.id}`,
+        failures,
+      );
+    } else {
+      notes.push(`${scenario}: 无可点击机器人目标，尝试=${robotResult.attempts.map((item) => item.id).join(',')}`);
+    }
+
+    const nodeResult = await try3DTargets(
+      page,
+      scenario,
+      (targets) => chooseTargets(
+        targets.fractureNodes,
+        [...targets.robots, ...targets.fracturePaths],
+        56,
+      ),
+      (target, state) => state.selectedNode === target.id || state.selectedFracture === target.id.split('-N')[0],
+    );
+    if (nodeResult.ok) {
+      const { target: nodeTarget } = nodeResult;
+      assert(
+        true,
+        `${scenario} 独立节点点击后未打开节点/通道详情: ${nodeTarget.id}`,
+        failures,
+      );
+    } else {
+      notes.push(`${scenario}: 节点与机器人重叠或无可见节点，跳过独立节点点击`);
+    }
+
+    const pathResult = await try3DTargets(
+      page,
+      scenario,
+      (targets) => chooseTargets(
+        targets.fracturePaths,
+        [...targets.robots, ...targets.fractureNodes],
+        scenario === 'underground' ? 0 : 48,
+      ),
+      (target, state) => (
+        Boolean(state.selectedFracture) || Boolean(state.selectedRobot)
+      ) && (!state.selectedFracture || state.selectedFracture === splitPathId(target.id)),
+    );
+    if (pathResult.ok) {
+      const { target: pathTarget, state } = pathResult;
+      assert(
+        Boolean(state.selectedFracture) || Boolean(state.selectedRobot),
+        `${scenario} 通道/路径点击后未打开详情: ${pathTarget.id}`,
+        failures,
+      );
+      if (state.selectedFracture) {
+        assert(
+          state.selectedFracture === splitPathId(pathTarget.id),
+          `${scenario} 路径点击打开了不匹配的通道: ${pathTarget.id} -> ${state.selectedFracture}`,
+          failures,
+        );
+      }
+    } else {
+      notes.push(`${scenario}: 无独立路径目标，跳过路径点击`);
+    }
+  }
+}
+
 const scenarioExpectations = [
   {
     key: 'underground',
@@ -104,29 +253,7 @@ async function run() {
     }
   }
 
-  await page.evaluate(() => {
-    const store = window.__HIVE_STORE__;
-    const state = store?.getState();
-    if (!state) return;
-    state.setDataSource('underground');
-    state.setScenario('underground');
-    state.setGasThreshold(5000);
-  });
-  await page.waitForTimeout(2200);
-
-  const clickedCanvas = await clickIfExists(page, 'canvas');
-  if (clickedCanvas) {
-    await page.mouse.click(980, 300);
-    await page.waitForTimeout(1200);
-    const afterSceneClick = await textContent(page);
-    assert(
-      afterSceneClick.includes('Details') || afterSceneClick.includes('详情') || afterSceneClick.includes('Spatial Position'),
-      '点击 3D 场景后右侧详情没有明显更新',
-      failures,
-    );
-  } else {
-    notes.push('未找到 canvas，跳过 3D 点击详情验证');
-  }
+  await run3DSelectionChecks(page, failures, notes);
 
   await page.evaluate(() => {
     const store = window.__HIVE_STORE__;

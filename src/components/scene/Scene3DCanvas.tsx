@@ -92,8 +92,7 @@ function DevProjectionBridge() {
         screen: projectWorldToScreen(robot.position, camera, gl.domElement),
       }))
       .filter((target) => target.screen.visible)
-      .sort((a, b) => distSq(a.screen) - distSq(b.screen))
-      .slice(0, 3);
+      .sort((a, b) => distSq(a.screen) - distSq(b.screen));
 
     const visibleFractureNodes = fractures
       .flatMap((fracture) => fracture.nodes
@@ -103,10 +102,9 @@ function DevProjectionBridge() {
           label: fracture.name,
           point: node.position,
           screen: projectWorldToScreen(node.position, camera, gl.domElement),
-        })))
+      })))
       .filter((target) => target.screen.visible)
-      .sort((a, b) => distSq(a.screen) - distSq(b.screen))
-      .slice(0, 3);
+      .sort((a, b) => distSq(a.screen) - distSq(b.screen));
 
     const visibleFracturePaths = fractures
       .flatMap((fracture) => fracture.path
@@ -116,10 +114,9 @@ function DevProjectionBridge() {
           label: fracture.name,
           point,
           screen: projectWorldToScreen(point, camera, gl.domElement),
-        })))
+      })))
       .filter((target) => target.screen.visible)
-      .sort((a, b) => distSq(a.screen) - distSq(b.screen))
-      .slice(0, 3);
+      .sort((a, b) => distSq(a.screen) - distSq(b.screen));
 
     const payload = JSON.stringify({
       robots: visibleRobots,
@@ -297,10 +294,18 @@ function projectWorldToScreen(
 ): { x: number; y: number; visible: boolean } {
   const rect = dom.getBoundingClientRect();
   const vector = new THREE.Vector3(point[0], point[1], point[2]).project(camera);
-  const visible = vector.z >= -1 && vector.z <= 1;
+  const x = ((vector.x + 1) / 2) * rect.width + rect.left;
+  const y = ((-vector.y + 1) / 2) * rect.height + rect.top;
+  const visible =
+    vector.z >= -1 &&
+    vector.z <= 1 &&
+    x >= rect.left &&
+    x <= rect.right &&
+    y >= rect.top &&
+    y <= rect.bottom;
   return {
-    x: ((vector.x + 1) / 2) * rect.width + rect.left,
-    y: ((-vector.y + 1) / 2) * rect.height + rect.top,
+    x,
+    y,
     visible,
   };
 }
@@ -371,6 +376,7 @@ function findNearestFractureSelectionByScreen(
 
   for (const fracture of fractures) {
     for (const node of fracture.nodes) {
+      if (!node.robotId) continue;
       const projected = projectWorldToScreen(node.position, camera, dom);
       if (!projected.visible) continue;
       const distSq = squaredDistance2D(screen, projected);
@@ -392,7 +398,7 @@ function findNearestFractureSelectionByScreen(
     }
   }
 
-  const nodePreferenceSq = 18 ** 2;
+  const nodePreferenceSq = 42 ** 2;
   if (bestNode && (!bestPath || bestNode.distanceSq <= bestPath.distanceSq + nodePreferenceSq)) {
     return bestNode;
   }
@@ -454,19 +460,26 @@ function SceneSelectionController() {
       const fractureDistanceSq = screenSelection?.distanceSq ?? Number.POSITIVE_INFINITY;
       const directPreferencePx = 18;
       const directPreferenceSq = directPreferencePx * directPreferencePx;
+      const robotClickPrioritySq = 38 ** 2;
+      const preciseNodeClickSq = 12 ** 2;
       const directHit = detail.hit;
       const shouldPreferDirectFractureNode =
         directHit?.kind === 'robot' &&
         Boolean(screenSelection?.nodeId) &&
-        fractureDistanceSq <= robotDistanceSq + directPreferenceSq;
+        fractureDistanceSq <= preciseNodeClickSq &&
+        fractureDistanceSq + directPreferenceSq < robotDistanceSq;
       const shouldPreferDirectRobot =
         directHit?.kind === 'fracture' &&
-        !directHit.nodeId &&
+        (!directHit.nodeId || fractureDistanceSq > preciseNodeClickSq) &&
         Boolean(nearestRobotByScreen) &&
-        robotDistanceSq <= fractureDistanceSq + directPreferenceSq;
+        robotDistanceSq <= robotClickPrioritySq;
       const shouldSelectScreenNodeFirst =
         Boolean(screenSelection?.nodeId) &&
-        (!directHit || (directHit.kind === 'fracture' && !directHit.nodeId));
+        (!directHit || (directHit.kind === 'fracture' && !directHit.nodeId)) &&
+        (!nearestRobotByScreen || (
+          fractureDistanceSq <= preciseNodeClickSq &&
+          fractureDistanceSq + directPreferenceSq < robotDistanceSq
+        ));
 
       if (directHit?.kind === 'robot' && robots && !shouldPreferDirectFractureNode) {
         const directRobot = robots.find((robot) => robot.id === directHit.robotId);
@@ -478,6 +491,20 @@ function SceneSelectionController() {
           });
           return;
         }
+      }
+
+      const shouldSelectNearbyRobotFirst =
+        Boolean(nearestRobotByScreen) &&
+        robotDistanceSq <= robotClickPrioritySq &&
+        !(directHit?.kind === 'fracture' && Boolean(directHit.nodeId) && fractureDistanceSq <= preciseNodeClickSq);
+
+      if (shouldSelectNearbyRobotFirst && nearestRobotByScreen) {
+        flyTo({ position: nearestRobotByScreen.robot.position, region: `robot-${nearestRobotByScreen.robot.id}`, zoom: 'close' });
+        openRobotDetail(nearestRobotByScreen.robot);
+        writeDebug({
+          lastSelection: `robot:${nearestRobotByScreen.robot.id}`,
+        });
+        return;
       }
 
       if (shouldSelectScreenNodeFirst && screenSelection) {

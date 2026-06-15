@@ -110,6 +110,26 @@ function installDevTestApi() {
       const state = useSceneStore.getState();
       const view = win.__HIVE_DEV_VIEW__;
       const dataset = buildSceneDataset(state.dataSource, state.scenario);
+      const beacon = document.querySelector('[data-testid="dev-interactions"]');
+
+      const parseBeaconTargets = (value: string | undefined, type: DevInteractiveTarget['type']) => {
+        if (!value) return [];
+        try {
+          const items = JSON.parse(value) as Omit<DevInteractiveTarget, 'type'>[];
+          return items.map((item) => ({ ...item, type }));
+        } catch {
+          return [];
+        }
+      };
+
+      if (beacon instanceof HTMLElement) {
+        const robots = parseBeaconTargets(beacon.dataset.robots, 'robot');
+        const fractureNodes = parseBeaconTargets(beacon.dataset.fractureNodes, 'fracture-node');
+        const fracturePaths = parseBeaconTargets(beacon.dataset.fracturePaths, 'fracture-path');
+        if (robots.length || fractureNodes.length || fracturePaths.length) {
+          return { robots, fractureNodes, fracturePaths };
+        }
+      }
 
       const robots = dataset.robots
         .map((robot) => ({

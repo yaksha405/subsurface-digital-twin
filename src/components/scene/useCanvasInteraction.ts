@@ -25,6 +25,13 @@ export interface CanvasInteractionPoint {
 }
 
 function isLowOpacitySurface(mesh: THREE.Mesh): boolean {
+  if (
+    mesh.userData.selectableKind === 'robot' ||
+    (mesh.userData.selectableKind === 'fracture' && mesh.userData.nodeId)
+  ) {
+    return false;
+  }
+
   const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
   return materials.some((material) => (
     'transparent' in material &&
