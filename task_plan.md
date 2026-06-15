@@ -19,7 +19,7 @@ Goal: Continue HIVE from the completed Phase 1 safety cognition MVP toward a 90+
 2. Make API ingestion tolerant to field drift, enum drift, unit drift, missing fields, and mixed-quality inputs.
 3. Keep every new workflow tied to evidence, coverage, review queues, export readiness, and documented acceptance criteria.
 4. Close the remaining demo-grade interaction gaps so the live conference/demo surface feels commercially credible, not just semantically correct.
-5. Current P0 execution plan is indexed at `docs/superpowers/plans/2026-06-15-hive-90-p0-readiness-plan.md`; local execution gates are complete and the work is ready for commit/deploy.
+5. Current P0 execution plan is indexed at `docs/superpowers/plans/2026-06-15-hive-90-p0-readiness-plan.md`; P0 gates are complete, and P1 dense-target disambiguation has shipped.
 
 ## Product Decisions
 
@@ -44,10 +44,9 @@ Goal: Continue HIVE from the completed Phase 1 safety cognition MVP toward a 90+
 
 ## Remaining 90+ Gaps
 
-1. P0 direct 3D picking regression now runs across all seven scenarios. Remaining non-P0 interaction polish is a visible disambiguation picker for dense overlapping targets where independent node/path clicks are physically not separable.
-2. Continue commercial polish in the workbench:
+1. Continue commercial polish in the workbench:
    - visually separate title and status chips in snapshots where OCR/text extraction still reads them as glued together
    - improve right-rail empty/detail-state hierarchy so object selection feedback is more obvious on first glance
    - review any remaining late-rendered helper copy that still depends on component-local strings
-3. Continue migrating any remaining panel aggregates toward source-derived calculations where a card may still lean on hand-shaped summary numbers.
-4. Harden the automation-friendly UI verification harness further so future regression checks can cover direct 3D picking, scene-specific right-rail content, and tool reports with less coordinate fragility.
+2. Continue migrating any remaining panel aggregates toward source-derived calculations where a card may still lean on hand-shaped summary numbers.
+3. External-decision items not safe to fake-complete: full enterprise auth/team collaboration, real hardware data onboarding, advanced CAD/GIS round-trip beyond current export readiness, and rich asset maintenance history.

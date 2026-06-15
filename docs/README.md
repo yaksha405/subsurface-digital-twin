@@ -61,6 +61,7 @@
 | I1 | [superpowers/plans/2026-06-13-phase1-finding-evidence-plan.md](./superpowers/plans/2026-06-13-phase1-finding-evidence-plan.md) | Phase 1 风险发现与证据链实施计划 | 2026-06-13 |
 | I2 | [superpowers/plans/2026-06-14-a2-light-graphite-ui-plan.md](./superpowers/plans/2026-06-14-a2-light-graphite-ui-plan.md) | A2 Light Graphite UI 改造实施计划 | 2026-06-14 |
 | I3 | [superpowers/plans/2026-06-14-hive-90-data-pipeline-plan.md](./superpowers/plans/2026-06-14-hive-90-data-pipeline-plan.md) | 90+ 数据底座与接口容错实施计划 | 2026-06-14 |
+| I4 | [superpowers/plans/2026-06-15-hive-90-p0-readiness-plan.md](./superpowers/plans/2026-06-15-hive-90-p0-readiness-plan.md) | 90+ P0 演示可信度收口计划 | 2026-06-15 |
 
 ---
 
@@ -91,4 +92,4 @@
 
 ---
 
-*最后更新: 2026-06-13*
+*最后更新: 2026-06-15*

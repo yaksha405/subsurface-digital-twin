@@ -200,3 +200,7 @@
   - 当用户点击位置同时接近机器人与测点/通道路径时，不再只靠优先级猜测，而是在点击点旁弹出 `Select Object / 选择重叠对象` 菜单。
   - 菜单列出 Robot / Node / Path 候选，用户选择后再打开对应右栏详情并执行聚焦/高亮。
   - `window.__HIVE_TEST_API__.getOverlappingTargets()` 和 `scripts/ui-regression.mjs` 已补充自动化覆盖；回归可验证重叠菜单出现、候选不少于 2 个、点击候选后右栏详情打开。
+- 2026-06-15 02:xx CST: P2/P3 可落地收尾：
+  - GitHub Pages workflow 已从 Node 20 升级到 Node 24，消除 GitHub Actions 对 Node 20 runner 的弃用告警。
+  - `docs/README.md` 已补入 2026-06-15 P0 readiness 计划索引，并更新最后更新时间。
+  - `task_plan.md` 与 P0 计划的剩余项已同步：重叠对象选择器不再列为未完成项；仍需外部产品/真实硬件决策的企业协作、真实数据接入、深度 CAD/GIS 往返、资产维护历史明确保留为后续范围。

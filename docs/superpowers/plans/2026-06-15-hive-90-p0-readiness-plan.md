@@ -118,4 +118,5 @@ Stop and report only if:
 - Full enterprise auth and team collaboration.
 - Advanced CAD/GIS round-trip beyond current export readiness.
 - Rich object-history timeline and maintenance workflow.
-- A polished disambiguation picker for heavily overlapping 3D targets if the current stable priority policy is good enough for demo but not yet ideal.
+- Full enterprise auth, team collaboration, real hardware data onboarding, advanced CAD/GIS round-trip beyond current export readiness, and rich asset maintenance history.
+- The polished disambiguation picker for heavily overlapping 3D targets has shipped as the P1 overlap object picker.
