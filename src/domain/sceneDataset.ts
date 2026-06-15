@@ -1,4 +1,4 @@
-import type { DataSourceType, Fracture, ScenarioType } from '../types';
+import type { DataSourceType, Fracture, Robot, ScenarioType, SensorReading } from '../types';
 import type { SceneStats, RobotFleetStats } from '../types/api';
 import { buildSceneMetricSummary } from './sceneMetricSummary';
 import { generateFractureNetwork } from '../data/fractureDataGenerator';
@@ -13,7 +13,7 @@ export interface SceneDataset {
   dataSource: DataSourceType;
   scenario: ScenarioType;
   fractures: Fracture[];
-  robots: ReturnType<typeof generateMockRobots>;
+  robots: Robot[];
   alerts: AlertEvent[];
   summary: {
     scene: SceneStats;
@@ -46,7 +46,7 @@ function getFractures(dataSource: DataSourceType, scenario: ScenarioType): Fract
   }
 }
 
-function buildRobotFleetSummary(robots: ReturnType<typeof generateMockRobots>): RobotFleetStats {
+function buildRobotFleetSummary(robots: Robot[]): RobotFleetStats {
   const total = robots.length;
   const online = robots.filter((robot) => robot.status === 'online').length;
   const offline = robots.filter((robot) => robot.status === 'offline').length;
@@ -61,6 +61,33 @@ function buildRobotFleetSummary(robots: ReturnType<typeof generateMockRobots>): 
   return { total, online, offline, lowBattery, error, maintenance, meshConnected, avgBattery };
 }
 
+function hasMeasuredSignal(reading: SensorReading): boolean {
+  return Object.values(reading).some((value) => Number.isFinite(value) && value !== 0);
+}
+
+function buildDataConfidence(fractures: Fracture[], robots: Robot[]): number {
+  const nodes = fractures.flatMap((fracture) => fracture.nodes);
+  if (nodes.length === 0) return 0;
+
+  const measuredNodes = nodes.filter((node) => hasMeasuredSignal(node.sensors)).length;
+  const robotBoundNodes = nodes.filter((node) => node.robotId).length;
+  const freshNodes = nodes.filter((node) => Number.isFinite(node.timestamp) && node.timestamp > 0).length;
+  const meshConnected = robots.filter((robot) => robot.meshConnected).length;
+
+  const measuredRatio = measuredNodes / nodes.length;
+  const robotBindingRatio = robotBoundNodes / nodes.length;
+  const freshnessRatio = freshNodes / nodes.length;
+  const meshRatio = robots.length === 0 ? 0 : meshConnected / robots.length;
+
+  const score =
+    measuredRatio * 0.45 +
+    freshnessRatio * 0.2 +
+    robotBindingRatio * 0.2 +
+    meshRatio * 0.15;
+
+  return Math.round(Math.max(0, Math.min(1, score)) * 100);
+}
+
 function buildAlertSummary(alerts: AlertEvent[]) {
   return {
     total: alerts.length,
@@ -71,14 +98,14 @@ function buildAlertSummary(alerts: AlertEvent[]) {
   };
 }
 
-function buildSceneSummary(fractures: Fracture[], scenario: ScenarioType): SceneStats {
+function buildSceneSummary(fractures: Fracture[], robots: Robot[], scenario: ScenarioType): SceneStats {
   const metricSummary = buildSceneMetricSummary(fractures, scenario);
 
   return {
     totalNodes: metricSummary.totalNodes,
     avgGas: metricSummary.avgPrimary,
     avgTemp: metricSummary.avgTemperature,
-    avgConf: fractures.length === 0 ? 0 : 60,
+    avgConf: buildDataConfidence(fractures, robots),
     overThreshold: metricSummary.overThreshold,
     onlineSensors: metricSummary.totalNodes,
     lastUpdate: Date.now(),
@@ -103,7 +130,7 @@ export function buildSceneDataset(
     robots,
     alerts,
     summary: {
-      scene: buildSceneSummary(fractures, scenario),
+      scene: buildSceneSummary(fractures, robots, scenario),
       robotFleet: buildRobotFleetSummary(robots),
       alerts: buildAlertSummary(alerts),
     },

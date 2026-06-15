@@ -19,6 +19,7 @@ Goal: Continue HIVE from the completed Phase 1 safety cognition MVP toward a 90+
 2. Make API ingestion tolerant to field drift, enum drift, unit drift, missing fields, and mixed-quality inputs.
 3. Keep every new workflow tied to evidence, coverage, review queues, export readiness, and documented acceptance criteria.
 4. Close the remaining demo-grade interaction gaps so the live conference/demo surface feels commercially credible, not just semantically correct.
+5. Current P0 execution plan is indexed at `docs/superpowers/plans/2026-06-15-hive-90-p0-readiness-plan.md`; local execution gates are complete and the work is ready for commit/deploy.
 
 ## Product Decisions
 
@@ -43,7 +44,7 @@ Goal: Continue HIVE from the completed Phase 1 safety cognition MVP toward a 90+
 
 ## Remaining 90+ Gaps
 
-1. Complete browser-grade verification of direct 3D object picking across all five scenes. Robot-card/dev-param/right-rail handoff is now proven; the remaining evidence gap is specifically user-style picking in live 3D, not URL-driven bootstrap.
+1. P0 direct 3D picking regression now runs across all seven scenarios. Remaining non-P0 interaction polish is a visible disambiguation picker for dense overlapping targets where independent node/path clicks are physically not separable.
 2. Continue commercial polish in the workbench:
    - visually separate title and status chips in snapshots where OCR/text extraction still reads them as glued together
    - improve right-rail empty/detail-state hierarchy so object selection feedback is more obvious on first glance

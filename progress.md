@@ -185,3 +185,14 @@
   - `npm run lint` 通过。
   - `npm run build:check` 通过。
   - `HIVE_UI_BASE_URL=http://127.0.0.1:5177/ node scripts/ui-regression.mjs` 通过（failures 为空）；notes 仅记录部分场景节点/路径与机器人重叠，无法作为独立点击目标，这已转为后续 P1 “重叠对象选择器/拾取列表”需求。
+- 2026-06-15 00:xx CST: 已按用户要求单独列出 90+ 的 P0 计划，并落档到 `docs/superpowers/plans/2026-06-15-hive-90-p0-readiness-plan.md`。本轮只做会影响学术/客户演示可信度的 P0：源数据真实性、接口容错、场景语义、3D 点选联动、工具工作流、最终部署门禁；企业协作、深度 CAD/GIS、复杂资产历史等先归入 P1/P2。
+- 2026-06-15 00:xx CST: P0 执行进展：
+  - 源数据真实性：`SceneStats.avgConf` 不再是固定 60，而是从节点传感器有效性、节点时间戳、机器人测点绑定和 Mesh 在线比例推导出的数据可信度；新增跨 7 场景一致性测试，防止节点数、告警数、机器人数出现不可能关系。
+  - API 容错：normalizer 已兼容数字字符串、百分比形态、对象坐标、mesh 连接布尔漂移、场景/机器人汇总越界值，并对不可能的在线传感器/超阈值/mesh 数量做安全钳制。
+  - 场景语义：`LayerToggle` 的英文网络层名称改为正式映射，不再通过中文字符串 replace 拼接；新增地下暗流/管线/核场景英文网络名回归。
+  - 浏览器回归：`scripts/ui-regression.mjs` 扩展为 7 场景中英文语义矩阵，并继续覆盖 7 场景 3D 直接点选与工具入口。当前聚焦验证通过，notes 仅记录密集重叠目标无法独立点击，归入后续 P1 显式重叠对象选择器。
+- 2026-06-15 00:xx CST: P0 最终本地门禁通过：
+  - `npm test` 通过（75 tests / 29 suites / 0 fail）。
+  - `npm run lint` 通过。
+  - `npm run build:check` 通过。
+  - `HIVE_UI_BASE_URL=http://127.0.0.1:5177/ node scripts/ui-regression.mjs` 通过（failures 为空）。

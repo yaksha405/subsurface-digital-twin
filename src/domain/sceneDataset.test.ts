@@ -2,6 +2,16 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildSceneDataset } from './sceneDataset';
 
+const scenarios = [
+  ['fracture', 'coal'],
+  ['fracture', 'gold'],
+  ['fracture', 'oil'],
+  ['pipeline', 'pipeline'],
+  ['nuclear', 'nuclear'],
+  ['refinery', 'refinery'],
+  ['underground', 'underground'],
+] as const;
+
 test('scene dataset keeps robot stats consistent with robot list', () => {
   const dataset = buildSceneDataset('fracture', 'coal');
 
@@ -42,4 +52,32 @@ test('scene dataset keeps underground scenario vocabulary and valid depth-driven
   assert.equal(dataset.summary.scene.overThreshold >= 0, true);
   assert.equal(dataset.robots.every((robot) => robot.depth >= 0), true);
   assert.equal(dataset.summary.alerts.unacknowledged <= dataset.alerts.length, true);
+});
+
+test('scene dataset data confidence is derived from node evidence instead of a fixed display value', () => {
+  for (const [dataSource, scenario] of scenarios) {
+    const dataset = buildSceneDataset(dataSource, scenario);
+    const nodes = dataset.fractures.flatMap((fracture) => fracture.nodes);
+    const robotBoundNodes = nodes.filter((node) => node.robotId).length;
+    const measuredNodes = nodes.filter((node) => Object.values(node.sensors).some((value) => Number.isFinite(value) && value !== 0)).length;
+
+    assert.equal(dataset.summary.scene.avgConf >= 0, true);
+    assert.equal(dataset.summary.scene.avgConf <= 100, true);
+    assert.notEqual(dataset.summary.scene.avgConf, 60);
+    assert.equal(dataset.summary.scene.avgConf > 0, measuredNodes > 0);
+    assert.equal(robotBoundNodes <= dataset.robots.length, true);
+  }
+});
+
+test('scene dataset prevents impossible sampled-node and alert totals across all scenarios', () => {
+  for (const [dataSource, scenario] of scenarios) {
+    const dataset = buildSceneDataset(dataSource, scenario);
+    const nodes = dataset.fractures.flatMap((fracture) => fracture.nodes);
+
+    assert.equal(dataset.summary.scene.totalNodes, nodes.length);
+    assert.equal((dataset.summary.scene.onlineSensors ?? 0) <= dataset.summary.scene.totalNodes, true);
+    assert.equal(dataset.summary.scene.overThreshold <= dataset.summary.scene.totalNodes, true);
+    assert.equal(dataset.summary.alerts.unacknowledged <= dataset.summary.alerts.total, true);
+    assert.equal(dataset.summary.robotFleet.meshConnected <= dataset.summary.robotFleet.total, true);
+  }
 });

@@ -73,6 +73,20 @@ async function readDevState(page) {
   return await page.locator('[data-testid="dev-state"]').evaluate((el) => ({ ...el.dataset }));
 }
 
+async function readStoreSnapshot(page) {
+  return await page.evaluate(() => {
+    const state = window.__HIVE_STORE__?.getState();
+    if (!state) return null;
+    return {
+      locale: state.locale,
+      dataSource: state.dataSource,
+      scenario: state.scenario,
+      gasThreshold: state.gasThreshold,
+      activeTool: state.activeTool,
+    };
+  });
+}
+
 async function click3DTarget(page, target) {
   await page.mouse.click(target.screen.x, target.screen.y);
   await page.waitForTimeout(2200);
@@ -170,22 +184,84 @@ async function run3DSelectionChecks(page, failures, notes) {
 
 const scenarioExpectations = [
   {
+    key: 'coal',
+    locale: 'zh-CN',
+    dataSource: 'fracture',
+    threshold: 1.5,
+    mustContain: ['地下裂缝', 'CH₄', '瓦斯报警红线', '裂缝网络'],
+    mustNotContain: ['剂量率控制阈值', '泄漏报警阈值', '渗透率预警阈值', 'Reactor Piping'],
+  },
+  {
+    key: 'gold',
+    locale: 'zh-CN',
+    dataSource: 'fracture',
+    threshold: 15,
+    mustContain: ['金矿', '微震', '微震报警阈值', '应力'],
+    mustNotContain: ['瓦斯报警红线', '剂量率控制阈值', '泄漏报警阈值', '地下暗流'],
+  },
+  {
+    key: 'oil',
+    locale: 'zh-CN',
+    dataSource: 'fracture',
+    threshold: 30,
+    mustContain: ['油气储层', '孔隙压力', '孔隙压力阈值', '渗透率'],
+    mustNotContain: ['瓦斯报警红线', '剂量率控制阈值', '泄漏报警阈值', '地下暗流'],
+  },
+  {
+    key: 'pipeline',
+    locale: 'zh-CN',
+    dataSource: 'pipeline',
+    threshold: 20,
+    mustContain: ['油气管线', '泄漏报警阈值', '运行压力', '管段'],
+    mustNotContain: ['剂量率控制阈值', '北部裂缝带', '瓦斯报警红线', '岩层围岩'],
+  },
+  {
+    key: 'nuclear',
+    locale: 'zh-CN',
+    dataSource: 'nuclear',
+    threshold: 25,
+    mustContain: ['核反应堆', '剂量率', '冷却剂温度', '安全壳'],
+    mustNotContain: ['裂缝带', '渗透率预警阈值', '瓦斯报警红线', '岩层围岩'],
+  },
+  {
+    key: 'refinery',
+    locale: 'zh-CN',
+    dataSource: 'refinery',
+    threshold: 3,
+    mustContain: ['炼化', '壁厚减薄', '腐蚀速率', '设备通道'],
+    mustNotContain: ['剂量率控制阈值', '瓦斯报警红线', '北部裂缝带', '地下暗流'],
+  },
+  {
     key: 'underground',
-    trigger: '模拟数据五·地下暗流',
+    locale: 'zh-CN',
+    dataSource: 'underground',
+    threshold: 5000,
     mustContain: ['地下暗流', '渗透率', '水压'],
     mustNotContain: ['北部裂缝带', '瓦斯报警红线', '岩溶围岩'],
   },
   {
-    key: 'nuclear',
-    trigger: '模拟数据三·核反应堆',
-    mustContain: ['核反应堆', '剂量率', '冷却剂温度'],
-    mustNotContain: ['裂缝带', '渗透率预警阈值'],
+    key: 'pipeline',
+    locale: 'en-US',
+    dataSource: 'pipeline',
+    threshold: 20,
+    mustContain: ['Pipeline', 'Operating Pressure', 'Pipe Segment Details'],
+    mustNotContain: ['Roof displacement', 'CH4 Alarm Threshold', 'Dose-Rate Control Threshold', '北部裂缝带'],
   },
   {
-    key: 'pipeline',
-    trigger: '模拟数据二·油气管线',
-    mustContain: ['油气管线', '泄漏报警阈值', '运行压力'],
-    mustNotContain: ['剂量率控制阈值', '北部裂缝带'],
+    key: 'nuclear',
+    locale: 'en-US',
+    dataSource: 'nuclear',
+    threshold: 25,
+    mustContain: ['Reactor', 'Coolant Temperature', 'Containment Building'],
+    mustNotContain: ['Rock Mass', 'Permeability Warning Threshold', 'Leak Alarm Threshold', '北部裂缝带'],
+  },
+  {
+    key: 'underground',
+    locale: 'en-US',
+    dataSource: 'underground',
+    threshold: 5000,
+    mustContain: ['Underground Channel', 'Water Pressure', 'Aquifer Background'],
+    mustNotContain: ['Fracture Zone', 'CH4 Alarm Threshold', 'Karst Surrounding Rock', '北部裂缝带'],
   },
 ];
 
@@ -216,40 +292,31 @@ async function run() {
   assert(!body.includes('系统就绪'), '切换 EN 后仍残留中文欢迎语', failures);
   assert(!body.includes('瓦斯报警红线'), '切换 EN 后阈值标题仍残留中文', failures);
 
-  await page.evaluate(() => {
-    const store = window.__HIVE_STORE__;
-    store?.getState().setLocale('zh-CN');
-  });
-  await page.waitForTimeout(1200);
-
   for (const scenario of scenarioExpectations) {
-    await page.evaluate((scenarioKey) => {
+    await page.evaluate((config) => {
       const store = window.__HIVE_STORE__;
       const state = store?.getState();
       if (!state) return;
-      state.setDataSource(scenarioKey === 'underground'
-        ? 'underground'
-        : scenarioKey === 'nuclear'
-          ? 'nuclear'
-          : scenarioKey === 'pipeline'
-            ? 'pipeline'
-            : 'fracture');
-      state.setScenario(scenarioKey);
-      state.setGasThreshold(
-        scenarioKey === 'underground' ? 5000
-          : scenarioKey === 'nuclear' ? 25
-            : scenarioKey === 'pipeline' ? 20
-              : 1.5,
-      );
-    }, scenario.key);
+      state.setLocale(config.locale);
+      state.setDataSource(config.dataSource);
+      state.setScenario(config.key);
+      state.setGasThreshold(config.threshold);
+      state.clearSelection?.();
+    }, scenario);
     await page.waitForTimeout(2200);
+
+    const storeSnapshot = await readStoreSnapshot(page);
+    assert(storeSnapshot?.locale === scenario.locale, `${scenario.key}/${scenario.locale} store locale 未切换`, failures);
+    assert(storeSnapshot?.dataSource === scenario.dataSource, `${scenario.key}/${scenario.locale} store dataSource 未切换`, failures);
+    assert(storeSnapshot?.scenario === scenario.key, `${scenario.key}/${scenario.locale} store scenario 未切换`, failures);
+    assert(storeSnapshot?.gasThreshold === scenario.threshold, `${scenario.key}/${scenario.locale} store 阈值未切换`, failures);
 
     const scenarioText = await textContent(page);
     for (const item of scenario.mustContain) {
-      assert(scenarioText.includes(item), `${scenario.key} 场景缺少应有文案/指标: ${item}`, failures);
+      assert(scenarioText.includes(item), `${scenario.key}/${scenario.locale} 场景缺少应有文案/指标: ${item}`, failures);
     }
     for (const item of scenario.mustNotContain) {
-      assert(!scenarioText.includes(item), `${scenario.key} 场景仍出现不应存在的文案: ${item}`, failures);
+      assert(!scenarioText.includes(item), `${scenario.key}/${scenario.locale} 场景仍出现不应存在的文案: ${item}`, failures);
     }
   }
 

@@ -4,7 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Switch } from '../ui/switch';
 import { Tooltip, TooltipTrigger, TooltipContent } from '../ui/tooltip';
 import { Bot, Mountain, GitBranch, MapPin, Boxes, Atom } from 'lucide-react';
-import { getSceneSemantics } from '../../lib/sceneSemantics';
+import { getLocalizedNetworkLabel, getSceneSemantics } from '../../lib/sceneSemantics';
 import { getLocalizedStructureLayerCopy } from '../../lib/sceneControlCopy';
 import { t } from '../../domain/i18nCatalog';
 
@@ -47,14 +47,7 @@ export function LayerToggle() {
   layerItems.push(
     {
       key: 'fractures',
-      label: locale === 'zh-CN' ? semantics.networkLabel : semantics.networkLabel
-        .replace('地下裂缝网络', 'Underground Fracture Network')
-        .replace('金矿裂缝网络', 'Gold-Mine Fracture Network')
-        .replace('油气储层裂缝网络', 'Reservoir Fracture Network')
-        .replace('油气输送管网', 'Pipeline Network')
-        .replace('核反应堆管道系统', 'Reactor Piping System')
-        .replace('炼化设备内部通道', 'Refinery Equipment Passages')
-        .replace('地下暗流', 'Underground Channels'),
+      label: getLocalizedNetworkLabel(effectiveScenario, locale),
       desc: locale === 'zh-CN'
         ? `${semantics.networkLabel}可视化`
         : 'Show the primary inspection network geometry',

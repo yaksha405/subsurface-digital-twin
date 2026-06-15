@@ -5,15 +5,18 @@ import { normalizeAlertRecord, normalizeFlatGeometryRecord, normalizeFractureRec
 test('normalizeRobotRecord accepts alternate battery and status fields', () => {
   const normalized = normalizeRobotRecord({
     id: 'R-001',
-    batteryLevel: 82,
+    batteryLevel: '82%',
     state: 'critical',
     mesh_role: 'relay',
-    coords: [1, 2, 3],
+    coords: { x: 1, y: 2, z: -3 },
+    mesh_connected: 0,
   });
 
   assert.equal(normalized.battery, 82);
   assert.equal(normalized.status, 'error');
-  assert.deepEqual(normalized.position, [1, 2, 3]);
+  assert.deepEqual(normalized.position, [1, 2, -3]);
+  assert.equal(normalized.depth, 3);
+  assert.equal(normalized.meshConnected, false);
 });
 
 test('normalizeRobotRecord falls back safely when optional fields are missing', () => {
@@ -31,18 +34,18 @@ test('normalizeSceneStatsRecord accepts alternate backend field names', () => {
     total_nodes: 128,
     avg_primary: 2.6,
     avg_temperature: 34.5,
-    avg_confidence: 0.82,
-    over_threshold_count: 17,
-    sensor_online: 121,
+    avg_confidence: '0.82',
+    over_threshold_count: 170,
+    sensor_online: 999,
     updated_at: 1710000000000,
   });
 
   assert.equal(normalized.totalNodes, 128);
   assert.equal(normalized.avgGas, 2.6);
   assert.equal(normalized.avgTemp, 34.5);
-  assert.equal(normalized.avgConf, 0.82);
-  assert.equal(normalized.overThreshold, 17);
-  assert.equal(normalized.onlineSensors, 121);
+  assert.equal(normalized.avgConf, 82);
+  assert.equal(normalized.overThreshold, 128);
+  assert.equal(normalized.onlineSensors, 128);
   assert.equal(normalized.lastUpdate, 1710000000000);
 });
 
@@ -72,7 +75,7 @@ test('normalizeAlertRecord accepts alternate alert shapes and safe defaults', ()
 
 test('normalizeRobotFleetStatsRecord accepts camelCase and snake_case fields', () => {
   const normalized = normalizeRobotFleetStatsRecord({
-    total_count: 200,
+    total_count: 100,
     online_count: 121,
     offline_count: 25,
     low_battery_count: 19,

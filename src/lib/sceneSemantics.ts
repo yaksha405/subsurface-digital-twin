@@ -413,6 +413,23 @@ export function getLocalizedSceneObjectLabel(scenario: ScenarioType | string, lo
   return labelMap[scenario as ScenarioType] ?? labelMap.coal;
 }
 
+export function getLocalizedNetworkLabel(scenario: ScenarioType | string, locale: Locale = 'zh-CN') {
+  const semantics = getSceneSemantics(scenario);
+  if (locale === 'zh-CN') return semantics.networkLabel;
+
+  const labelMap: Record<ScenarioType, string> = {
+    coal: 'Underground Fracture Network',
+    gold: 'Gold-Mine Fracture Network',
+    oil: 'Reservoir Fracture Network',
+    pipeline: 'Pipeline Network',
+    nuclear: 'Reactor Piping System',
+    refinery: 'Refinery Equipment Passages',
+    underground: 'Underground Channel Network',
+  };
+
+  return labelMap[scenario as ScenarioType] ?? labelMap.coal;
+}
+
 export function getLocalizedThresholdCopy(scenario: ScenarioType | string, locale: Locale = 'zh-CN') {
   const semantics = getSceneSemantics(scenario);
   if (locale === 'zh-CN') {

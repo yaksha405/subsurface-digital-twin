@@ -40,8 +40,23 @@ function pickNumber(input: Record<string, unknown>, keys: string[], fallback = 0
   for (const key of keys) {
     const value = input[key];
     if (typeof value === 'number' && Number.isFinite(value)) return value;
+    if (typeof value === 'string') {
+      const parsed = Number.parseFloat(value.replace(/,/g, '').trim());
+      if (Number.isFinite(parsed)) return parsed;
+    }
   }
   return fallback;
+}
+
+function toPercent(value: number): number {
+  if (!Number.isFinite(value)) return 0;
+  const pct = value > 0 && value <= 1 ? value * 100 : value;
+  return Math.round(Math.max(0, Math.min(100, pct)) * 100) / 100;
+}
+
+function clampNonNegative(value: number): number {
+  if (!Number.isFinite(value)) return 0;
+  return Math.max(0, value);
 }
 
 function pickTuple3(input: Record<string, unknown>, keys: string[]): [number, number, number] | null {
@@ -53,6 +68,16 @@ function pickTuple3(input: Record<string, unknown>, keys: string[]): [number, nu
       value.every((item) => typeof item === 'number' && Number.isFinite(item))
     ) {
       return [value[0], value[1], value[2]];
+    }
+    if (
+      value &&
+      typeof value === 'object' &&
+      typeof (value as Record<string, unknown>).x === 'number' &&
+      typeof (value as Record<string, unknown>).y === 'number' &&
+      typeof (value as Record<string, unknown>).z === 'number'
+    ) {
+      const record = value as Record<string, number>;
+      return [record.x, record.y, record.z];
     }
   }
   return null;
@@ -251,7 +276,7 @@ function normalizeFractureNodeRecord(input: Record<string, unknown>): FractureNo
 
 export function normalizeRobotRecord(input: Record<string, unknown>): Robot {
   const id = pickString(input, ['id', 'robot_id', 'robotId'], 'R-UNKNOWN');
-  const battery = Math.max(0, Math.min(100, pickNumber(input, ['battery', 'batteryLevel', 'power_pct'], 0)));
+  const battery = Math.max(0, Math.min(100, pickNumber(input, ['battery', 'batteryLevel', 'power_pct', 'battery_pct'], 0)));
   const status = normalizeStatus(pickString(input, ['status', 'state'], 'maintenance'));
   const meshRole = normalizeMeshRole(pickString(input, ['meshRole', 'mesh_role', 'role'], 'leaf'));
   const position = pickTuple3(input, ['position', 'coords', 'xyz']) ?? [0, 0, 0];
@@ -263,9 +288,9 @@ export function normalizeRobotRecord(input: Record<string, unknown>): Robot {
     position,
     battery,
     meshRole,
-    meshConnected: true,
+    meshConnected: pickBoolean(input, ['meshConnected', 'mesh_connected', 'mesh_online', 'connected'], true),
     task: pickString(input, ['task', 'mission'], '待命中'),
-    depth: Math.abs(position[2]),
+    depth: Math.abs(pickNumber(input, ['depth', 'depth_m'], position[2])),
     signalStrength: pickNumber(input, ['signalStrength', 'signal_dbm', 'rssi'], -60),
     sensors: {
       ch4: pickNumber(input, ['ch4', 'gas', 'primary_metric'], 0),
@@ -277,13 +302,17 @@ export function normalizeRobotRecord(input: Record<string, unknown>): Robot {
 }
 
 export function normalizeSceneStatsRecord(input: Record<string, unknown>): SceneStats {
+  const totalNodes = clampNonNegative(pickNumber(input, ['totalNodes', 'total_nodes', 'node_count'], 0));
+  const overThreshold = Math.min(totalNodes, clampNonNegative(pickNumber(input, ['overThreshold', 'over_threshold', 'over_threshold_count'], 0)));
+  const onlineSensors = Math.min(totalNodes, clampNonNegative(pickNumber(input, ['onlineSensors', 'online_sensors', 'sensor_online'], totalNodes)));
+
   return {
-    totalNodes: pickNumber(input, ['totalNodes', 'total_nodes', 'node_count'], 0),
+    totalNodes,
     avgGas: pickNumber(input, ['avgGas', 'avg_gas', 'avg_primary', 'avg_primary_metric'], 0),
     avgTemp: pickNumber(input, ['avgTemp', 'avg_temp', 'avg_temperature'], 0),
-    avgConf: pickNumber(input, ['avgConf', 'avg_conf', 'avg_confidence'], 0),
-    overThreshold: pickNumber(input, ['overThreshold', 'over_threshold', 'over_threshold_count'], 0),
-    onlineSensors: pickNumber(input, ['onlineSensors', 'online_sensors', 'sensor_online'], 0),
+    avgConf: toPercent(pickNumber(input, ['avgConf', 'avg_conf', 'avg_confidence', 'confidence_pct'], 0)),
+    overThreshold,
+    onlineSensors,
     lastUpdate: pickNumber(input, ['lastUpdate', 'last_update', 'updated_at', 'timestamp'], Date.now()),
   };
 }
@@ -303,15 +332,23 @@ export function normalizeAlertRecord(input: Record<string, unknown>): AlertEvent
 }
 
 export function normalizeRobotFleetStatsRecord(input: Record<string, unknown>): RobotFleetStats {
+  const online = clampNonNegative(pickNumber(input, ['online', 'online_count', 'robots_online'], 0));
+  const offline = clampNonNegative(pickNumber(input, ['offline', 'offline_count', 'robots_offline'], 0));
+  const lowBattery = clampNonNegative(pickNumber(input, ['lowBattery', 'low_battery', 'low_battery_count'], 0));
+  const error = clampNonNegative(pickNumber(input, ['error', 'error_count', 'fault_count'], 0));
+  const maintenance = clampNonNegative(pickNumber(input, ['maintenance', 'maintenance_count'], 0));
+  const statusTotal = online + offline + lowBattery + error + maintenance;
+  const total = Math.max(clampNonNegative(pickNumber(input, ['total', 'total_count', 'robot_total'], statusTotal)), statusTotal);
+
   return {
-    total: pickNumber(input, ['total', 'total_count', 'robot_total'], 0),
-    online: pickNumber(input, ['online', 'online_count', 'robots_online'], 0),
-    offline: pickNumber(input, ['offline', 'offline_count', 'robots_offline'], 0),
-    lowBattery: pickNumber(input, ['lowBattery', 'low_battery', 'low_battery_count'], 0),
-    error: pickNumber(input, ['error', 'error_count', 'fault_count'], 0),
-    maintenance: pickNumber(input, ['maintenance', 'maintenance_count'], 0),
-    meshConnected: pickNumber(input, ['meshConnected', 'mesh_connected', 'mesh_online'], 0),
-    avgBattery: pickNumber(input, ['avgBattery', 'avg_battery', 'avg_battery_pct'], 0),
+    total,
+    online,
+    offline,
+    lowBattery,
+    error,
+    maintenance,
+    meshConnected: Math.min(total, clampNonNegative(pickNumber(input, ['meshConnected', 'mesh_connected', 'mesh_online'], 0))),
+    avgBattery: Math.max(0, Math.min(100, pickNumber(input, ['avgBattery', 'avg_battery', 'avg_battery_pct'], 0))),
   };
 }
 

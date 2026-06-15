@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { getLocalizedSceneObjectLabel, getSceneSemantics, SCENE_SEMANTICS } from './sceneSemantics';
+import { getLocalizedNetworkLabel, getLocalizedSceneObjectLabel, getSceneSemantics, SCENE_SEMANTICS } from './sceneSemantics';
 import type { ScenarioType } from '../types';
 
 const SCENARIOS: ScenarioType[] = ['coal', 'gold', 'oil', 'pipeline', 'nuclear', 'refinery', 'underground'];
@@ -41,5 +41,12 @@ describe('scene semantics', () => {
     assert.equal(getLocalizedSceneObjectLabel('nuclear', 'en-US'), 'Reactor Pipe');
     assert.equal(getLocalizedSceneObjectLabel('refinery', 'en-US'), 'Equipment Passage');
     assert.equal(getLocalizedSceneObjectLabel('underground', 'en-US'), 'Underground Channel');
+  });
+
+  it('localizes network labels without mixed Chinese and English fragments', () => {
+    assert.equal(getLocalizedNetworkLabel('underground', 'en-US'), 'Underground Channel Network');
+    assert.equal(getLocalizedNetworkLabel('pipeline', 'en-US'), 'Pipeline Network');
+    assert.equal(getLocalizedNetworkLabel('nuclear', 'en-US'), 'Reactor Piping System');
+    assert.equal(getLocalizedNetworkLabel('underground', 'zh-CN'), '地下暗流通道网络');
   });
 });
